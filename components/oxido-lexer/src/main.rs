@@ -5,12 +5,13 @@ use oxido_lexer::lexer::Lexer;
 fn main() {
     println!("Oxido Lexer");
 
-    let l = Lexer::new(InputFile {
+    let mut l = Lexer::new(InputFile {
         filename: Word("main.rs".to_string()),
-        content: "fn main() { println!(\"Hello, world!\"); }".to_string(),
+        content: "fn main()\n { println!(\"Hello, world!\"); }".chars(),
     });
-    
-    for token in l {
-        println!("{:?}", token);
+
+    while let Some(x) = l.next() {
+        println!("{:?}:{:?}:{:?}", l.span.line, l.span.start, l.span.end);
+        println!("{:?}", x);
     }
 }

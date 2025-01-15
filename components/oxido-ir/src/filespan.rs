@@ -1,15 +1,15 @@
 use crate::inputfile::InputFile;
 
-#[derive(Debug, PartialEq)]
-pub struct FileSpan {
-    pub input_file: InputFile,
+#[derive(Debug)]
+pub struct FileSpan<'a> {
+    pub input_file: InputFile<'a>,
     pub line: usize,
     pub start: usize,
     pub end: usize,
 }
 
-impl FileSpan {
-    pub fn empty(input_file: InputFile) -> FileSpan {
+impl<'a> FileSpan<'a> {
+    pub fn empty(input_file: InputFile<'a>) -> FileSpan<'a> {
         FileSpan {
             input_file,
             line: 1,
