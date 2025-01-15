@@ -3,13 +3,13 @@
 version = 3
 
 [[package]]
-name = "dada-ir"
+name = "oxido"
 version = "0.1.0"
 
 [[package]]
-name = "dada-lex"
+name = "oxido-ir"
 version = "0.1.0"
 
 [[package]]
-name = "dada_sim"
+name = "oxido-lex"
 version = "0.1.0"
