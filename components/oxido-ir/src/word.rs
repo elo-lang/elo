@@ -1,2 +1,2 @@
 #[derive(Debug, Clone, PartialEq)]
-pub struct Word(String);
+pub struct Word(pub String);
