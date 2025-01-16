@@ -3,7 +3,7 @@ use crate::word::Word;
 #[derive(Debug)]
 pub enum Token {
   Alphabetic(Word), // any identifier
-  Number(Word), // Any number literal
+  Numeric(Word), // Any number literal
   Comma, // ,
   Newline, // \n
   Op(char), // +, -, *, /, ==, etc
