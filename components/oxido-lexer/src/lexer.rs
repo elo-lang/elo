@@ -79,21 +79,6 @@ impl<'a> Lexer<'a> {
         }
         buffer
     }
-    
-    fn consume_while(&mut self, start: Option<&char>, predicate: fn(char) -> bool) -> String {
-        let mut buffer = String::new();
-        if let Some(start) = start {
-            buffer.push(*start);
-        }
-        while let Some(&c) = self.input_file.content.peek() {
-            if !predicate(c) {
-                break;
-            }
-            buffer.push(c);
-            self.input_file.content.next();
-        }
-        buffer
-    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -113,7 +98,7 @@ impl<'a> Iterator for Lexer<'a> {
                     return Some(Token::Newline);
                 }
                 a if is_token_alphabetic(a) => {
-                    let s = self.consume_while(Some(&c), |c| is_token_alphabetic(c));
+                    let s = self.consume_until(Some(&c), |c| !is_token_alphabetic(c));
                     self.advance_span(s.len());
                     return Some(Token::Alphabetic(Word(s)));
                 }
