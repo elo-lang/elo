@@ -6,7 +6,9 @@ pub enum Token {
   Numeric(Word), // Any number literal
   Comma, // ,
   Newline, // \n
-  Op(char), // +, -, *, /, ==, etc
+  // This option is for the second character like in ==, <=, >=, etc
+  // e.g. Token::Op('=', Some('=')) is "=="
+  Op(char, Option<char>), // +, -, *, /, ==, etc
   Delimiter(char), // (, ), [, ], {, }, ., etc
   StringLiteral(String), // "foo", "bar", "hello"
   Whitespace(char), // ' ', '\t', '\r', etc
