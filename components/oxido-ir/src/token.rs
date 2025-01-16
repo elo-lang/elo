@@ -11,6 +11,5 @@ pub enum Token {
   Op(char, Option<char>), // +, -, *, /, ==, etc
   Delimiter(char), // (, ), [, ], {, }, ., etc
   StringLiteral(String), // "foo", "bar", "hello"
-  Whitespace(char), // ' ', '\t', '\r', etc
   Unknown(char),
 }
