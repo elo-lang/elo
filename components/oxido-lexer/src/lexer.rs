@@ -133,6 +133,9 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 a if is_token_string_literal(a) => {
                     let s = self.consume_until(None, |c| c == '"');
+                    if self.input_file.content.peek() != Some(&'"') {
+                        panic!("Unterminated string literal");
+                    }
                     self.input_file.content.next(); // Compensate for the last "
                     self.advance_span(s.len());
                     self.span.end += 2; // Compensate span to get the last "

@@ -4,7 +4,7 @@ use oxido_lexer::lexer::Lexer;
 
 fn main() {
     println!("Oxido Lexer");
-    let string = "println(\"Hello\")";
+    let string = "println(\"Hello)";
     let mut l = Lexer::new(InputFile {
         filename: Word("main.rs".to_string()),
         content:string.chars().peekable(),
