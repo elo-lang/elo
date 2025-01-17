@@ -6,7 +6,7 @@ fn main() {
     println!("Oxido Lexer");
     let string = "println(\"Hello)";
     let mut l = Lexer::new(InputFile {
-        filename: Word("main.rs".to_string()),
+        filename: "main.rs",
         content:string.chars().peekable(),
     });
 
