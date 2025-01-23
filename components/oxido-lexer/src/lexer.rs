@@ -12,38 +12,16 @@ pub fn is_token_whitespace(c: char) -> bool {
     c.is_whitespace() && c != '\n'
 }
 
-pub fn is_token_newline(c: char) -> bool {
-    c == '\n'
+macro_rules! delimiter {
+    () => {
+        '(' | ')' | '[' | ']' | '{' | '}' | '.' | ';' | ':'
+    };
 }
 
-pub fn is_token_alphabetic(c: char) -> bool {
-    c.is_alphabetic() || c == '_'
-}
-
-pub fn is_token_numeric(c: char) -> bool {
-    c.is_digit(10)
-}
-
-pub fn is_token_comma(c: char) -> bool {
-    c == ','
-}
-
-pub fn is_token_op(c: char) -> bool {
-    match c {
-        '+' | '-' | '*' | '/' | '%' | '=' | '!' | '<' | '>' | '&' | '|' | '^' | '~' => true,
-        _ => false,
-    }
-}
-
-pub fn is_token_delimiter(c: char) -> bool {
-    match c {
-        '(' | ')' | '[' | ']' | '{' | '}' | '.' | ';' | ':' => true,
-        _ => false,
-    }
-}
-
-pub fn is_token_string_literal(c: char) -> bool {
-    c == '"'
+macro_rules! op {
+    () => {
+        '+' | '-' | '/' | '*' | '%' | '!' | '>' | '<' | '&' | '|' | '^' | '~' | '.' | ':' | ';' | '='
+    };
 }
 
 impl<'a> Lexer<'a> {
@@ -65,13 +43,13 @@ impl<'a> Lexer<'a> {
         self.span.end = 0;
     }
 
-    pub fn consume_until(&mut self, start: Option<&char>, predicate: fn(char) -> bool) -> String {
+    pub fn consume_while(&mut self, start: Option<&char>, matches: fn(char) -> bool) -> String {
         let mut buffer = String::new();
         if let Some(start) = start {
             buffer.push(*start);
         }
         while let Some(&c) = self.input_file.content.peek() {
-            if predicate(c) {
+            if !matches(c) {
                 break;
             }
             buffer.push(c);
@@ -89,7 +67,7 @@ impl<'a> Iterator for Lexer<'a> {
             match c {
                 '#' => {
                     // Ignore comments
-                    let _ = self.consume_until(Some(&c), is_token_newline);
+                    let _ = self.consume_while(Some(&c), |c| c != '\n');
                     self.advance_line();
                     return self.next();
                 }
@@ -97,8 +75,8 @@ impl<'a> Iterator for Lexer<'a> {
                     self.advance_line();
                     return Some(Token::Newline);
                 }
-                a if is_token_alphabetic(a) => {
-                    let s = self.consume_until(Some(&c), |c| !is_token_alphabetic(c));
+                'a'..='z' | 'A'..='Z' | '_' => {
+                    let s = self.consume_while(Some(&c), |c| matches!(c, 'a'..='z' | 'A'..='Z' | '_' | '0'..='9'));
                     self.advance_span(s.len());
                     return Some(Token::Alphabetic(Word(s)));
                 }
@@ -106,19 +84,19 @@ impl<'a> Iterator for Lexer<'a> {
                     self.advance_span(1);
                     return self.next();
                 }
-                a if is_token_numeric(a) => {
-                    let s = self.consume_until(Some(&c), |c| !is_token_numeric(c) || is_token_delimiter(c));
+                '0'..='9' => {
+                    let s = self.consume_while(Some(&c), |c| matches!(c, '0'..='9' | '_') || !matches!(c, delimiter!()));
                     self.advance_span(s.len());
                     return Some(Token::Numeric(Word(s)));
                 }
-                a if is_token_comma(a) => {
+                ',' => {
                     self.advance_span(1);
                     return Some(Token::Comma);
                 }
-                a if is_token_op(a) => {
+                op!() => {
                     let next = self.input_file.content.peek();
                     let op = match next {
-                        Some(&b) if is_token_op(b) => {
+                        Some(&b) if matches!(b, op!()) => {
                             self.advance_span(1);
                             Some(b)
                         }
@@ -127,12 +105,12 @@ impl<'a> Iterator for Lexer<'a> {
                     self.advance_span(1);
                     return Some(Token::Op(c, op));
                 }
-                a if is_token_delimiter(a) => {
+                delimiter!() => {
                     self.advance_span(1);
                     return Some(Token::Delimiter(c));
                 }
-                a if is_token_string_literal(a) => {
-                    let s = self.consume_until(None, |c| c == '"');
+                '"' => {
+                    let s = self.consume_while(None, |c| c != '"');
                     if self.input_file.content.peek() != Some(&'"') {
                         panic!("Unterminated string literal");
                     }
@@ -148,5 +126,78 @@ impl<'a> Iterator for Lexer<'a> {
             }
         }
         None
+    }
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lex_print() {
+        // TODO: Bug com a source_text abaixo, os spans estão desconsiderando os comentários
+        // e começando a contar desconsiderando os caracteres de comentários
+        //let source_text = "#foda-se isso aqi\nfn() main 4.98";
+        // OUTPUT:
+        //Newline 3:0:0 ""
+        //Alphabetic(Word("fn")) 3:0:2 "#f"
+        //Delimiter('(') 3:2:3 "o"
+        //Delimiter(')') 3:3:4 "d"
+        //Alphabetic(Word("main")) 3:5:9 "-se "        
+        //Numeric(Word("4")) 3:10:11 "s"
+        //Op('.', None) 3:11:12 "s"
+        //Numeric(Word("98")) 3:12:14 "o "
+
+        // PS: tanto consume_until quanto consume_while geram o mesmo resultado
+        // dei preferência ao consume_while por ser mais intuitivo
+
+        let source_text = "#foda-se isso aqi\nfn() main 4.98";
+        let mut lx = Lexer::new(InputFile {
+            filename: "main.rs",
+            content: source_text.chars().peekable(),
+        });
+
+        while let Some(tk) = lx.next() {
+            let token = tk;
+            let start = lx.span.start;
+            let end = lx.span.end;
+            let line = lx.span.line;
+            let content = &source_text[start..end].to_string();
+
+            println!("{:?} {:?}:{:?}:{:?} {:?}", token, line, start, end, content);
+        }
+    }
+
+    #[test]
+    fn test_lex1() {
+        let source_text = "fn() main";
+        let lx = Lexer::new(InputFile {
+            filename: "main.rs",
+            content: source_text.chars().peekable(),
+        });
+
+        let tokens: Vec<Token> = lx.collect();
+        assert_eq!(tokens, vec![
+            Token::Alphabetic(Word("fn".to_string())),
+            Token::Delimiter('('),
+            Token::Delimiter(')'),
+            Token::Alphabetic(Word("main".to_string())),
+        ]);   
+    }
+
+    #[test]
+    fn test_lex_string_literal() {
+        let source_text = "fn() \"Hello, World!\"";
+        let lx = Lexer::new(InputFile {
+            filename: "main.rs",
+            content: source_text.chars().peekable(),
+        });
+
+        let tokens: Vec<Token> = lx.collect();
+        assert_eq!(tokens, vec![
+            Token::Alphabetic(Word("fn".to_string())),
+            Token::Delimiter('('),
+            Token::Delimiter(')'),
+            Token::StringLiteral("Hello, World!".to_string()),
+        ]);
     }
 }
