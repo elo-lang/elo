@@ -63,11 +63,11 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
-        if let Some(c) = self.input_file.content.next() {
-            match c {
+        if let Some(ch) = self.input_file.content.next() {
+            match ch {
                 '#' => {
                     // Ignore comments
-                    let _ = self.consume_while(Some(&c), |c| c != '\n');
+                    let _ = self.consume_while(Some(&ch), |c| c != '\n');
                     self.advance_line();
                     return self.next();
                 }
@@ -75,17 +75,17 @@ impl<'a> Iterator for Lexer<'a> {
                     self.advance_line();
                     return Some(Token::Newline);
                 }
-                'a'..='z' | 'A'..='Z' | '_' => {
-                    let s = self.consume_while(Some(&c), |c| matches!(c, 'a'..='z' | 'A'..='Z' | '_' | '0'..='9'));
+                ch if ch.is_alphabetic() || ch == '_' => {
+                    let s = self.consume_while(Some(&ch), |c| c.is_alphabetic() | matches!(c, '_' | '0'..='9'));
                     self.advance_span(s.len());
                     return Some(Token::Alphabetic(Word(s)));
                 }
-                a if is_token_whitespace(a) => {
+                ch if is_token_whitespace(ch) => {
                     self.advance_span(1);
                     return self.next();
                 }
                 '0'..='9' => {
-                    let s = self.consume_while(Some(&c), |c| matches!(c, '0'..='9' | '_') || !matches!(c, delimiter!()));
+                    let s = self.consume_while(Some(&ch), |c| matches!(c, '0'..='9' | '_') || !matches!(c, delimiter!()));
                     self.advance_span(s.len());
                     return Some(Token::Numeric(Word(s)));
                 }
@@ -103,11 +103,11 @@ impl<'a> Iterator for Lexer<'a> {
                         _ => None,
                     };
                     self.advance_span(1);
-                    return Some(Token::Op(c, op));
+                    return Some(Token::Op(ch, op));
                 }
                 delimiter!() => {
                     self.advance_span(1);
-                    return Some(Token::Delimiter(c));
+                    return Some(Token::Delimiter(ch));
                 }
                 '"' => {
                     let s = self.consume_while(None, |c| c != '"');
@@ -119,9 +119,9 @@ impl<'a> Iterator for Lexer<'a> {
                     self.span.end += 2; // Compensate span to get the last "
                     return Some(Token::StringLiteral(s));
                 }
-                c => {
+                _ => {
                     self.advance_span(1);
-                    return Some(Token::Unknown(c))
+                    return Some(Token::Unknown(ch))
                 }
             }
         }
