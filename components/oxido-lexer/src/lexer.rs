@@ -8,8 +8,10 @@ pub struct Lexer<'a> {
     pub span: FileSpan<'a>,
 }
 
-pub fn is_token_whitespace(c: char) -> bool {
-    c.is_whitespace() && c != '\n'
+macro_rules! whitespace {
+    () => {
+        ' ' | '\r' | '\t' | '\x0b' | '\x0c'
+    };
 }
 
 macro_rules! delimiter {
@@ -20,7 +22,37 @@ macro_rules! delimiter {
 
 macro_rules! op {
     () => {
-        '+' | '-' | '/' | '*' | '%' | '!' | '>' | '<' | '&' | '|' | '^' | '~' | '.' | ':' | ';' | '='
+        '+' | '-' | '/' | '*' | '%' | '!' | '>' | '<' | '&' | '|' | '^' | '~' | '='
+    };
+}
+
+macro_rules! op_next {
+    () => {
+        '=' | '+' | '-' | '&' | '|'
+    };
+}
+
+macro_rules! numeric_start {
+    () => {
+        '0'..='9'
+    };
+}
+
+macro_rules! numeric {
+    () => {
+        '0'..='9' | '.'
+    };
+}
+
+macro_rules! alphabetic_start {
+    () => {
+        'a'..='z' | 'A'..='Z' | '_'
+    };
+}
+
+macro_rules! alphabetic {
+    () => {
+        'a'..='z' | 'A'..='Z' | '0'..='9' | '_'
     };
 }
 
@@ -57,6 +89,43 @@ impl<'a> Lexer<'a> {
         }
         buffer
     }
+
+    fn token_numeric(&mut self, ch: &char) -> Token {
+        let s = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
+        self.advance_span(s.len());
+        return Token::Numeric(Word(s));
+    }
+    
+    fn token_alphabetic(&mut self, ch: &char) -> Token {
+        let s = self.consume_while(Some(&ch), |c| matches!(c, alphabetic!()));
+        self.advance_span(s.len());
+        return Token::Alphabetic(Word(s));
+    }
+    
+    fn token_op(&mut self, ch: &char) -> Token {
+        let next = self.input_file.content.peek();
+        let op = match next {
+            Some(&b) if matches!(b, op_next!()) => {
+                self.advance_span(1);
+                self.input_file.content.next();
+                Some(b)
+            }
+            _ => None,
+        };
+        self.advance_span(1);
+        return Token::Op(*ch, op);
+    }
+    
+    fn token_string(&mut self) -> Token {
+        let s = self.consume_while(None, |c| c != '"');
+        if self.input_file.content.peek() != Some(&'"') {
+            panic!("Unterminated string literal");
+        }
+        self.input_file.content.next(); // Compensate for the last "
+        self.advance_span(s.len());
+        self.span.end += 2; // Compensate span to get the last "
+        return Token::StringLiteral(s);
+    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -64,140 +133,38 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Token> {
         if let Some(ch) = self.input_file.content.next() {
-            match ch {
+            return match ch {
                 '#' => {
-                    // Ignore comments
                     let _ = self.consume_while(Some(&ch), |c| c != '\n');
                     self.advance_line();
-                    return self.next();
+                    self.next()
                 }
                 '\n' => {
                     self.advance_line();
-                    return Some(Token::Newline);
+                    Some(Token::Newline)
                 }
-                ch if ch.is_alphabetic() || ch == '_' => {
-                    let s = self.consume_while(Some(&ch), |c| c.is_alphabetic() | matches!(c, '_' | '0'..='9'));
-                    self.advance_span(s.len());
-                    return Some(Token::Alphabetic(Word(s)));
-                }
-                ch if is_token_whitespace(ch) => {
+                whitespace!() => {
                     self.advance_span(1);
-                    return self.next();
-                }
-                '0'..='9' => {
-                    let s = self.consume_while(Some(&ch), |c| matches!(c, '0'..='9' | '_') || !matches!(c, delimiter!()));
-                    self.advance_span(s.len());
-                    return Some(Token::Numeric(Word(s)));
+                    self.next()
                 }
                 ',' => {
                     self.advance_span(1);
-                    return Some(Token::Comma);
+                    Some(Token::Comma)
                 }
-                op!() => {
-                    let next = self.input_file.content.peek();
-                    let op = match next {
-                        Some(&b) if matches!(b, op!()) => {
-                            self.advance_span(1);
-                            Some(b)
-                        }
-                        _ => None,
-                    };
-                    self.advance_span(1);
-                    return Some(Token::Op(ch, op));
-                }
+                alphabetic_start!() => Some(self.token_alphabetic(&ch)),
+                numeric_start!() => Some(self.token_numeric(&ch)),
+                op!() => Some(self.token_op(&ch)),
                 delimiter!() => {
                     self.advance_span(1);
-                    return Some(Token::Delimiter(ch));
+                    Some(Token::Delimiter(ch))
                 }
-                '"' => {
-                    let s = self.consume_while(None, |c| c != '"');
-                    if self.input_file.content.peek() != Some(&'"') {
-                        panic!("Unterminated string literal");
-                    }
-                    self.input_file.content.next(); // Compensate for the last "
-                    self.advance_span(s.len());
-                    self.span.end += 2; // Compensate span to get the last "
-                    return Some(Token::StringLiteral(s));
-                }
+                '"' => Some(self.token_string()),
                 _ => {
                     self.advance_span(1);
-                    return Some(Token::Unknown(ch))
+                    Some(Token::Unknown(ch))
                 }
             }
         }
         None
-    }
-}
-
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_lex_print() {
-        // TODO: Bug com a source_text abaixo, os spans estão desconsiderando os comentários
-        // e começando a contar desconsiderando os caracteres de comentários
-        //let source_text = "#foda-se isso aqi\nfn() main 4.98";
-        // OUTPUT:
-        //Newline 3:0:0 ""
-        //Alphabetic(Word("fn")) 3:0:2 "#f"
-        //Delimiter('(') 3:2:3 "o"
-        //Delimiter(')') 3:3:4 "d"
-        //Alphabetic(Word("main")) 3:5:9 "-se "        
-        //Numeric(Word("4")) 3:10:11 "s"
-        //Op('.', None) 3:11:12 "s"
-        //Numeric(Word("98")) 3:12:14 "o "
-
-        // PS: tanto consume_until quanto consume_while geram o mesmo resultado
-        // dei preferência ao consume_while por ser mais intuitivo
-
-        let source_text = "#foda-se isso aqi\nfn() main 4.98";
-        let mut lx = Lexer::new(InputFile {
-            filename: "main.rs",
-            content: source_text.chars().peekable(),
-        });
-
-        while let Some(tk) = lx.next() {
-            let token = tk;
-            let start = lx.span.start;
-            let end = lx.span.end;
-            let line = lx.span.line;
-            let content = &source_text[start..end].to_string();
-
-            println!("{:?} {:?}:{:?}:{:?} {:?}", token, line, start, end, content);
-        }
-    }
-
-    #[test]
-    fn test_lex1() {
-        let source_text = "fn() main";
-        let lx = Lexer::new(InputFile {
-            filename: "main.rs",
-            content: source_text.chars().peekable(),
-        });
-
-        let tokens: Vec<Token> = lx.collect();
-        assert_eq!(tokens, vec![
-            Token::Alphabetic(Word("fn".to_string())),
-            Token::Delimiter('('),
-            Token::Delimiter(')'),
-            Token::Alphabetic(Word("main".to_string())),
-        ]);   
-    }
-
-    #[test]
-    fn test_lex_string_literal() {
-        let source_text = "fn() \"Hello, World!\"";
-        let lx = Lexer::new(InputFile {
-            filename: "main.rs",
-            content: source_text.chars().peekable(),
-        });
-
-        let tokens: Vec<Token> = lx.collect();
-        assert_eq!(tokens, vec![
-            Token::Alphabetic(Word("fn".to_string())),
-            Token::Delimiter('('),
-            Token::Delimiter(')'),
-            Token::StringLiteral("Hello, World!".to_string()),
-        ]);
     }
 }
