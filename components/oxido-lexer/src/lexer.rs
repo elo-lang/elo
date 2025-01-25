@@ -1,7 +1,7 @@
-use oxido_ir::filespan::FileSpan;
-use oxido_ir::inputfile::InputFile;
-use oxido_ir::token::Token;
-use oxido_ir::word::Word;
+use crate::filespan::FileSpan;
+use crate::inputfile::InputFile;
+use crate::token::Token;
+use crate::word::Word;
 
 pub struct Lexer<'a> {
     pub input_file: InputFile<'a>,

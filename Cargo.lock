@@ -7,12 +7,5 @@ name = "oxido"
 version = "0.1.0"
 
 [[package]]
-name = "oxido-ir"
-version = "0.1.0"
-
-[[package]]
 name = "oxido-lexer"
 version = "0.1.0"
-dependencies = [
- "oxido-ir",
-]

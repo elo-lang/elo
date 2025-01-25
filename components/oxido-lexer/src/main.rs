@@ -1,10 +1,5 @@
-#[allow(dead_code, unused_imports)]
-use oxido_ir::inputfile::InputFile;
-#[allow(dead_code, unused_imports)]
-use oxido_ir::token::Token;
-#[allow(dead_code, unused_imports)]
-use oxido_ir::word::Word;
-#[allow(dead_code, unused_imports)]
+use oxido_lexer::inputfile::InputFile;
+use oxido_lexer::token::Token;
 use oxido_lexer::lexer::Lexer;
 
 fn main() {
