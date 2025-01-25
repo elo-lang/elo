@@ -1,7 +1,6 @@
 use crate::filespan::FileSpan;
 use crate::inputfile::InputFile;
 use crate::token::Token;
-use crate::word::Word;
 
 pub struct Lexer<'a> {
     pub input_file: InputFile<'a>,
@@ -93,13 +92,13 @@ impl<'a> Lexer<'a> {
     fn token_numeric(&mut self, ch: &char) -> Token {
         let s = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
         self.advance_span(s.len());
-        return Token::Numeric(Word(s));
+        return Token::Numeric(s);
     }
     
     fn token_alphabetic(&mut self, ch: &char) -> Token {
         let s = self.consume_while(Some(&ch), |c| matches!(c, alphabetic!()));
         self.advance_span(s.len());
-        return Token::Alphabetic(Word(s));
+        return Token::Alphabetic(s);
     }
     
     fn token_op(&mut self, ch: &char) -> Token {

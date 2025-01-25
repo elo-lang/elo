@@ -1,9 +1,7 @@
-use crate::word::Word;
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
-  Alphabetic(Word), // any identifier
-  Numeric(Word), // Any number literal
+  Alphabetic(String), // any identifier
+  Numeric(String), // Any number literal
   Comma, // ,
   Newline, // \n
   // This option is for the second character like in ==, <=, >=, etc
