@@ -1,6 +1,6 @@
 use crate::word::Word;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Token {
   Alphabetic(Word), // any identifier
   Numeric(Word), // Any number literal
