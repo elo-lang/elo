@@ -31,15 +31,9 @@ macro_rules! op_next {
     };
 }
 
-macro_rules! numeric_start {
-    () => {
-        '0'..='9'
-    };
-}
-
 macro_rules! numeric {
     () => {
-        '0'..='9' | '.'
+        '0'..='9'
     };
 }
 
@@ -96,6 +90,25 @@ impl<'a> Lexer<'a> {
     }
 
     fn token_numeric(&mut self, ch: &char) -> Token {
+        let s = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
+        
+        if self.input_file.content.peek() == Some(&'.') {
+            self.input_file.content.next();
+            let s2 = self.consume_while(None, |c| matches!(c, numeric!()));
+            if s2.is_empty() {
+                panic!("Invalid number literal");
+            }
+
+            self.advance_span(s.len() + s2.len() + 1);
+            return Token::Numeric(format!("{}.{}", s, s2));
+        }
+
+        self.advance_span(s.len());
+        
+        return Token::Numeric(s);
+    }
+
+    fn consume_numeric(&mut self, ch: &char) -> Token {
         let s = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
         self.advance_span(s.len());
         return Token::Numeric(s);
@@ -159,9 +172,19 @@ impl<'a> Iterator for Lexer<'a> {
                     self.next()
                 }
                 identifier_start!() => Some(self.token_word(&ch)),
-                numeric_start!() => Some(self.token_numeric(&ch)),
+                numeric!() => Some(self.token_numeric(&ch)),
                 op!() => Some(self.token_op(&ch)),
                 delimiter!() => {
+                    if ch == '.' {
+                        if let Some(c) = self.input_file.content.peek() {
+                            if matches!(c, numeric!()) {
+                                return Some(self.consume_numeric(&ch));
+                            }
+                        }
+
+                        self.advance_span(1);
+                        return Some(Token::Delimiter(ch));
+                    }
                     self.advance_span(1);
                     Some(Token::Delimiter(ch))
                 }
@@ -173,24 +196,5 @@ impl<'a> Iterator for Lexer<'a> {
             }
         }
         None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_lexer() {
-        let source_text = "# aaaaa\nstruct Color { r,g,b,a: float }";
-        let mut lx = Lexer::new(InputFile::new(
-            "test.rs",
-            source_text.chars(),
-        ));
-
-        while let Some(token) = lx.next() {
-            println!("{}:{}:{}", lx.span.line, lx.span.start, lx.span.end);
-            println!("{:?}", token);
-        }
     }
 }
