@@ -43,15 +43,21 @@ macro_rules! numeric {
     };
 }
 
-macro_rules! alphabetic_start {
+macro_rules! identifier_start {
     () => {
         'a'..='z' | 'A'..='Z' | '_'
     };
 }
 
-macro_rules! alphabetic {
+macro_rules! identifier {
     () => {
         'a'..='z' | 'A'..='Z' | '0'..='9' | '_'
+    };
+}
+
+macro_rules! keyword {
+    () => {
+        "var" | "const" | "let" | "fn" | "struct" | "enum"
     };
 }
 
@@ -95,10 +101,15 @@ impl<'a> Lexer<'a> {
         return Token::Numeric(s);
     }
     
-    fn token_alphabetic(&mut self, ch: &char) -> Token {
-        let s = self.consume_while(Some(&ch), |c| matches!(c, alphabetic!()));
+    fn token_word(&mut self, ch: &char) -> Token {
+        let s = self.consume_while(Some(&ch), |c| matches!(c, identifier!()));
         self.advance_span(s.len());
-        return Token::Alphabetic(s);
+        
+        if matches!(s.as_str(), keyword!()) {
+            return Token::Keyword(s);
+        }
+        
+        return Token::Identifier(s);
     }
     
     fn token_op(&mut self, ch: &char) -> Token {
@@ -135,6 +146,7 @@ impl<'a> Iterator for Lexer<'a> {
             return match ch {
                 '#' => {
                     let _ = self.consume_while(Some(&ch), |c| c != '\n');
+                    self.input_file.content.next(); // Consume \n
                     self.advance_line();
                     self.next()
                 }
@@ -146,7 +158,7 @@ impl<'a> Iterator for Lexer<'a> {
                     self.advance_span(1);
                     self.next()
                 }
-                alphabetic_start!() => Some(self.token_alphabetic(&ch)),
+                identifier_start!() => Some(self.token_word(&ch)),
                 numeric_start!() => Some(self.token_numeric(&ch)),
                 op!() => Some(self.token_op(&ch)),
                 delimiter!() => {
@@ -161,5 +173,24 @@ impl<'a> Iterator for Lexer<'a> {
             }
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lexer() {
+        let source_text = "# aaaaa\nstruct Color { r,g,b,a: float }";
+        let mut lx = Lexer::new(InputFile::new(
+            "test.rs",
+            source_text.chars(),
+        ));
+
+        while let Some(token) = lx.next() {
+            println!("{}:{}:{}", lx.span.line, lx.span.start, lx.span.end);
+            println!("{:?}", token);
+        }
     }
 }

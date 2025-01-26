@@ -1,6 +1,7 @@
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
-  Alphabetic(String), // any identifier
+  Keyword(String), // if, else, while, etc
+  Identifier(String), // any identifier
   Numeric(String), // Any number literal
   Newline, // \n
   // This option is for the second character like in ==, <=, >=, etc
