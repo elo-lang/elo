@@ -15,7 +15,7 @@ macro_rules! whitespace {
 
 macro_rules! delimiter {
     () => {
-        '(' | ')' | '[' | ']' | '{' | '}' | '.' | ';' | ':'
+        '(' | ')' | '[' | ']' | '{' | '}' | '.' | ',' | ';' | ':'
     };
 }
 
@@ -145,10 +145,6 @@ impl<'a> Iterator for Lexer<'a> {
                 whitespace!() => {
                     self.advance_span(1);
                     self.next()
-                }
-                ',' => {
-                    self.advance_span(1);
-                    Some(Token::Comma)
                 }
                 alphabetic_start!() => Some(self.token_alphabetic(&ch)),
                 numeric_start!() => Some(self.token_numeric(&ch)),
