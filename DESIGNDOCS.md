@@ -106,10 +106,16 @@ Variable is a named binding to a value in runtime.
 
 Constant is a named binding to a constant value, known at compile time.
 
-Define local variables using the keyword `let`:
+Define local immutable variables using the keyword `let`:
 ```
 let x = 10
 let y = 20
+```
+
+Define local mutable variables using the keyword `var`:
+```
+var x = 10
+var y = 20
 ```
 
 Define constants using the keyword `const`:
