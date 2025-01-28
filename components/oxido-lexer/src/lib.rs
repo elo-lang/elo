@@ -1,4 +1,4 @@
-pub mod filespan;
+pub mod span;
 pub mod inputfile;
 pub mod token;
 pub mod lexer;

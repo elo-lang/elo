@@ -1,4 +1,4 @@
-use crate::filespan::FileSpan;
+use crate::span::FileSpan;
 use crate::inputfile::InputFile;
 use crate::token::Token;
 

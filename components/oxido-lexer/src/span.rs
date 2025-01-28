@@ -17,4 +17,19 @@ impl<'a> FileSpan<'a> {
             end: 0,
         }
     }
+
+    pub fn into_span(&self) -> Span {
+        Span {
+            line: self.line,
+            start: self.start,
+            end: self.end,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Span {
+    pub line: usize,
+    pub start: usize,
+    pub end: usize,
 }
