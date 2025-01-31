@@ -27,7 +27,7 @@ impl<'a> FileSpan<'a> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Span {
     pub line: usize,
     pub start: usize,

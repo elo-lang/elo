@@ -1,5 +1,6 @@
-use crate::span::FileSpan;
 use crate::inputfile::InputFile;
+use crate::lexem::Lexem;
+use crate::span::FileSpan;
 use crate::token::Token;
 
 pub struct Lexer<'a> {
@@ -91,7 +92,7 @@ impl<'a> Lexer<'a> {
 
     fn token_numeric(&mut self, ch: &char) -> Token {
         let s = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
-        
+
         if self.input_file.content.peek() == Some(&'.') {
             self.input_file.content.next();
             let s2 = self.consume_while(None, |c| matches!(c, numeric!()));
@@ -104,7 +105,7 @@ impl<'a> Lexer<'a> {
         }
 
         self.advance_span(s.len());
-        
+
         return Token::Numeric(s);
     }
 
@@ -113,18 +114,18 @@ impl<'a> Lexer<'a> {
         self.advance_span(s.len());
         return Token::Numeric(s);
     }
-    
+
     fn token_word(&mut self, ch: &char) -> Token {
         let s = self.consume_while(Some(&ch), |c| matches!(c, identifier!()));
         self.advance_span(s.len());
-        
+
         if matches!(s.as_str(), keyword!()) {
             return Token::Keyword(s);
         }
-        
+
         return Token::Identifier(s);
     }
-    
+
     fn token_op(&mut self, ch: &char) -> Token {
         let next = self.input_file.content.peek();
         let op = match next {
@@ -138,7 +139,7 @@ impl<'a> Lexer<'a> {
         self.advance_span(1);
         return Token::Op(*ch, op);
     }
-    
+
     fn token_string(&mut self) -> Token {
         let s = self.consume_while(None, |c| c != '"');
         if self.input_file.content.peek() != Some(&'"') {
@@ -152,9 +153,9 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Token;
+    type Item = Lexem;
 
-    fn next(&mut self) -> Option<Token> {
+    fn next(&mut self) -> Option<Lexem> {
         if let Some(ch) = self.input_file.content.next() {
             return match ch {
                 '#' => {
@@ -165,35 +166,48 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 '\n' => {
                     self.advance_line();
-                    Some(Token::Newline)
+                    Some(Lexem::new(self.span.into_span(), Token::Newline))
                 }
                 whitespace!() => {
                     self.advance_span(1);
                     self.next()
                 }
-                identifier_start!() => Some(self.token_word(&ch)),
-                numeric!() => Some(self.token_numeric(&ch)),
-                op!() => Some(self.token_op(&ch)),
+                identifier_start!() => {
+                    let token = self.token_word(&ch);
+                    Some(Lexem::new(self.span.into_span(), token))
+                }
+                numeric!() => {
+                    let token = self.token_numeric(&ch);
+                    Some(Lexem::new(self.span.into_span(), token))
+                }
+                op!() => {
+                    let token = self.token_op(&ch);
+                    Some(Lexem::new(self.span.into_span(), token))
+                }
                 delimiter!() => {
                     if ch == '.' {
                         if let Some(c) = self.input_file.content.peek() {
                             if matches!(c, numeric!()) {
-                                return Some(self.consume_numeric(&ch));
+                                let token = self.consume_numeric(&ch);
+                                return Some(Lexem::new(self.span.into_span(), token));
                             }
                         }
 
                         self.advance_span(1);
-                        return Some(Token::Delimiter(ch));
+                        return Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)));
                     }
                     self.advance_span(1);
-                    Some(Token::Delimiter(ch))
+                    Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)))
                 }
-                '"' => Some(self.token_string()),
+                '"' => {
+                    let token = self.token_string();
+                    Some(Lexem::new(self.span.into_span(), token))
+                }
                 _ => {
                     self.advance_span(1);
-                    Some(Token::Unknown(ch))
+                    Some(Lexem::new(self.span.into_span(), Token::Unknown(ch)))
                 }
-            }
+            };
         }
         None
     }

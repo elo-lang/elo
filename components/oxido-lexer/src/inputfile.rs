@@ -1,5 +1,5 @@
-use std::str::Chars;
 use std::iter::Peekable;
+use std::str::Chars;
 
 #[derive(Debug, Clone)]
 pub struct InputFile<'a> {

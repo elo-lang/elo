@@ -1,51 +1,65 @@
-
 #[test]
 fn test_floats() {
-    use crate::lexer::Lexer;
     use crate::inputfile::InputFile;
-    
-    let source_text = ".1 0.1";
-    let mut lx = Lexer::new(InputFile::new(
-        "test.rs",
-        source_text.chars(),
-    ));
+    use crate::lexer::Lexer;
 
-    while let Some(token) = lx.next() {
-        println!("{}:{}:{} \"{}\"", lx.span.line, lx.span.start, lx.span.end, &source_text[lx.span.start..lx.span.end]);
+    let source_text = ".1 0.1";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+
+    for lexem in lx {
+        let token = lexem.token;
+        let span = lexem.span;
+        println!(
+            "{}:{}:{} \"{}\"",
+            span.line,
+            span.start,
+            span.end,
+            &source_text[span.start..span.end]
+        );
         println!("{:?}", token);
     }
 }
 
 #[test]
 fn test_strings() {
-    use crate::lexer::Lexer;
     use crate::inputfile::InputFile;
-    
-    let source_text = "\"hello\"";
-    let mut lx = Lexer::new(InputFile::new(
-        "test.rs",
-        source_text.chars(),
-    ));
+    use crate::lexer::Lexer;
 
-    while let Some(token) = lx.next() {
-        println!("{}:{}:{} \"{}\"", lx.span.line, lx.span.start, lx.span.end, &source_text[lx.span.start..lx.span.end]);
+    let source_text = "\"hello\"";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+
+    for lexem in lx {
+        let token = lexem.token;
+        let span = lexem.span;
+        println!(
+            "{}:{}:{} \"{}\"",
+            span.line,
+            span.start,
+            span.end,
+            &source_text[span.start..span.end]
+        );
         println!("{:?}", token);
     }
 }
 
 #[test]
 fn test_comments() {
-    use crate::lexer::Lexer;
     use crate::inputfile::InputFile;
-    
-    let source_text = "# This is a comment\n";
-    let mut lx = Lexer::new(InputFile::new(
-        "test.rs",
-        source_text.chars(),
-    ));
+    use crate::lexer::Lexer;
 
-    while let Some(token) = lx.next() {
-        println!("{}:{}:{} \"{}\"", lx.span.line, lx.span.start, lx.span.end, &source_text[lx.span.start..lx.span.end]);
+    let source_text = "# This is a comment\n";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+
+    for lexem in lx {
+        let token = lexem.token;
+        let span = lexem.span;
+        println!(
+            "{}:{}:{} \"{}\"",
+            span.line,
+            span.start,
+            span.end,
+            &source_text[span.start..span.end]
+        );
         println!("{:?}", token);
     }
 }
