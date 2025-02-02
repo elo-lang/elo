@@ -94,12 +94,12 @@ impl<'a> Lexer<'a> {
         let s = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
 
         if self.input_file.content.peek() == Some(&'.') {
-            self.input_file.content.next();
             let s2 = self.consume_while(None, |c| matches!(c, numeric!()));
             if s2.is_empty() {
-                panic!("Invalid number literal");
+                return Token::Numeric(s);
             }
 
+            self.input_file.content.next();
             self.advance_span(s.len() + s2.len() + 1);
             return Token::Numeric(format!("{}.{}", s, s2));
         }
@@ -185,17 +185,6 @@ impl<'a> Iterator for Lexer<'a> {
                     Some(Lexem::new(self.span.into_span(), token))
                 }
                 delimiter!() => {
-                    if ch == '.' {
-                        if let Some(c) = self.input_file.content.peek() {
-                            if matches!(c, numeric!()) {
-                                let token = self.consume_numeric(&ch);
-                                return Some(Lexem::new(self.span.into_span(), token));
-                            }
-                        }
-
-                        self.advance_span(1);
-                        return Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)));
-                    }
                     self.advance_span(1);
                     Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)))
                 }
