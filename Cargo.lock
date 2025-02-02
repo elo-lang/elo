@@ -7,5 +7,20 @@ name = "oxido"
 version = "0.1.0"
 
 [[package]]
+name = "oxido-error"
+version = "0.1.0"
+dependencies = [
+ "oxido-lexer",
+]
+
+[[package]]
 name = "oxido-lexer"
 version = "0.1.0"
+
+[[package]]
+name = "oxido-parser"
+version = "0.1.0"
+dependencies = [
+ "oxido-error",
+ "oxido-lexer",
+]
