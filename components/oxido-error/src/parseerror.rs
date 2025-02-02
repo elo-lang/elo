@@ -1,4 +1,12 @@
+use oxido_lexer::span::Span;
+
 #[derive(Debug)]
-pub enum ParseError {
+pub enum ParseErrorCase {
     UnexpectedToken { got: String, expected: String },
+}
+
+#[derive(Debug)]
+pub struct ParseError {
+    pub span: Option<Span>,
+    pub case: ParseErrorCase,
 }
