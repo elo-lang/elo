@@ -1,11 +1,10 @@
+use crate::inputfile::InputFile;
 use crate::lexem::Lexem;
+use crate::lexer::Lexer;
 
 #[test]
 fn test_floats() {
-    use crate::inputfile::InputFile;
-    use crate::lexer::Lexer;
-
-    let source_text = "0.1 1.1";
+    let source_text = "0.143535345435 1.1";
     let lx = Lexer::new(InputFile::new("test", source_text.chars()));
 
     for lexem in lx {
@@ -24,9 +23,6 @@ fn test_floats() {
 
 #[test]
 fn test_strings() {
-    use crate::inputfile::InputFile;
-    use crate::lexer::Lexer;
-
     let source_text = "\"hello\"";
     let lx = Lexer::new(InputFile::new("test", source_text.chars()));
 
@@ -46,9 +42,6 @@ fn test_strings() {
 
 #[test]
 fn test_comments() {
-    use crate::inputfile::InputFile;
-    use crate::lexer::Lexer;
-
     let source_text = "# This is a comment\n";
     let lx = Lexer::new(InputFile::new("test", source_text.chars()));
 
@@ -68,9 +61,6 @@ fn test_comments() {
 
 #[test]
 fn test_period1() {
-    use crate::inputfile::InputFile;
-    use crate::lexer::Lexer;
-
     let source_text = "1.abc";
     let lx = Lexer::new(InputFile::new("test", source_text.chars()));
 
@@ -90,9 +80,6 @@ fn test_period1() {
 
 #[test]
 fn test_period2() {
-    use crate::inputfile::InputFile;
-    use crate::lexer::Lexer;
-
     let source_text = "abc.1";
     let lx = Lexer::new(InputFile::new("test", source_text.chars()));
 

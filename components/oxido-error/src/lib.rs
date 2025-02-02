@@ -1,2 +1,2 @@
-pub mod throw;
 pub mod parseerror;
+pub mod throw;

@@ -91,28 +91,9 @@ impl<'a> Lexer<'a> {
     }
 
     fn token_numeric(&mut self, ch: &char) -> Token {
-        let s = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
-
-        if self.input_file.content.peek() == Some(&'.') {
-            let s2 = self.consume_while(None, |c| matches!(c, numeric!()));
-            if s2.is_empty() {
-                return Token::Numeric(s);
-            }
-
-            self.input_file.content.next();
-            self.advance_span(s.len() + s2.len() + 1);
-            return Token::Numeric(format!("{}.{}", s, s2));
-        }
-
-        self.advance_span(s.len());
-
-        return Token::Numeric(s);
-    }
-
-    fn consume_numeric(&mut self, ch: &char) -> Token {
-        let s = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
-        self.advance_span(s.len());
-        return Token::Numeric(s);
+        let int = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
+        self.advance_span(int.len());
+        return Token::Numeric(int);
     }
 
     fn token_word(&mut self, ch: &char) -> Token {
