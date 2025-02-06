@@ -233,6 +233,10 @@ impl<'a> Parser<'a> {
                     span: lexem.span,
                     structure: self.parse_stmt_from_kw(&kw)?,
                 },
+                // TODO: Because of the lexer.next on top the parser is consuming the first token of it,
+                // which is not ideal in cases of lines like 1; or "abc"; with only one token or floating
+                // point literals like 1.5 (it consumes the token 1) and then throws an unexpected token "."
+                // because the first number is already consumed.
                 _ => Node {
                     span: lexem.span,
                     structure: Structure::Expression(self.parse_expr()?),

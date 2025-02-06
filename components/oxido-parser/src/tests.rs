@@ -4,7 +4,7 @@ use oxido_lexer::lexer::Lexer;
 
 #[test]
 fn test_let_stmt() {
-    let source_text = "let x = 10;";
+    let source_text = "0.143535345435 1.1";
     let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
 
     let mut parser = Parser::new(lx);
