@@ -32,8 +32,8 @@ impl<'a> Parser<'a> {
                 token: Token::Numeric(num),
                 ..
             }) => Ok(num),
-            Some(Lexem { token: other, .. }) => Err(ParseError {
-                span: None,
+            Some(Lexem { token: other, span }) => Err(ParseError {
+                span: Some(span),
                 case: ParseErrorCase::UnexpectedToken {
                     got: format!("{:?}", other),
                     expected: "numeric".to_string(),
@@ -120,8 +120,8 @@ impl<'a> Parser<'a> {
                 token: Token::Identifier(ident),
                 ..
             }) => Ok(ident),
-            Some(Lexem { token: other, .. }) => Err(ParseError {
-                span: None,
+            Some(Lexem { token: other, span }) => Err(ParseError {
+                span: Some(span),
                 case: ParseErrorCase::UnexpectedToken {
                     got: format!("{:?}", other),
                     expected: "identifier".to_string(),
@@ -148,8 +148,8 @@ impl<'a> Parser<'a> {
                 ..
             }) => Ok(()),
             None => Ok(()),
-            Some(Lexem { token: other, .. }) => Err(ParseError {
-                span: None,
+            Some(Lexem { token: other, span }) => Err(ParseError {
+                span: Some(span),
                 case: ParseErrorCase::UnexpectedToken {
                     got: format!("{:?}", other),
                     expected: "end of statement".to_string(),
