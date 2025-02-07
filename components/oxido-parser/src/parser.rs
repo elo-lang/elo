@@ -10,6 +10,34 @@ use crate::node::Node;
 use crate::program::Program;
 use crate::structure::{BinaryOperation, Expression, LetStatement, Structure};
 
+fn precedence(token: &Token) -> u8 {
+    match token {
+        Token::Op('=', None) => 1,
+        Token::Op('=', Some('=')) => 2,
+        Token::Op('!', Some('=')) => 2,
+        Token::Op('<', Some('=')) => 3,
+        Token::Op('>', Some('=')) => 3,
+        Token::Op('<', None)      => 3,
+        Token::Op('>', None)      => 3,
+        Token::Op('&', Some('&')) => 4,
+        Token::Op('|', Some('|')) => 4,
+        Token::Op('&', None)      => 5,
+        Token::Op('|', None)      => 5,
+        Token::Op('^', None)      => 5,
+        Token::Op('+', None)      => 6,
+        Token::Op('-', None)      => 6,
+        Token::Op('*', None)      => 7,
+        Token::Op('/', None)      => 7,
+        Token::Op('%', None)      => 7,
+        Token::Op('<', Some('<')) => 8,
+        Token::Op('>', Some('>')) => 8,
+        // This is zero because the check made in parse_expr() will be false because
+        // you have to start parsing expressions starting from limit = 1.
+        // This way it just stops parsing when it finds something strange
+        _ => 0,
+    }
+}
+
 pub const EOF: &str = "EOF";
 
 pub struct Parser<'a> {
@@ -163,9 +191,10 @@ impl<'a> Parser<'a> {
             return match &lexem.token {
                 Token::Numeric(_) => Ok(self.parse_number()?),
                 Token::Identifier(_) => Ok(self.parse_identifier()?),
-                Token::Op('(', None) => {
-                    let expr = self.parse_expr()?;
-                    self.expect_token(Token::Op(')', None))?;
+                Token::Delimiter('(') => {
+                    self.lexer.next();
+                    let expr = self.parse_expr(1)?;
+                    self.expect_token(Token::Delimiter(')'))?;
                     Ok(expr)
                 }
                 other => Err(ParseError {
@@ -186,29 +215,31 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_expr(&mut self) -> Result<Expression, ParseError> {
-        let mut expr = self.parse_primary()?;
-        if let Some(lexem) = self.lexer.peek() {
-            match lexem.token {
-                Token::Op(a, b) => {
-                    self.lexer.next();
-                    let right: Expression = self.parse_expr()?;
-                    expr = Expression::BinaryOperation {
-                        operator: BinaryOperation::from_op(a, b),
-                        left: Box::new(expr),
-                        right: Box::new(right),
-                    };
-                }
-                _ => {}
+    fn parse_expr(&mut self, limit: u8) -> Result<Expression, ParseError> {
+        let mut left = self.parse_primary()?;
+        println!("{:?}", left);
+        while let Some(op) = self.lexer.peek() {
+            let next_limit = precedence(&op.token);
+            println!("{:?}", next_limit);
+            if limit > next_limit {
+                break;
+            }
+            if let Some(Lexem { token: Token::Op(a, b), .. }) = self.lexer.next() {
+                let right = self.parse_expr(next_limit)?;
+                left = Expression::BinaryOperation {
+                    operator: BinaryOperation::from_op(a, b),
+                    left: Box::new(left),
+                    right: Box::new(right),
+                };
             }
         }
-        Ok(expr)
+        Ok(left)
     }
 
     fn parse_let_stmt(&mut self) -> Result<Structure, ParseError> {
         let ident = self.expect_identifier()?;
         let _ = self.expect_token(Token::Op('=', None))?;
-        let expr = self.parse_expr()?;
+        let expr = self.parse_expr(1)?;
         self.expect_end()?;
         Ok(Structure::LetStatement(LetStatement {
             binding: ident,
@@ -216,10 +247,14 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn parse_stmt_from_kw(&mut self, kw: &str) -> Result<Structure, ParseError> {
-        match kw {
-            "let" => self.parse_let_stmt(),
-            _ => unreachable!("unexpected keyword: {}", kw),
+    fn parse_stmt(&mut self) -> Result<Structure, ParseError> {
+        if let Some(Lexem { token: Token::Keyword(kw), .. }) = self.lexer.next() {
+            match kw.as_str() {
+                "let" => return self.parse_let_stmt(),
+                _ => unreachable!("unexpected keyword: {}", kw),
+            }
+        } else {
+            unreachable!("asked to parse statement without keyword")
         }
     }
 }
@@ -227,19 +262,15 @@ impl<'a> Parser<'a> {
 impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Program, ParseError> {
         let mut ast = vec![];
-        while let Some(lexem) = self.lexer.next() {
+        while let Some(lexem) = self.lexer.peek() {
             let x = match lexem.token {
-                Token::Keyword(kw) => Node {
+                Token::Keyword(_) => Node {
                     span: lexem.span,
-                    structure: self.parse_stmt_from_kw(&kw)?,
+                    structure: self.parse_stmt()?,
                 },
-                // TODO: Because of the lexer.next on top the parser is consuming the first token of it,
-                // which is not ideal in cases of lines like 1; or "abc"; with only one token or floating
-                // point literals like 1.5 (it consumes the token 1) and then throws an unexpected token "."
-                // because the first number is already consumed.
                 _ => Node {
                     span: lexem.span,
-                    structure: Structure::Expression(self.parse_expr()?),
+                    structure: Structure::Expression(self.parse_expr(1)?),
                 },
             };
             ast.push(x);
