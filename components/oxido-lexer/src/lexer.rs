@@ -1,4 +1,5 @@
 use crate::inputfile::InputFile;
+use crate::keyword::Keyword;
 use crate::lexem::Lexem;
 use crate::span::FileSpan;
 use crate::token::Token;
@@ -50,12 +51,6 @@ macro_rules! identifier {
     };
 }
 
-macro_rules! keyword {
-    () => {
-        "var" | "const" | "let" | "fn" | "struct" | "enum"
-    };
-}
-
 impl<'a> Lexer<'a> {
     pub fn new(input_file: InputFile) -> Lexer {
         Lexer {
@@ -100,8 +95,8 @@ impl<'a> Lexer<'a> {
         let s = self.consume_while(Some(&ch), |c| matches!(c, identifier!()));
         self.advance_span(s.len());
 
-        if matches!(s.as_str(), keyword!()) {
-            return Token::Keyword(s);
+        if let Some(kw) = Keyword::from_str(s.as_str()) {
+            return Token::Keyword(kw);
         }
 
         return Token::Identifier(s);

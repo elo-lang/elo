@@ -1,6 +1,8 @@
+use crate::keyword::Keyword;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
-    Keyword(String),    // if, else, while, etc
+    Keyword(Keyword),   // if, else, while, etc
     Identifier(String), // any identifier
     Numeric(String),    // Any number literal
     Newline,            // \n

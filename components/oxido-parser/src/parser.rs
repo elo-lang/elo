@@ -2,6 +2,7 @@ use std::iter::Peekable;
 
 use oxido_error::parseerror::{ParseError, ParseErrorCase};
 use oxido_lexer::inputfile::InputFile;
+use oxido_lexer::keyword::Keyword;
 use oxido_lexer::lexem::Lexem;
 use oxido_lexer::lexer::Lexer;
 use oxido_lexer::token::Token;
@@ -17,18 +18,18 @@ fn precedence(token: &Token) -> u8 {
         Token::Op('!', Some('=')) => 2,
         Token::Op('<', Some('=')) => 3,
         Token::Op('>', Some('=')) => 3,
-        Token::Op('<', None)      => 3,
-        Token::Op('>', None)      => 3,
+        Token::Op('<', None) => 3,
+        Token::Op('>', None) => 3,
         Token::Op('&', Some('&')) => 4,
         Token::Op('|', Some('|')) => 4,
-        Token::Op('&', None)      => 5,
-        Token::Op('|', None)      => 5,
-        Token::Op('^', None)      => 5,
-        Token::Op('+', None)      => 6,
-        Token::Op('-', None)      => 6,
-        Token::Op('*', None)      => 7,
-        Token::Op('/', None)      => 7,
-        Token::Op('%', None)      => 7,
+        Token::Op('&', None) => 5,
+        Token::Op('|', None) => 5,
+        Token::Op('^', None) => 5,
+        Token::Op('+', None) => 6,
+        Token::Op('-', None) => 6,
+        Token::Op('*', None) => 7,
+        Token::Op('/', None) => 7,
+        Token::Op('%', None) => 7,
         Token::Op('<', Some('<')) => 8,
         Token::Op('>', Some('>')) => 8,
         // This is zero because the check made in parse_expr() will be false because
@@ -224,7 +225,11 @@ impl<'a> Parser<'a> {
             if limit > next_limit {
                 break;
             }
-            if let Some(Lexem { token: Token::Op(a, b), .. }) = self.lexer.next() {
+            if let Some(Lexem {
+                token: Token::Op(a, b),
+                ..
+            }) = self.lexer.next()
+            {
                 let right = self.parse_expr(next_limit)?;
                 left = Expression::BinaryOperation {
                     operator: BinaryOperation::from_op(a, b),
@@ -248,10 +253,18 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_stmt(&mut self) -> Result<Structure, ParseError> {
-        if let Some(Lexem { token: Token::Keyword(kw), .. }) = self.lexer.next() {
-            match kw.as_str() {
-                "let" => return self.parse_let_stmt(),
-                _ => unreachable!("unexpected keyword: {}", kw),
+        if let Some(Lexem {
+            token: Token::Keyword(kw),
+            ..
+        }) = self.lexer.next()
+        {
+            match kw {
+                Keyword::Var => todo!("var statement"),
+                Keyword::Let => return self.parse_let_stmt(),
+                Keyword::Const => todo!("const statement"),
+                Keyword::Fn => todo!("fn statement"),
+                Keyword::Struct => todo!("struct statement"),
+                Keyword::Enum => todo!("enum statement"),
             }
         } else {
             unreachable!("asked to parse statement without keyword")
@@ -264,7 +277,7 @@ impl<'a> Parser<'a> {
         let mut ast = vec![];
         while let Some(lexem) = self.lexer.peek() {
             let x = match lexem.token {
-                Token::Keyword(_) => Node {
+                Token::Keyword(..) => Node {
                     span: lexem.span,
                     structure: self.parse_stmt()?,
                 },

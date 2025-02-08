@@ -4,7 +4,7 @@ use crate::lexer::Lexer;
 
 #[test]
 fn test_floats() {
-    let source_text = "0.143535345435 1.1";
+    let source_text = "6.9 4.20";
     let lx = Lexer::new(InputFile::new("test", source_text.chars()));
 
     for lexem in lx {
