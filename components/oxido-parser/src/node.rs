@@ -1,4 +1,4 @@
-use crate::structure::Structure;
+use crate::ast::Structure;
 use oxido_lexer::span::Span;
 
 #[derive(Debug)]

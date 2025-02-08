@@ -9,7 +9,7 @@ use oxido_lexer::token::Token;
 
 use crate::node::Node;
 use crate::program::Program;
-use crate::structure::{BinaryOperation, Expression, LetStatement, Structure};
+use crate::ast::{BinaryOperation, Expression, LetStatement, Structure};
 
 fn precedence(token: &Token) -> u8 {
     match token {
