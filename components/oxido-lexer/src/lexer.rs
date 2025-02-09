@@ -33,13 +33,19 @@ macro_rules! op_next {
     };
 }
 
-macro_rules! numeric {
+macro_rules! numeric_first {
     () => {
         '0'..='9'
     };
 }
 
-macro_rules! identifier_start {
+macro_rules! numeric {
+    () => {
+        '0'..='9' | '_'
+    };
+}
+
+macro_rules! identifier_first {
     () => {
         'a'..='z' | 'A'..='Z' | '_'
     };
@@ -148,11 +154,11 @@ impl<'a> Iterator for Lexer<'a> {
                     self.advance_span(1);
                     self.next()
                 }
-                identifier_start!() => {
+                identifier_first!() => {
                     let token = self.token_word(&ch);
                     Some(Lexem::new(self.span.into_span(), token))
                 }
-                numeric!() => {
+                numeric_first!() => {
                     let token = self.token_numeric(&ch);
                     Some(Lexem::new(self.span.into_span(), token))
                 }

@@ -22,6 +22,25 @@ fn test_floats() {
 }
 
 #[test]
+fn test_numbers_with_underline() {
+    let source_text = "6_000 _420";
+    let lx = Lexer::new(InputFile::new("test", source_text.chars()));
+
+    for lexem in lx {
+        let token = lexem.token;
+        let span = lexem.span;
+        println!(
+            "{}:{}:{} \"{}\"",
+            span.line,
+            span.start,
+            span.end,
+            &source_text[span.start..span.end]
+        );
+        println!("{:?}", token);
+    }
+}
+
+#[test]
 fn test_strings() {
     let source_text = "\"hello\"";
     let lx = Lexer::new(InputFile::new("test", source_text.chars()));
