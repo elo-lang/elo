@@ -20,15 +20,4 @@ impl Keyword {
             _ => None,
         }
     }
-
-    pub fn as_text(&self) -> String {
-        match self {
-            Keyword::Var => String::from("var"),
-            Keyword::Let => String::from("let"),
-            Keyword::Const => String::from("const"),
-            Keyword::Fn => String::from("fn"),
-            Keyword::Struct => String::from("struct"),
-            Keyword::Enum => String::from("enum"),
-        }
-    }
 }
