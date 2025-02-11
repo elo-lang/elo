@@ -3,14 +3,14 @@ use oxido_lexer::inputfile::InputFile;
 use oxido_lexer::lexer::Lexer;
 
 #[test]
-fn test_let_stmt() {
-    let source_text = "let x = 69";
+fn test_binop() {
+    let source_text = "(a + b * c) / 2";
     let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
 
     let mut parser = Parser::new(lx);
     match parser.parse() {
         Ok(ast) => {
-            println!("{:?}", ast);
+            println!("{:#?}", ast);
         }
         Err(e) => {
             println!("error:");
@@ -24,7 +24,61 @@ fn test_let_stmt() {
                     &parser.inputfile.content.collect::<String>().as_str()[span.start..span.end]
                 );
             }
-            println!("  {:?}", e.case);
+            println!("  {:#?}", e.case);
+        }
+    }
+}
+
+#[test]
+fn test_unop() {
+    let source_text = "-a + b";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+
+    let mut parser = Parser::new(lx);
+    match parser.parse() {
+        Ok(ast) => {
+            println!("{:#?}", ast);
+        }
+        Err(e) => {
+            println!("error:");
+            if let Some(span) = e.span {
+                println!(
+                    "  at {:?} line {} from {} to {}",
+                    parser.inputfile.filename, span.line, span.start, span.end
+                );
+                println!(
+                    "| {}",
+                    &parser.inputfile.content.collect::<String>().as_str()[span.start..span.end]
+                );
+            }
+            println!("  {:#?}", e.case);
+        }
+    }
+}
+
+#[test]
+fn test_let_stmt() {
+    let source_text = "let x = 69";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+
+    let mut parser = Parser::new(lx);
+    match parser.parse() {
+        Ok(ast) => {
+            println!("{:#?}", ast);
+        }
+        Err(e) => {
+            println!("error:");
+            if let Some(span) = e.span {
+                println!(
+                    "  at {:?} line {} from {} to {}",
+                    parser.inputfile.filename, span.line, span.start, span.end
+                );
+                println!(
+                    "| {}",
+                    &parser.inputfile.content.collect::<String>().as_str()[span.start..span.end]
+                );
+            }
+            println!("  {:#?}", e.case);
         }
     }
 }

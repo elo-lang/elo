@@ -9,9 +9,11 @@ use oxido_lexer::token::Token;
 
 use crate::node::Node;
 use crate::program::Program;
-use crate::ast::{BinaryOperation, Expression, LetStatement, Structure};
+use crate::ast::{BinaryOperation, Expression, LetStatement, Structure, UnaryOperation};
 
-fn precedence(token: &Token) -> u8 {
+pub type Precedence = u8;
+
+fn binop_precedence(token: &Token) -> Precedence {
     match token {
         Token::Op('=', None) => 1,
         Token::Op('=', Some('=')) => 2,
@@ -32,6 +34,19 @@ fn precedence(token: &Token) -> u8 {
         Token::Op('%', None) => 7,
         Token::Op('<', Some('<')) => 8,
         Token::Op('>', Some('>')) => 8,
+        // This is zero because the check made in parse_expr() will be false because
+        // you have to start parsing expressions starting from limit = 1.
+        // This way it just stops parsing when it finds something strange
+        _ => 0,
+    }
+}
+
+fn unop_precedence(op: &Token) -> Precedence {
+    match op {
+        Token::Op('!', None) => 9,
+        Token::Op('-', None) => 9,
+        Token::Op('~', None) => 9,
+        Token::Op('&', None) => 9,
         // This is zero because the check made in parse_expr() will be false because
         // you have to start parsing expressions starting from limit = 1.
         // This way it just stops parsing when it finds something strange
@@ -133,13 +148,15 @@ impl<'a> Parser<'a> {
                     })
                 }
             }
-            None => Err(ParseError {
-                span: None,
-                case: ParseErrorCase::UnexpectedToken {
-                    got: EOF.to_string(),
-                    expected: format!("{:?}", expect),
-                },
-            }),
+            None => {
+                Err(ParseError {
+                    span: None,
+                    case: ParseErrorCase::UnexpectedToken {
+                        got: EOF.to_string(),
+                        expected: format!("{:?}", expect),
+                    },
+                })
+            },
         }
     }
 
@@ -176,7 +193,6 @@ impl<'a> Parser<'a> {
                 token: Token::Delimiter(';'),
                 ..
             }) => Ok(()),
-            None => Ok(()),
             Some(Lexem { token: other, span }) => Err(ParseError {
                 span: Some(span),
                 case: ParseErrorCase::UnexpectedToken {
@@ -184,21 +200,40 @@ impl<'a> Parser<'a> {
                     expected: "end of statement".to_string(),
                 },
             }),
+            None => Ok(()),
         }
     }
 
     fn parse_primary(&mut self) -> Result<Expression, ParseError> {
         if let Some(lexem) = self.lexer.peek() {
-            return match &lexem.token {
-                Token::Numeric(_) => Ok(self.parse_number()?),
-                Token::Identifier(_) => Ok(self.parse_identifier()?),
+            match &lexem.token {
+                Token::Numeric(_) => return Ok(self.parse_number()?),
+                Token::Identifier(_) => return Ok(self.parse_identifier()?),
                 Token::Delimiter('(') => {
                     self.lexer.next();
                     let expr = self.parse_expr(1)?;
                     self.expect_token(Token::Delimiter(')'))?;
-                    Ok(expr)
-                }
-                other => Err(ParseError {
+                    return Ok(expr);
+                },
+                token@Token::Op(a, b) => {
+                    let op = UnaryOperation::from_op(*a,b.as_ref().copied());
+                    if let Some(unop) = op {
+                        let prec = unop_precedence(token);
+                        self.lexer.next();
+                        return Ok(Expression::UnaryOperation {
+                            operator: unop,
+                            operand: Box::new(self.parse_expr(prec)?),
+                        });
+                    }
+                    return Err(ParseError {
+                        span: Some(lexem.span),
+                        case: ParseErrorCase::UnexpectedToken {
+                            got: format!("{:?}", token),
+                            expected: "primary expression".to_string(),
+                        },
+                    });
+                },
+                other => return Err(ParseError {
                     span: Some(lexem.span),
                     case: ParseErrorCase::UnexpectedToken {
                         got: format!("{:?}", other),
@@ -216,12 +251,10 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_expr(&mut self, limit: u8) -> Result<Expression, ParseError> {
+    fn parse_expr(&mut self, limit: Precedence) -> Result<Expression, ParseError> {
         let mut left = self.parse_primary()?;
-        println!("{:?}", left);
         while let Some(op) = self.lexer.peek() {
-            let next_limit = precedence(&op.token);
-            println!("{:?}", next_limit);
+            let next_limit = binop_precedence(&op.token);
             if limit > next_limit {
                 break;
             }
@@ -232,7 +265,7 @@ impl<'a> Parser<'a> {
             {
                 let right = self.parse_expr(next_limit)?;
                 left = Expression::BinaryOperation {
-                    operator: BinaryOperation::from_op(a, b),
+                    operator: BinaryOperation::from_op(a, b).unwrap(),
                     left: Box::new(left),
                     right: Box::new(right),
                 };

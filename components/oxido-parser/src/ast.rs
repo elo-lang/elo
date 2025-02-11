@@ -23,32 +23,32 @@ pub enum BinaryOperation {
 }
 
 impl BinaryOperation {
-    pub fn from_op(first: char, second: Option<char>) -> Self {
+    pub fn from_op(first: char, second: Option<char>) -> Option<Self> {
         let mut pat = String::from(first);
         if let Some(c) = second {
             pat.push(c);
         }
         match pat.as_str() {
-            "+" => BinaryOperation::Add,
-            "-" => BinaryOperation::Sub,
-            "*" => BinaryOperation::Mul,
-            "/" => BinaryOperation::Div,
-            "%" => BinaryOperation::Mod,
-            "<" => BinaryOperation::Lt,
-            ">" => BinaryOperation::Gt,
-            "&" => BinaryOperation::BAnd,
-            "|" => BinaryOperation::BOr,
-            "^" => BinaryOperation::BXor,
-            "=" => BinaryOperation::Assign,
-            "==" => BinaryOperation::Eq,
-            "!=" => BinaryOperation::Ne,
-            "<=" => BinaryOperation::Le,
-            ">=" => BinaryOperation::Ge,
-            "&&" => BinaryOperation::And,
-            "||" => BinaryOperation::Or,
-            "<<" => BinaryOperation::LShift,
-            ">>" => BinaryOperation::RShift,
-            _ => unreachable!("expected operator, got {:?}", pat),
+            "+" => Some(BinaryOperation::Add),
+            "-" => Some(BinaryOperation::Sub),
+            "*" => Some(BinaryOperation::Mul),
+            "/" => Some(BinaryOperation::Div),
+            "%" => Some(BinaryOperation::Mod),
+            "<" => Some(BinaryOperation::Lt),
+            ">" => Some(BinaryOperation::Gt),
+            "&" => Some(BinaryOperation::BAnd),
+            "|" => Some(BinaryOperation::BOr),
+            "^" => Some(BinaryOperation::BXor),
+            "=" => Some(BinaryOperation::Assign),
+            "==" => Some(BinaryOperation::Eq),
+            "!=" => Some(BinaryOperation::Ne),
+            "<=" => Some(BinaryOperation::Le),
+            ">=" => Some(BinaryOperation::Ge),
+            "&&" => Some(BinaryOperation::And),
+            "||" => Some(BinaryOperation::Or),
+            "<<" => Some(BinaryOperation::LShift),
+            ">>" => Some(BinaryOperation::RShift),
+            _ => None,
         }
     }
 }
@@ -58,12 +58,23 @@ pub enum UnaryOperation {
     Neg,
     Not,
     BNot,
-    Ref,
-    Deref,
-    PreInc,
-    PreDec,
-    PostInc,
-    PostDec,
+    Addr,
+}
+
+impl UnaryOperation {
+    pub fn from_op(first: char, second: Option<char>) -> Option<Self> {
+        let mut pat = String::from(first);
+        if let Some(c) = second {
+            pat.push(c);
+        }
+        match pat.as_str() {
+            "!" => Some(UnaryOperation::Not),
+            "~" => Some(UnaryOperation::BNot),
+            "-" => Some(UnaryOperation::Neg),
+            "&" => Some(UnaryOperation::Addr),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug)]
