@@ -9,7 +9,7 @@ use oxido_lexer::token::Token;
 
 use crate::node::Node;
 use crate::program::Program;
-use crate::ast::{BinaryOperation, Expression, LetStatement, Structure, UnaryOperation};
+use crate::ast::{BinaryOperation, Expression, LetStatement, Structure, UnaryOperation, VarStatement};
 
 pub type Precedence = u8;
 
@@ -290,6 +290,15 @@ impl<'a> Parser<'a> {
         }))
     }
     
+    fn parse_var_stmt(&mut self) -> Result<Structure, ParseError> {
+        let (ident, expr) = self.expect_assignment()?; 
+        self.expect_end()?;
+        Ok(Structure::VarStatement(VarStatement {
+            binding: ident,
+            assignment: expr,
+        }))
+    }
+    
     fn parse_stmt(&mut self) -> Result<Structure, ParseError> {
         if let Some(Lexem {
             token: Token::Keyword(kw),
@@ -297,7 +306,7 @@ impl<'a> Parser<'a> {
         }) = self.lexer.next()
         {
             match kw {
-                Keyword::Var => todo!("var statement"),
+                Keyword::Var => return self.parse_var_stmt(),
                 Keyword::Let => return self.parse_let_stmt(),
                 Keyword::Const => todo!("const statement"),
                 Keyword::Fn => todo!("fn statement"),
