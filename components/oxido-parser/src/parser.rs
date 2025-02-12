@@ -274,17 +274,22 @@ impl<'a> Parser<'a> {
         Ok(left)
     }
 
-    fn parse_let_stmt(&mut self) -> Result<Structure, ParseError> {
+    fn expect_assignment(&mut self) -> Result<(String, Expression), ParseError> {
         let ident = self.expect_identifier()?;
         let _ = self.expect_token(Token::Op('=', None))?;
         let expr = self.parse_expr(1)?;
+        Ok((ident, expr))
+    }
+
+    fn parse_let_stmt(&mut self) -> Result<Structure, ParseError> {
+        let (ident, expr) = self.expect_assignment()?; 
         self.expect_end()?;
         Ok(Structure::LetStatement(LetStatement {
             binding: ident,
             assignment: expr,
         }))
     }
-
+    
     fn parse_stmt(&mut self) -> Result<Structure, ParseError> {
         if let Some(Lexem {
             token: Token::Keyword(kw),
@@ -314,9 +319,11 @@ impl<'a> Parser<'a> {
                     span: lexem.span,
                     structure: self.parse_stmt()?,
                 },
-                _ => Node {
-                    span: lexem.span,
-                    structure: Structure::Expression(self.parse_expr(1)?),
+                _ => {
+                    Node {
+                        span: lexem.span,
+                        structure: Structure::Expression(self.parse_expr(1)?),
+                    }
                 },
             };
             ast.push(x);
