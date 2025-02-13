@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::inputfile::InputFile;
 use crate::keyword::Keyword;
 use crate::lexem::Lexem;
@@ -42,6 +44,24 @@ macro_rules! numeric_first {
 macro_rules! numeric {
     () => {
         '0'..='9' | '_'
+    };
+}
+
+macro_rules! numeric_binary {
+    () => {
+        '0' | '1' | '_'
+    };
+}
+
+macro_rules! numeric_octal {
+    () => {
+        '0'..='7' | '_'
+    };
+}
+
+macro_rules! numeric_alphanumeric {
+    () => {
+        '0'..='9' | '_' | 'a'..='f' | 'A'..='F'
     };
 }
 
@@ -92,6 +112,48 @@ impl<'a> Lexer<'a> {
     }
 
     fn token_numeric(&mut self, ch: &char) -> Token {
+        // TODO: check suffixes like u8, i8, etc?
+        if ch == &'0' {
+            let next = self.input_file.content.peek();
+            let mut base_num = String::from("0");
+            match next {
+                Some(&'b') => {
+                    self.input_file.content.next();
+                    base_num.push_str(
+                        &self.consume_while(
+                            Some(&'b'), |c| matches!(c, numeric_binary!())
+                        ));
+                }
+                Some(&'o') => {
+                    self.input_file.content.next();
+                    base_num.push_str(
+                        &self.consume_while(
+                            Some(&'o'), |c| matches!(c, numeric_octal!())
+                        ));
+                }
+                Some(&'x') => {
+                    self.input_file.content.next();
+                    base_num.push_str(
+                        &self.consume_while(
+                            Some(&'x'), |c| matches!(c, numeric_alphanumeric!())
+                        ));
+                }
+                Some(&numeric!()) => {
+                    let int = self.consume_while(
+                        Some(ch), |c| matches!(c, numeric!()));
+                    self.advance_span(int.len());
+                    return Token::Numeric(int);
+                }
+                _ => {
+                    let int_error = self.consume_while(
+                        None, |c| matches!(c, identifier!()));
+                    self.advance_span(int_error.len());
+                    panic!("error: invalid suffix `{int_error}` for number literal");
+                }
+            }
+            self.advance_span(base_num.len());
+            return Token::Numeric(base_num);
+        }
         let int = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
         self.advance_span(int.len());
         return Token::Numeric(int);
