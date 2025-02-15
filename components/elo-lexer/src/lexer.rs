@@ -1,4 +1,5 @@
 use core::panic;
+use std::ffi::NulError;
 
 use crate::inputfile::InputFile;
 use crate::keyword::Keyword;
@@ -59,7 +60,7 @@ macro_rules! numeric_octal {
     };
 }
 
-macro_rules! numeric_alphanumeric {
+macro_rules! numeric_hex {
     () => {
         '0'..='9' | '_' | 'a'..='f' | 'A'..='F'
     };
@@ -110,57 +111,48 @@ impl<'a> Lexer<'a> {
         }
         buffer
     }
-
+    
     fn token_numeric(&mut self, ch: &char) -> Token {
         // TODO: check suffixes like u8, i8, etc?
-        let mut number = String::new();
-        let mut base = 10;
         if ch == &'0' {
-            if let Some(next) = self.input_file.content.peek() {
-                match *next {
+            if let Some(c) = self.input_file.content.peek() {
+                match c {
                     'b' => {
-                        base = 2;
                         self.input_file.content.next();
-                        number = self.consume_while(
+                        self.advance_span(2);
+                        let number = self.consume_while(
                             None, |c| matches!(c, numeric_binary!())
                         );
+                        self.span.end += number.len();
+                        return Token::Numeric(number, 2);
                     }
                     'o' => {
-                        base = 8;
                         self.input_file.content.next();
-                        number = self.consume_while(
+                        self.advance_span(2);
+                        let number = self.consume_while(
                             None, |c| matches!(c, numeric_octal!())
                         );
+                        self.span.end += number.len();
+                        return Token::Numeric(number, 8);
                     }
                     'x' => {
-                        base = 16;
                         self.input_file.content.next();
-                        number = self.consume_while(
-                            None, |c| matches!(c, numeric_alphanumeric!())
+                        self.advance_span(2);
+                        let number = self.consume_while(
+                            None, |c| matches!(c, numeric_hex!())
                         );
+                        self.span.end += number.len();
+                        return Token::Numeric(number, 16);
                     }
-                    numeric!() => {
-                        base = 10;
-                        let int = self.consume_while(
-                            Some(ch), |c| matches!(c, numeric!()));
-                        self.advance_span(int.len());
-                        return Token::Numeric(int, base);
-                    }
-                    _ => {
-                        let int_error = self.consume_while(
-                            None, |c| matches!(c, identifier!()));
-                            self.advance_span(int_error.len());
-                            panic!("error: invalid suffix `{int_error}` for number literal");
-                    }
+                    _ => {}
                 }
             }
-            self.advance_span(2);
-            self.span.end += number.len();
-            return Token::Numeric(number, base);
+            self.advance_span(1);
+            return Token::Numeric(String::from("0"), 10);
         }
-        let int = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
-        self.advance_span(int.len());
-        return Token::Numeric(int, 10);
+        let number = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
+        self.advance_span(number.len());
+        return Token::Numeric(number, 10);
     }
 
     fn token_word(&mut self, ch: &char) -> Token {
