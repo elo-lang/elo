@@ -1,5 +1,5 @@
 [package]
-name = "oxido-lexer"
+name = "elo-lexer"
 version = "0.1.0"
 edition = "2021"
 

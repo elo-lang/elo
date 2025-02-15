@@ -3,24 +3,24 @@
 version = 3
 
 [[package]]
-name = "oxido"
+name = "elo"
 version = "0.1.0"
 
 [[package]]
-name = "oxido-error"
+name = "elo-error"
 version = "0.1.0"
 dependencies = [
- "oxido-lexer",
+ "elo-lexer",
 ]
 
 [[package]]
-name = "oxido-lexer"
+name = "elo-lexer"
 version = "0.1.0"
 
 [[package]]
-name = "oxido-parser"
+name = "elo-parser"
 version = "0.1.0"
 dependencies = [
- "oxido-error",
- "oxido-lexer",
+ "elo-error",
+ "elo-lexer",
 ]

@@ -2,7 +2,7 @@
 members = [".", "components/*"]
 
 [package]
-name = "oxido"
+name = "elo"
 version = "0.1.0"
 edition = "2021"
 

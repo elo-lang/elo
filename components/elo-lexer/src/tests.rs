@@ -4,7 +4,7 @@ use crate::lexer::Lexer;
 
 #[test]
 fn test_integers() {
-    let source_text = "6457 00478";
+    let source_text = "0b0101 00478";
     let lx = Lexer::new(InputFile::new("test", source_text.chars()));
 
     for lexem in lx {
@@ -99,7 +99,7 @@ fn test_octal_numbers() {
 
 #[test]
 fn test_hexadecimal_numbers() {
-    let source_text = "0xafcd4 0x67";
+    let source_text = "0xafcd4 0x6";
     let lx = Lexer::new(InputFile::new("test", source_text.chars()));
 
     for lexem in lx {

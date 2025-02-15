@@ -1,4 +1,4 @@
-use oxido_lexer::span::Span;
+use elo_lexer::span::Span;
 
 #[derive(Debug)]
 pub enum ParseErrorCase {

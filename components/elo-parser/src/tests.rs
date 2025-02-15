@@ -1,6 +1,6 @@
 use crate::parser::Parser;
-use oxido_lexer::inputfile::InputFile;
-use oxido_lexer::lexer::Lexer;
+use elo_lexer::inputfile::InputFile;
+use elo_lexer::lexer::Lexer;
 
 #[test]
 fn test_binop() {
@@ -58,7 +58,7 @@ fn test_unop() {
 
 #[test]
 fn test_let_stmt() {
-    let source_text = "let x = 69";
+    let source_text = "let x = 15.0";
     let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
 
     let mut parser = Parser::new(lx);

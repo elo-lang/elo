@@ -1,17 +1,25 @@
 use std::iter::Peekable;
 
-use oxido_error::parseerror::{ParseError, ParseErrorCase};
-use oxido_lexer::inputfile::InputFile;
-use oxido_lexer::keyword::Keyword;
-use oxido_lexer::lexem::Lexem;
-use oxido_lexer::lexer::Lexer;
-use oxido_lexer::token::Token;
+use elo_error::parseerror::{ParseError, ParseErrorCase};
+use elo_lexer::inputfile::InputFile;
+use elo_lexer::keyword::Keyword;
+use elo_lexer::lexem::Lexem;
+use elo_lexer::lexer::Lexer;
+use elo_lexer::token::Token;
 
 use crate::node::Node;
 use crate::program::Program;
 use crate::ast::{BinaryOperation, Expression, LetStatement, Structure, UnaryOperation, VarStatement};
 
 pub type Precedence = u8;
+
+fn build_float(int_part: i128, float_part: i128) -> f64 {
+    let mut power = 1;
+    if float_part != 0 {
+        power = (float_part.abs() as f64).log10().floor() as u32 + 1;
+    }
+    (int_part as f64) + ((float_part as f64)/(10.0f64).powf(power as f64))
+}
 
 fn binop_precedence(token: &Token) -> Precedence {
     match token {
@@ -70,12 +78,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expect_numeric(&mut self) -> Result<String, ParseError> {
+    fn expect_numeric(&mut self) -> Result<(String, u32), ParseError> {
         match self.lexer.next() {
             Some(Lexem {
-                token: Token::Numeric(num),
+                token: Token::Numeric(num, base),
                 ..
-            }) => Ok(num),
+            }) => Ok((num, base)),
             Some(Lexem { token: other, span }) => Err(ParseError {
                 span: Some(span),
                 case: ParseErrorCase::UnexpectedToken {
@@ -94,23 +102,25 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_number(&mut self) -> Result<Expression, ParseError> {
-        let int1 = self.expect_numeric()?;
+        let (int, int_radix) = self.expect_numeric()?;
+        let int = i128::from_str_radix(&int, int_radix).unwrap();
         if let Some(lexem) = self.lexer.peek() {
             return match &lexem.token {
                 Token::Delimiter('.') => {
                     self.lexer.next();
-                    let int2 = self.expect_numeric()?;
+                    let (float, float_radix) = self.expect_numeric()?;
+                    let float = i128::from_str_radix(&float, float_radix).unwrap();
                     Ok(Expression::FloatLiteral {
-                        value: format!("{}.{}", int1, int2).parse().unwrap(),
+                        value: build_float(int, float),
                     })
                 }
                 _ => Ok(Expression::IntegerLiteral {
-                    value: int1.parse().unwrap(),
+                    value: int,
                 }),
             };
         }
         Ok(Expression::IntegerLiteral {
-            value: int1.parse().unwrap(),
+            value: int,
         })
     }
 
@@ -207,7 +217,7 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self) -> Result<Expression, ParseError> {
         if let Some(lexem) = self.lexer.peek() {
             match &lexem.token {
-                Token::Numeric(_) => return Ok(self.parse_number()?),
+                Token::Numeric(..) => return Ok(self.parse_number()?),
                 Token::Identifier(_) => return Ok(self.parse_identifier()?),
                 Token::Delimiter('(') => {
                     self.lexer.next();

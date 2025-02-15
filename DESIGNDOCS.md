@@ -1,5 +1,5 @@
 
-# Oxido Design Docs
+# Elo Language Design Docs
 This document is meant to experiment with the language, any changes made in this file are not certain.
 
 This file is not meant to be any kind of documentation or reference to the language.

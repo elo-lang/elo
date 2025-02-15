@@ -4,7 +4,7 @@ use crate::keyword::Keyword;
 pub enum Token {
     Keyword(Keyword),   // if, else, while, etc
     Identifier(String), // any identifier
-    Numeric(String),    // Any number literal
+    Numeric(String, u32),    // Any number literal
     Newline,            // \n
     // This option is for the second character like in ==, <=, >=, etc
     // e.g. Token::Op('=', Some('=')) is "=="
