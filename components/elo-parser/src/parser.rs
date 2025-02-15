@@ -13,12 +13,8 @@ use crate::ast::{BinaryOperation, Expression, LetStatement, Structure, UnaryOper
 
 pub type Precedence = u8;
 
-fn build_float(int_part: i128, float_part: i128) -> f64 {
-    let mut power = 1;
-    if float_part != 0 {
-        power = (float_part.abs() as f64).log10().floor() as u32 + 1;
-    }
-    (int_part as f64) + ((float_part as f64)/(10.0f64).powf(power as f64))
+fn toint(literal: &str, radix: u32) -> i128 {
+    i128::from_str_radix(literal, radix).unwrap()
 }
 
 fn binop_precedence(token: &Token) -> Precedence {
@@ -102,25 +98,25 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_number(&mut self) -> Result<Expression, ParseError> {
-        let (int, int_radix) = self.expect_numeric()?;
-        let int = i128::from_str_radix(&int, int_radix).unwrap();
+        let int = self.expect_numeric()?;
+        let int_value = toint(&int.0, int.1);
         if let Some(lexem) = self.lexer.peek() {
             return match &lexem.token {
                 Token::Delimiter('.') => {
                     self.lexer.next();
-                    let (float, float_radix) = self.expect_numeric()?;
-                    let float = i128::from_str_radix(&float, float_radix).unwrap();
+                    let float = self.expect_numeric()?;
+                    let float_value = toint(&float.0, float.1);
                     Ok(Expression::FloatLiteral {
-                        value: build_float(int, float),
+                        value: format!("{}.{}", int_value, float_value).parse().unwrap()
                     })
-                }
+                },
                 _ => Ok(Expression::IntegerLiteral {
-                    value: int,
+                    value: int_value,
                 }),
             };
         }
         Ok(Expression::IntegerLiteral {
-            value: int,
+            value: int_value,
         })
     }
 
