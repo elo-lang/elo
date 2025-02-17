@@ -109,3 +109,32 @@ fn test_var_stmt() {
         }
     }
 }
+
+#[test]
+fn test_const_stmt() {
+    let source_text = "const PI = 3.1415";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+
+    let mut parser = Parser::new(lx);
+    match parser.parse() {
+        Ok(ast) => {
+            println!("{:#?}", ast);
+        }
+        Err(e) => {
+            println!("error:");
+            if let Some(span) = e.span {
+                println!(
+                    "  at {:?} line {} from {} to {}",
+                    parser.inputfile.filename, span.line, span.start, span.end
+                );
+                println!(
+                    "| {}",
+                    &parser.inputfile.content.collect::<String>().as_str()[span.start..span.end]
+                );
+            }
+            println!("  {:#?}", e.case);
+        }
+    }
+}
+
+

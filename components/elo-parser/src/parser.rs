@@ -9,7 +9,7 @@ use elo_lexer::token::Token;
 
 use crate::node::Node;
 use crate::program::Program;
-use crate::ast::{BinaryOperation, Expression, LetStatement, Structure, UnaryOperation, VarStatement};
+use crate::ast::{BinaryOperation, ConstStatement, Expression, LetStatement, Structure, UnaryOperation, VarStatement};
 
 pub type Precedence = u8;
 
@@ -296,6 +296,15 @@ impl<'a> Parser<'a> {
         }))
     }
     
+    fn parse_const_stmt(&mut self) -> Result<Structure, ParseError> {
+        let (ident, expr) = self.expect_assignment()?; 
+        self.expect_end()?;
+        Ok(Structure::ConstStatement(ConstStatement {
+            binding: ident,
+            assignment: expr,
+        }))
+    }
+    
     fn parse_var_stmt(&mut self) -> Result<Structure, ParseError> {
         let (ident, expr) = self.expect_assignment()?; 
         self.expect_end()?;
@@ -314,7 +323,7 @@ impl<'a> Parser<'a> {
             match kw {
                 Keyword::Var => return self.parse_var_stmt(),
                 Keyword::Let => return self.parse_let_stmt(),
-                Keyword::Const => todo!("const statement"),
+                Keyword::Const => return self.parse_const_stmt(),
                 Keyword::Fn => todo!("fn statement"),
                 Keyword::Struct => todo!("struct statement"),
                 Keyword::Enum => todo!("enum statement"),

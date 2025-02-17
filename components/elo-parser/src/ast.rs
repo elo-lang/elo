@@ -122,8 +122,15 @@ pub struct VarStatement {
 }
 
 #[derive(Debug)]
+pub struct ConstStatement {
+    pub binding: String,
+    pub assignment: Expression,
+}
+
+#[derive(Debug)]
 pub enum Structure {
     LetStatement(LetStatement),
     VarStatement(VarStatement),
+    ConstStatement(ConstStatement),
     Expression(Expression),
 }
