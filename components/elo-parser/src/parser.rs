@@ -9,7 +9,17 @@ use elo_lexer::token::Token;
 
 use crate::node::Node;
 use crate::program::Program;
-use crate::ast::{BinaryOperation, ConstStatement, Expression, LetStatement, Structure, UnaryOperation, VarStatement};
+use crate::ast::{
+    BinaryOperation,
+    Block,
+    ConstStatement,
+    Expression,
+    FnStatement,
+    LetStatement,
+    Structure,
+    UnaryOperation,
+    VarStatement
+};
 
 pub type Precedence = u8;
 
@@ -286,7 +296,7 @@ impl<'a> Parser<'a> {
         let expr = self.parse_expr(1)?;
         Ok((ident, expr))
     }
-
+    
     fn parse_let_stmt(&mut self) -> Result<Structure, ParseError> {
         let (ident, expr) = self.expect_assignment()?; 
         self.expect_end()?;
@@ -313,6 +323,28 @@ impl<'a> Parser<'a> {
             assignment: expr,
         }))
     }
+
+    fn parse_block(&mut self) -> Result<Block, ParseError> {
+        let mut ast = vec![];
+        while let Some(node) = self.parse_node()? {
+            ast.push(node);
+        }
+        let p = Block { content: ast };
+        Ok(p)
+    }
+    
+    fn parse_fn_stmt(&mut self) -> Result<Structure, ParseError> {
+        let name = self.expect_identifier()?;
+        self.expect_token(Token::Delimiter('('))?;
+        self.expect_token(Token::Delimiter(')'))?;
+        self.expect_token(Token::Delimiter('{'))?;
+        let block = self.parse_block()?;
+        self.expect_token(Token::Delimiter('}'))?;
+        Ok(Structure::FnStatement(FnStatement {
+            name: name,
+            block: block,
+        }))
+    }
     
     fn parse_stmt(&mut self) -> Result<Structure, ParseError> {
         if let Some(Lexem {
@@ -324,7 +356,7 @@ impl<'a> Parser<'a> {
                 Keyword::Var => return self.parse_var_stmt(),
                 Keyword::Let => return self.parse_let_stmt(),
                 Keyword::Const => return self.parse_const_stmt(),
-                Keyword::Fn => todo!("fn statement"),
+                Keyword::Fn => return self.parse_fn_stmt(),
                 Keyword::Struct => todo!("struct statement"),
                 Keyword::Enum => todo!("enum statement"),
             }
@@ -332,25 +364,39 @@ impl<'a> Parser<'a> {
             unreachable!("asked to parse statement without keyword")
         }
     }
+
 }
 
 impl<'a> Parser<'a> {
-    pub fn parse(&mut self) -> Result<Program, ParseError> {
-        let mut ast = vec![];
-        while let Some(lexem) = self.lexer.peek() {
-            let x = match lexem.token {
+    fn parse_node(&mut self) -> Result<Option<Node>, ParseError> {
+        let mut x = None;
+        if let Some(lexem) = self.lexer.peek() {
+            x = Some(match lexem.token {
                 Token::Keyword(..) => Node {
                     span: lexem.span,
                     structure: self.parse_stmt()?,
                 },
                 _ => {
-                    Node {
-                        span: lexem.span,
-                        structure: Structure::Expression(self.parse_expr(1)?),
+                    let span = lexem.span;
+                    // Ensure that the next token is an token valid for an expression. Otherwise, stop parsing.
+                    if let Ok(expr) = self.parse_expr(1) {
+                        Node {
+                            span: span,
+                            structure: Structure::Expression(expr),
+                        }
+                    } else {
+                        return Ok(None);
                     }
-                },
-            };
-            ast.push(x);
+                }
+            });
+        }
+        return Ok(x);
+    }
+
+    pub fn parse(&mut self) -> Result<Program, ParseError> {
+        let mut ast = vec![];
+        while let Some(node) = self.parse_node()? {
+            ast.push(node);
         }
         let p = Program { nodes: ast };
         Ok(p)

@@ -1,3 +1,5 @@
+use crate::node::Node;
+
 #[derive(Debug)]
 pub enum BinaryOperation {
     Add,
@@ -128,9 +130,21 @@ pub struct ConstStatement {
 }
 
 #[derive(Debug)]
+pub struct Block {
+    pub content: Vec<Node>
+}
+
+#[derive(Debug)]
+pub struct FnStatement {
+    pub name: String,
+    pub block: Block,
+}
+
+#[derive(Debug)]
 pub enum Structure {
     LetStatement(LetStatement),
     VarStatement(VarStatement),
     ConstStatement(ConstStatement),
+    FnStatement(FnStatement),
     Expression(Expression),
 }

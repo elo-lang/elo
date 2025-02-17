@@ -137,4 +137,29 @@ fn test_const_stmt() {
     }
 }
 
+#[test]
+fn test_fn_stmt() {
+    let source_text = "fn foo() { let x = 10\n let a = 10; }";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
 
+    let mut parser = Parser::new(lx);
+    match parser.parse() {
+        Ok(ast) => {
+            println!("{:#?}", ast);
+        }
+        Err(e) => {
+            println!("error:");
+            if let Some(span) = e.span {
+                println!(
+                    "  at {:?} line {} from {} to {}",
+                    parser.inputfile.filename, span.line, span.start, span.end
+                );
+                println!(
+                    "| {}",
+                    &parser.inputfile.content.collect::<String>().as_str()[span.start..span.end]
+                );
+            }
+            println!("  {:#?}", e.case);
+        }
+    }
+}
