@@ -122,3 +122,65 @@ Define constants using the keyword `const`:
 ```
 const PI = 3.1415
 ```
+
+### Memory management
+Elo uses manual memory management **with assistance**.
+
+Cases:
+
+#### Memory not freed
+```
+fn main() {
+  let a = allocate(10) # Allocate 10 bytes
+}
+```
+
+This code does not compile because the memory is never freed.
+Error:
+```
+error: dynamic memory not freed 
+2 |  let a = allocate(10) # Allocate 10 bytes
+             ^-----------
+             dynamic memory allocation here
+             help: add `defer free(a)` after this line
+```
+
+#### Memory freed twice
+```
+fn main() {
+  let a = allocate(10) # Allocate 10 bytes
+  defer free(a)
+  defer free(a)
+}
+```
+
+This code does not compile because the memory is never freed.
+Error:
+```
+error: dynamic memory freed twice 
+4 |   defer free(a)
+            ^------
+            dynamic memory freed here
+            help: remove this line
+```
+
+#### Memory used after free:
+```
+fn main() {
+  let a = allocate(10) # Allocate 10 bytes
+  free(a)
+  print("{}", a)
+}
+```
+
+This code does not compile because the memory is never freed.
+Error:
+```
+error: dynamic memory freed twice 
+4 |   print("{}", a)
+                  ^
+                  dynamic memory used here
+                  help: use `free(a)` after it's used
+```
+
+
