@@ -141,10 +141,10 @@ pub struct FnStatement {
 }
 
 #[derive(Debug)]
-pub enum Structure {
+pub enum Statement {
     LetStatement(LetStatement),
     VarStatement(VarStatement),
     ConstStatement(ConstStatement),
     FnStatement(FnStatement),
-    Expression(Expression),
+    ExpressionStatement(Expression),
 }

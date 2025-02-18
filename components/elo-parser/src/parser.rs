@@ -16,7 +16,7 @@ use crate::ast::{
     Expression,
     FnStatement,
     LetStatement,
-    Structure,
+    Statement,
     UnaryOperation,
     VarStatement
 };
@@ -297,28 +297,28 @@ impl<'a> Parser<'a> {
         Ok((ident, expr))
     }
     
-    fn parse_let_stmt(&mut self) -> Result<Structure, ParseError> {
+    fn parse_let_stmt(&mut self) -> Result<Statement, ParseError> {
         let (ident, expr) = self.expect_assignment()?; 
         self.expect_end()?;
-        Ok(Structure::LetStatement(LetStatement {
+        Ok(Statement::LetStatement(LetStatement {
             binding: ident,
             assignment: expr,
         }))
     }
     
-    fn parse_const_stmt(&mut self) -> Result<Structure, ParseError> {
+    fn parse_const_stmt(&mut self) -> Result<Statement, ParseError> {
         let (ident, expr) = self.expect_assignment()?; 
         self.expect_end()?;
-        Ok(Structure::ConstStatement(ConstStatement {
+        Ok(Statement::ConstStatement(ConstStatement {
             binding: ident,
             assignment: expr,
         }))
     }
     
-    fn parse_var_stmt(&mut self) -> Result<Structure, ParseError> {
+    fn parse_var_stmt(&mut self) -> Result<Statement, ParseError> {
         let (ident, expr) = self.expect_assignment()?; 
         self.expect_end()?;
-        Ok(Structure::VarStatement(VarStatement {
+        Ok(Statement::VarStatement(VarStatement {
             binding: ident,
             assignment: expr,
         }))
@@ -333,20 +333,20 @@ impl<'a> Parser<'a> {
         Ok(p)
     }
     
-    fn parse_fn_stmt(&mut self) -> Result<Structure, ParseError> {
+    fn parse_fn_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('('))?;
         self.expect_token(Token::Delimiter(')'))?;
         self.expect_token(Token::Delimiter('{'))?;
         let block = self.parse_block()?;
         self.expect_token(Token::Delimiter('}'))?;
-        Ok(Structure::FnStatement(FnStatement {
+        Ok(Statement::FnStatement(FnStatement {
             name: name,
             block: block,
         }))
     }
     
-    fn parse_stmt(&mut self) -> Result<Structure, ParseError> {
+    fn parse_stmt(&mut self) -> Result<Statement, ParseError> {
         if let Some(Lexem {
             token: Token::Keyword(kw),
             ..
@@ -374,7 +374,7 @@ impl<'a> Parser<'a> {
             x = Some(match lexem.token {
                 Token::Keyword(..) => Node {
                     span: lexem.span,
-                    structure: self.parse_stmt()?,
+                    stmt: self.parse_stmt()?,
                 },
                 _ => {
                     let span = lexem.span;
@@ -382,7 +382,7 @@ impl<'a> Parser<'a> {
                     if let Ok(expr) = self.parse_expr(1) {
                         Node {
                             span: span,
-                            structure: Structure::Expression(expr),
+                            stmt: Statement::ExpressionStatement(expr),
                         }
                     } else {
                         return Ok(None);

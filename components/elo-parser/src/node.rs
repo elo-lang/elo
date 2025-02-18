@@ -1,8 +1,8 @@
-use crate::ast::Structure;
+use crate::ast::Statement;
 use elo_lexer::span::Span;
 
 #[derive(Debug)]
 pub struct Node {
     pub span: Span,
-    pub structure: Structure,
+    pub stmt: Statement,
 }
