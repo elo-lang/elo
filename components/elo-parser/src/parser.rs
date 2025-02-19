@@ -82,6 +82,10 @@ impl<'a> Parser<'a> {
                 token: Token::Numeric(num, base),
                 ..
             }) => Ok((num, base)),
+            Some(Lexem {
+                token: Token::Newline,
+                ..
+            }) => return self.expect_numeric(),
             Some(Lexem { token: other, span }) => Err(ParseError {
                 span: Some(span),
                 case: ParseErrorCase::UnexpectedToken {
@@ -220,6 +224,10 @@ impl<'a> Parser<'a> {
 
     pub fn expect_token(&mut self, expect: Token) -> Result<Token, ParseError> {
         match self.lexer.next() {
+            Some(Lexem {
+                token: Token::Newline,
+                ..
+            }) => return self.expect_token(expect),
             Some(lexem) => {
                 let token = lexem.token;
                 if token == expect {
@@ -256,6 +264,13 @@ impl<'a> Parser<'a> {
                 let ident: String = ident.clone();
                 self.lexer.next();
                 Ok(ident)
+            },
+            Some(Lexem {
+                token: Token::Newline,
+                ..
+            }) => {
+                self.lexer.next();
+                return self.expect_identifier()
             },
             Some(Lexem { token: other, span }) => Err(ParseError {
                 span: Some(*span),
@@ -365,7 +380,7 @@ impl<'a> Parser<'a> {
         Ok(left)
     }
 
-    fn expect_assignment(&mut self) -> Result<(String, Expression), ParseError> {
+    fn parse_assignment(&mut self) -> Result<(String, Expression), ParseError> {
         let ident = self.expect_identifier()?;
         let _ = self.expect_token(Token::Op('=', None))?;
         let expr = self.parse_expr(1)?;
@@ -373,7 +388,7 @@ impl<'a> Parser<'a> {
     }
     
     fn parse_let_stmt(&mut self) -> Result<Statement, ParseError> {
-        let (ident, expr) = self.expect_assignment()?; 
+        let (ident, expr) = self.parse_assignment()?; 
         self.expect_end()?;
         Ok(Statement::LetStatement(LetStatement {
             binding: ident,
@@ -396,7 +411,7 @@ impl<'a> Parser<'a> {
     }
     
     fn parse_var_stmt(&mut self) -> Result<Statement, ParseError> {
-        let (ident, expr) = self.expect_assignment()?; 
+        let (ident, expr) = self.parse_assignment()?; 
         self.expect_end()?;
         Ok(Statement::VarStatement(VarStatement {
             binding: ident,
