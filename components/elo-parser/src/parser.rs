@@ -10,7 +10,7 @@ use elo_lexer::token::Token;
 use crate::node::Node;
 use crate::program::Program;
 use crate::ast::{
-    BinaryOperation, Block, ConstStatement, Expression, FnStatement, LetStatement, Statement, Type, UnaryOperation, VarStatement
+    BinaryOperation, Block, ConstStatement, Expression, FnStatement, LetStatement, NamedField, Statement, Type, UnaryOperation, VarStatement
 };
 
 pub type Precedence = u8;
@@ -156,6 +156,27 @@ impl<'a> Parser<'a> {
         });
     }
 
+    fn parse_named_field(&mut self) -> Result<NamedField, ParseError> {
+        let ident = self.expect_identifier()?;
+        let _ = self.expect_token(Token::Delimiter(':'));
+        let typ = self.parse_type()?;
+        return Ok(NamedField { name: ident, typing: typ });
+    }
+
+    // identifier: type[, identifier: type]*
+    fn parse_named_fields(&mut self) -> Result<Vec<NamedField>, ParseError> {
+        let mut fields = Vec::new();
+        if let Ok(first) = self.parse_named_field() {
+            fields.push(first);
+        }
+        while let Some(Lexem { token: Token::Delimiter(','), .. }) = self.lexer.peek() {
+            self.lexer.next();
+            let f = self.parse_named_field()?;
+            fields.push(f);
+        }
+        Ok(fields)
+    }
+
     fn parse_number(&mut self) -> Result<Expression, ParseError> {
         let int = self.expect_numeric()?;
         let int_value = toint(&int.0, int.1);
@@ -226,13 +247,18 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_identifier(&mut self) -> Result<String, ParseError> {
-        match self.lexer.next() {
+        let a  = self.lexer.peek();
+        match a {
             Some(Lexem {
                 token: Token::Identifier(ident),
                 ..
-            }) => Ok(ident),
+            }) => {
+                let ident: String = ident.clone();
+                self.lexer.next();
+                Ok(ident)
+            },
             Some(Lexem { token: other, span }) => Err(ParseError {
-                span: Some(span),
+                span: Some(*span),
                 case: ParseErrorCase::UnexpectedToken {
                     got: format!("{:?}", other),
                     expected: "identifier".to_string(),
@@ -390,6 +416,7 @@ impl<'a> Parser<'a> {
     fn parse_fn_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('('))?;
+        let arguments = self.parse_named_fields()?;
         self.expect_token(Token::Delimiter(')'))?;
         self.expect_token(Token::Delimiter('{'))?;
         let block = self.parse_block()?;
@@ -397,6 +424,7 @@ impl<'a> Parser<'a> {
         Ok(Statement::FnStatement(FnStatement {
             name: name,
             block: block,
+            arguments: arguments,
         }))
     }
     

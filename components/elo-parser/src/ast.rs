@@ -139,6 +139,7 @@ pub struct Block {
 pub struct FnStatement {
     pub name: String,
     pub block: Block,
+    pub arguments: Vec<NamedField>
 }
 
 #[derive(Debug)]
@@ -161,6 +162,12 @@ pub enum Type {
         args: Vec<Type>,
         return_: Box<Type>
     }
+}
+
+#[derive(Debug)]
+pub struct NamedField {
+    pub name: String,
+    pub typing: Type
 }
 
 #[derive(Debug)]
