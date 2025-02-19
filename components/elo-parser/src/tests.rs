@@ -112,7 +112,7 @@ fn test_var_stmt() {
 
 #[test]
 fn test_const_stmt() {
-    let source_text = "const PI = 3.1415";
+    let source_text = "const PI: float = 3.1415";
     let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
 
     let mut parser = Parser::new(lx);

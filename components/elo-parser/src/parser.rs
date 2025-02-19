@@ -10,15 +10,7 @@ use elo_lexer::token::Token;
 use crate::node::Node;
 use crate::program::Program;
 use crate::ast::{
-    BinaryOperation,
-    Block,
-    ConstStatement,
-    Expression,
-    FnStatement,
-    LetStatement,
-    Statement,
-    UnaryOperation,
-    VarStatement
+    BinaryOperation, Block, ConstStatement, Expression, FnStatement, LetStatement, Statement, Type, UnaryOperation, VarStatement
 };
 
 pub type Precedence = u8;
@@ -105,6 +97,63 @@ impl<'a> Parser<'a> {
                 },
             }),
         }
+    }
+
+    fn parse_type(&mut self) -> Result<Type, ParseError> {
+        if let Some(lexem) = self.lexer.next() {
+            match lexem.token {
+                Token::Identifier(x) => {
+                    if let Some(Lexem { token: Token::Op('<', None), .. }) = self.lexer.peek() {
+                        self.lexer.next();
+                        let generic = self.parse_type()?;
+                        self.expect_token(Token::Op('>', None))?;
+                        return Ok(Type::Named { name: x, generic: Some(Box::new(generic)) });
+                    }
+                    return Ok(Type::Named { name: x, generic: None });
+                }
+                Token::Op('*', None) => {
+                    let typ = self.parse_type()?;
+                    return Ok(Type::Pointer { typ: Box::new(typ) });
+                }
+                Token::Delimiter('[') => {
+                    let typ = self.parse_type()?;
+                    self.expect_token(Token::Delimiter(','))?;
+                    match self.parse_number()? {
+                        Expression::IntegerLiteral { value: x} => {
+                            let x = x as usize;
+                            self.expect_token(Token::Delimiter(']'))?;
+                            return Ok(Type::Array { typ: Box::new(typ), amount: x });
+                        }
+                        Expression::FloatLiteral { .. } => {
+                            return Err(ParseError {
+                                span: Some(lexem.span),
+                                case: ParseErrorCase::UnexpectedToken {
+                                    got: "float literal".to_string(),
+                                    expected: "integer literal".to_string(),
+                                }
+                            });
+                        }
+                        _ => unreachable!()
+                    }
+                }
+                x => {
+                    return Err(ParseError {
+                        span: None,
+                        case: ParseErrorCase::UnexpectedToken {
+                            got: format!("{:?}", x),
+                            expected: "type".to_string(),
+                        }
+                    });
+                }
+            }
+        }
+        return Err(ParseError {
+            span: None,
+            case: ParseErrorCase::UnexpectedToken {
+                got: EOF.to_string(),
+                expected: "type".to_string(),
+            }
+        });
     }
 
     fn parse_number(&mut self) -> Result<Expression, ParseError> {
@@ -307,11 +356,16 @@ impl<'a> Parser<'a> {
     }
     
     fn parse_const_stmt(&mut self) -> Result<Statement, ParseError> {
-        let (ident, expr) = self.expect_assignment()?; 
+        let ident = self.expect_identifier()?;
+        let _ = self.expect_token(Token::Delimiter(':'))?;
+        let typing = self.parse_type()?;
+        let _ = self.expect_token(Token::Op('=', None))?;
+        let expr = self.parse_expr(1)?;
         self.expect_end()?;
         Ok(Statement::ConstStatement(ConstStatement {
             binding: ident,
             assignment: expr,
+            typing: typing,
         }))
     }
     

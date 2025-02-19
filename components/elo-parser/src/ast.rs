@@ -127,6 +127,7 @@ pub struct VarStatement {
 pub struct ConstStatement {
     pub binding: String,
     pub assignment: Expression,
+    pub typing: Type,
 }
 
 #[derive(Debug)]
@@ -138,6 +139,28 @@ pub struct Block {
 pub struct FnStatement {
     pub name: String,
     pub block: Block,
+}
+
+#[derive(Debug)]
+pub enum Type {
+    Named {
+        name: String,
+        generic: Option<Box<Type>>
+    },
+    Array {
+        typ: Box<Type>,
+        amount: usize
+    },
+    Tuple {
+        types: Vec<Type>
+    },
+    Pointer {
+        typ: Box<Type>
+    },
+    FunctionPointer {
+        args: Vec<Type>,
+        return_: Box<Type>
+    }
 }
 
 #[derive(Debug)]
