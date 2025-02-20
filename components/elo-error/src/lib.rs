@@ -1,2 +1,4 @@
+pub mod error;
 pub mod parseerror;
-pub mod throw;
+#[cfg(test)]
+mod tests;
