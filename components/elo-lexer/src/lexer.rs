@@ -1,5 +1,4 @@
 use core::panic;
-use std::ffi::NulError;
 
 use crate::inputfile::InputFile;
 use crate::keyword::Keyword;

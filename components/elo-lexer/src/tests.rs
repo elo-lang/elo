@@ -1,5 +1,4 @@
 use crate::inputfile::InputFile;
-use crate::lexem::Lexem;
 use crate::lexer::Lexer;
 
 #[test]
