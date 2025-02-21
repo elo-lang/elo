@@ -474,16 +474,12 @@ impl<'a> Parser<'a> {
                     stmt: self.parse_stmt()?,
                 },
                 _ => {
-                    let span = lexem.span;
-                    // Ensure that the next token is an token valid for an expression. Otherwise, stop parsing.
-                    if let Ok(expr) = self.parse_expr(1) {
-                        Node {
-                            span: span,
-                            stmt: Statement::ExpressionStatement(expr),
-                        }
-                    } else {
-                        return Ok(None);
-                    }
+                    let node = Node {
+                        span: lexem.span,
+                        stmt: Statement::ExpressionStatement(self.parse_expr(1)?),
+                    };
+                    self.expect_end()?;
+                    node
                 }
             });
         }
