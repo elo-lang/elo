@@ -139,6 +139,7 @@ pub struct Block {
 pub struct FnStatement {
     pub name: String,
     pub block: Block,
+    pub ret: Option<Type>,
     pub arguments: Vec<NamedField>
 }
 

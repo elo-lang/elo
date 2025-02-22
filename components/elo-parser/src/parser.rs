@@ -222,6 +222,37 @@ impl<'a> Parser<'a> {
         Ok(Expression::Identifier { name: id1 })
     }
 
+    // Check if a token is present at the next iteration. Only consumes if the condition is met.
+    // Doesn't ignore newlines.
+    pub fn test_token(&mut self, expect: Token) -> Result<(), ParseError> {
+        match self.lexer.peek() {
+            Some(lexem) if lexem.token == expect => {
+                self.lexer.next();
+                Ok(())
+            }
+            Some(lexem) => {
+                Err(ParseError {
+                    span: Some(lexem.span),
+                    case: ParseErrorCase::UnexpectedToken {
+                        got: format!("{:?}", lexem.token),
+                        expected: format!("{:?}", expect),
+                    },
+                })
+            }
+            None => {
+                Err(ParseError {
+                    span: None,
+                    case: ParseErrorCase::UnexpectedToken {
+                        got: EOF.to_string(),
+                        expected: format!("{:?}", expect),
+                    },
+                })
+            }
+        }
+    }
+    
+    // Expects a specific token in the next iteration of lexems. Always consumes the iterator.
+    // If the next token is a newline, ignores it and goes to the next iteration.
     pub fn expect_token(&mut self, expect: Token) -> Result<Token, ParseError> {
         match self.lexer.next() {
             Some(Lexem {
@@ -433,12 +464,17 @@ impl<'a> Parser<'a> {
         self.expect_token(Token::Delimiter('('))?;
         let arguments = self.parse_named_fields()?;
         self.expect_token(Token::Delimiter(')'))?;
+        let mut typ = None;
+        if let Ok(_) = self.test_token(Token::Delimiter(':')) {
+            typ = Some(self.parse_type()?);
+        }
         self.expect_token(Token::Delimiter('{'))?;
         let block = self.parse_block()?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::FnStatement(FnStatement {
             name: name,
             block: block,
+            ret: typ,
             arguments: arguments,
         }))
     }
@@ -474,12 +510,18 @@ impl<'a> Parser<'a> {
                     stmt: self.parse_stmt()?,
                 },
                 _ => {
-                    let node = Node {
-                        span: lexem.span,
-                        stmt: Statement::ExpressionStatement(self.parse_expr(1)?),
-                    };
-                    self.expect_end()?;
-                    node
+                    let span = lexem.span;
+                    // Ensure that the next token is an token valid for an expression. Otherwise, stop parsing.
+                    if let Ok(expr) = self.parse_expr(1) {
+                        let node = Node {
+                            span: span,
+                            stmt: Statement::ExpressionStatement(expr),
+                        };
+                        self.expect_end()?;
+                        node
+                    } else {
+                        return Ok(None);
+                    }
                 }
             });
         }
