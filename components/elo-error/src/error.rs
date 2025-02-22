@@ -1,4 +1,3 @@
-use std::fs::read_to_string;
 use elo_lexer::span::FileSpan;
 
 const RED_BOLD: &str = "\x1b[1;31m";
@@ -16,8 +15,9 @@ pub fn error(
 ) {
     let mut line: &str = "";
 
-    let file = read_to_string(filespan.input_file.filename).unwrap();
-    for (i, l) in file.lines().enumerate() {
+    let file_content = filespan.input_file.content;
+
+    for (i, l) in file_content.lines().enumerate() {
         if i + 1 == filespan.line {
             line = l;
             break;
@@ -38,7 +38,7 @@ pub fn error(
         filespan.start
     );
     eprintln!("{indent}{CYAN_BOLD}│{RESET}");
-    eprintln!(" {} {CYAN_BOLD}│{RESET}  {line}", filespan.line);
+    eprintln!(" {} {CYAN_BOLD}│{RESET} {line}", filespan.line);
     eprintln!(
         "{indent}{CYAN_BOLD}·{RESET}{}{GREEN_BOLD}╰{}┬{}╯{RESET}",
         " ".repeat(filespan.start),
@@ -51,12 +51,19 @@ pub fn error(
     );
     eprintln!(
         "{indent}{CYAN_BOLD}·{RESET}{}{GREEN_BOLD}{}─{RESET} {}",
-        " ".repeat((filespan.start + span_length / 2)+1),
+        " ".repeat((filespan.start + span_length / 2) + 1),
         if help.is_some() { "├" } else { "╰" },
-        if submessage.is_some() { submessage.unwrap() } else { "here" }
+        if submessage.is_some() {
+            submessage.unwrap()
+        } else {
+            "here"
+        }
     );
     if let Some(h) = help {
-        eprintln!("{indent}{CYAN_BOLD}·{RESET}{}{GREEN_BOLD}╰─ Help{RESET}: {h}", " ".repeat((filespan.start + span_length / 2)+1));
+        eprintln!(
+            "{indent}{CYAN_BOLD}·{RESET}{}{GREEN_BOLD}╰─ Help{RESET}: {h}",
+            " ".repeat((filespan.start + span_length / 2) + 1)
+        );
     }
     eprintln!("{CYAN_BOLD}{}╯{RESET}", "─".repeat(indent_n));
 }

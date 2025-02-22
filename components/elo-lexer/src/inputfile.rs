@@ -1,17 +1,11 @@
-use std::iter::Peekable;
-use std::str::Chars;
-
 #[derive(Debug, Clone)]
-pub struct InputFile<'a> {
+pub struct InputFile {
     pub filename: &'static str,
-    pub content: Peekable<Chars<'a>>,
+    pub content: &'static str,
 }
 
-impl<'a> InputFile<'a> {
-    pub fn new(filename: &'static str, content: Chars<'a>) -> InputFile<'a> {
-        InputFile {
-            filename,
-            content: content.peekable(),
-        }
+impl InputFile {
+    pub fn new(filename: &'static str, content: &'static str) -> InputFile {
+        InputFile { filename, content }
     }
 }

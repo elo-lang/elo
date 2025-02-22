@@ -5,7 +5,7 @@ use elo_lexer::lexer::Lexer;
 #[test]
 fn test_binop() {
     let source_text = "(a + b * c) / 2";
-    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+    let lx = Lexer::new(InputFile::new("test.rs", source_text));
 
     let mut parser = Parser::new(lx);
     match parser.parse() {
@@ -21,7 +21,7 @@ fn test_binop() {
 #[test]
 fn test_unop() {
     let source_text = "-a + b";
-    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+    let lx = Lexer::new(InputFile::new("test.rs", source_text));
 
     let mut parser = Parser::new(lx);
     match parser.parse() {
@@ -37,7 +37,7 @@ fn test_unop() {
 #[test]
 fn test_let_stmt() {
     let source_text = "let x = 10";
-    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+    let lx = Lexer::new(InputFile::new("test.rs", source_text));
 
     let mut parser = Parser::new(lx);
     match parser.parse() {
@@ -53,7 +53,7 @@ fn test_let_stmt() {
 #[test]
 fn test_var_stmt() {
     let source_text = "var x = 69";
-    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+    let lx = Lexer::new(InputFile::new("test.rs", source_text));
 
     let mut parser = Parser::new(lx);
     match parser.parse() {
@@ -69,7 +69,7 @@ fn test_var_stmt() {
 #[test]
 fn test_const_stmt() {
     let source_text = "const PI: float = 3.1415";
-    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+    let lx = Lexer::new(InputFile::new("test.rs", source_text));
 
     let mut parser = Parser::new(lx);
     match parser.parse() {
@@ -85,7 +85,7 @@ fn test_const_stmt() {
 #[test]
 fn test_fn_stmt() {
     let source_text = "fn is_even(a: int) {\n }";
-    let lx = Lexer::new(InputFile::new("test.rs", source_text.chars()));
+    let lx = Lexer::new(InputFile::new("test.rs", source_text));
     let mut parser = Parser::new(lx);
     match parser.parse() {
         Ok(ast) => {

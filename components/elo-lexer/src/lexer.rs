@@ -1,4 +1,6 @@
 use core::panic;
+use std::iter::Peekable;
+use std::str::Chars;
 
 use crate::inputfile::InputFile;
 use crate::keyword::Keyword;
@@ -7,8 +9,9 @@ use crate::span::FileSpan;
 use crate::token::Token;
 
 pub struct Lexer<'a> {
-    pub input_file: InputFile<'a>,
-    pub span: FileSpan<'a>,
+    pub input_file: InputFile,
+    pub chars: Peekable<Chars<'a>>,
+    pub span: FileSpan,
 }
 
 macro_rules! whitespace {
@@ -78,9 +81,10 @@ macro_rules! identifier {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input_file: InputFile) -> Lexer {
+    pub fn new(input_file: InputFile) -> Lexer<'a> {
         Lexer {
             input_file: input_file.clone(),
+            chars: input_file.content.chars().peekable(),
             span: FileSpan::empty(input_file),
         }
     }
@@ -101,45 +105,39 @@ impl<'a> Lexer<'a> {
         if let Some(start) = start {
             buffer.push(*start);
         }
-        while let Some(&c) = self.input_file.content.peek() {
+        while let Some(&c) = self.chars.peek() {
             if !matches(c) {
                 break;
             }
             buffer.push(c);
-            self.input_file.content.next();
+            self.chars.next();
         }
         buffer
     }
-    
+
     fn token_numeric(&mut self, ch: &char) -> Token {
         // TODO: check suffixes like u8, i8, etc?
         if ch == &'0' {
-            if let Some(c) = self.input_file.content.peek() {
+            if let Some(c) = self.chars.peek() {
                 match c {
                     'b' => {
-                        self.input_file.content.next();
+                        self.chars.next();
                         self.advance_span(2);
-                        let number = self.consume_while(
-                            None, |c| matches!(c, numeric_binary!())
-                        );
+                        let number = self.consume_while(None, |c| matches!(c, numeric_binary!()));
                         self.span.end += number.len();
                         return Token::Numeric(number, 2);
                     }
                     'o' => {
-                        self.input_file.content.next();
+                        self.chars.next();
                         self.advance_span(2);
-                        let number = self.consume_while(
-                            None, |c| matches!(c, numeric_octal!())
-                        );
+                        let number = self.consume_while(None, |c| matches!(c, numeric_octal!()));
                         self.span.end += number.len();
                         return Token::Numeric(number, 8);
                     }
                     'x' => {
-                        self.input_file.content.next();
+                        self.chars.next();
                         self.advance_span(2);
-                        let number = self.consume_while(
-                            None, |c| matches!(c, numeric_hex!())
-                        );
+                        let number = self.consume_while(None, |c| matches!(c, numeric_hex!()));
                         self.span.end += number.len();
                         return Token::Numeric(number, 16);
                     }
@@ -166,11 +164,11 @@ impl<'a> Lexer<'a> {
     }
 
     fn token_op(&mut self, ch: &char) -> Token {
-        let next = self.input_file.content.peek();
+        let next = self.chars.peek();
         let op = match next {
             Some(&b) if matches!(b, op_next!()) => {
                 self.advance_span(1);
-                self.input_file.content.next();
+                self.chars.next();
                 Some(b)
             }
             _ => None,
@@ -181,10 +179,10 @@ impl<'a> Lexer<'a> {
 
     fn token_string(&mut self) -> Token {
         let s = self.consume_while(None, |c| c != '"');
-        if self.input_file.content.peek() != Some(&'"') {
+        if self.chars.peek() != Some(&'"') {
             panic!("Unterminated string literal");
         }
-        self.input_file.content.next(); // Compensate for the last "
+        self.chars.next(); // Compensate for the last "
         self.advance_span(s.len());
         self.span.end += 2; // Compensate span to get the last "
         return Token::StringLiteral(s);
@@ -195,11 +193,11 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Lexem;
 
     fn next(&mut self) -> Option<Lexem> {
-        if let Some(ch) = self.input_file.content.next() {
+        if let Some(ch) = self.chars.next() {
             return match ch {
                 '#' => {
                     let _ = self.consume_while(Some(&ch), |c| c != '\n');
-                    self.input_file.content.next(); // Consume \n
+                    self.chars.next(); // Consume \n
                     self.advance_line();
                     self.next()
                 }
