@@ -150,6 +150,12 @@ pub struct StructStatement {
 }
 
 #[derive(Debug)]
+pub struct EnumStatement {
+    pub name: String,
+    pub variants: Vec<String>
+}
+
+#[derive(Debug)]
 pub enum Type {
     Named {
         name: String,
@@ -184,5 +190,6 @@ pub enum Statement {
     ConstStatement(ConstStatement),
     FnStatement(FnStatement),
     StructStatement(StructStatement),
+    EnumStatement(EnumStatement),
     ExpressionStatement(Expression),
 }

@@ -8,7 +8,7 @@ use elo_lexer::lexer::Lexer;
 use elo_lexer::token::Token;
 
 use crate::ast::{
-    BinaryOperation, Block, ConstStatement, Expression, FnStatement, LetStatement, NamedField, Statement, StructStatement, Type, UnaryOperation, VarStatement
+    BinaryOperation, Block, ConstStatement, EnumStatement, Expression, FnStatement, LetStatement, NamedField, Statement, StructStatement, Type, UnaryOperation, VarStatement
 };
 use crate::node::Node;
 use crate::program::Program;
@@ -196,6 +196,24 @@ impl<'a> Parser<'a> {
         {
             self.lexer.next();
             let f = self.parse_named_field()?;
+            fields.push(f);
+        }
+        Ok(fields)
+    }
+    
+    // identifier[, identifier]*
+    fn parse_identifier_list(&mut self) -> Result<Vec<String>, ParseError> {
+        let mut fields = Vec::new();
+        if let Ok(first) = self.expect_identifier() {
+            fields.push(first);
+        }
+        while let Some(Lexem {
+            token: Token::Delimiter(','),
+            ..
+        }) = self.lexer.peek()
+        {
+            self.lexer.next();
+            let f = self.expect_identifier()?;
             fields.push(f);
         }
         Ok(fields)
@@ -505,6 +523,17 @@ impl<'a> Parser<'a> {
             fields: fields,
         }))
     }
+    
+    fn parse_enum_stmt(&mut self) -> Result<Statement, ParseError> {
+        let name = self.expect_identifier()?;
+        self.expect_token(Token::Delimiter('{'))?;
+        let vars = self.parse_identifier_list()?;
+        self.expect_token(Token::Delimiter('}'))?;
+        Ok(Statement::EnumStatement(EnumStatement {
+            name: name,
+            variants: vars,
+        }))
+    }
 
     fn parse_stmt(&mut self) -> Result<Statement, ParseError> {
         if let Some(Lexem {
@@ -518,7 +547,7 @@ impl<'a> Parser<'a> {
                 Keyword::Const => return self.parse_const_stmt(),
                 Keyword::Fn => return self.parse_fn_stmt(),
                 Keyword::Struct => return self.parse_struct_stmt(),
-                Keyword::Enum => todo!("enum statement"),
+                Keyword::Enum => return self.parse_enum_stmt(),
             }
         } else {
             unreachable!("asked to parse statement without keyword")

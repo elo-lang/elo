@@ -111,3 +111,18 @@ fn test_struct_stmt() {
         }
     }
 }
+
+#[test]
+fn test_enum_stmt() {
+    let source_text = "enum Week { Sun, Mon, Tue, Wed, Thu, Fri, Sat }";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text));
+    let mut parser = Parser::new(lx);
+    match parser.parse() {
+        Ok(ast) => {
+            println!("{:#?}", ast);
+        }
+        Err(e) => {
+            println!("{e:?}");
+        }
+    }
+}
