@@ -84,7 +84,7 @@ fn test_const_stmt() {
 
 #[test]
 fn test_fn_stmt() {
-    let source_text = "fn is_even(\na\n: int): {\n }";
+    let source_text = "fn foo(): int {\nlet x = 10;}";
     let lx = Lexer::new(InputFile::new("test.rs", source_text));
     let mut parser = Parser::new(lx);
     match parser.parse() {

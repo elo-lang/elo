@@ -355,6 +355,10 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self) -> Result<Expression, ParseError> {
         if let Some(lexem) = self.lexer.peek() {
             match &lexem.token {
+                Token::Newline => {
+                    self.lexer.next();
+                    return self.parse_primary();
+                },
                 Token::Numeric(..) => return Ok(self.parse_number()?),
                 Token::Identifier(_) => return Ok(self.parse_identifier()?),
                 Token::Delimiter('(') => {
@@ -517,6 +521,10 @@ impl<'a> Parser<'a> {
         let mut x = None;
         if let Some(lexem) = self.lexer.peek() {
             x = Some(match lexem.token {
+                Token::Newline => {
+                    self.lexer.next();
+                    return self.parse_node();
+                }
                 Token::Keyword(..) => Node {
                     span: lexem.span,
                     stmt: self.parse_stmt()?,
