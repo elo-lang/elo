@@ -7,11 +7,11 @@ fn test_error() {
     let filespan = FileSpan {
         input_file: InputFile {
             filename: "test.txt",
-            content: "Hello, World!",
+            content: "fn is_even(\na\n: int): {\n }",
         },
-        start: 0,
-        end: 13,
-        line: 1,
+        line: 3,
+        start: 8,
+        end: 9,
     };
     error(
         "Parse Error",

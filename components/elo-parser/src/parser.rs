@@ -156,7 +156,7 @@ impl<'a> Parser<'a> {
                 }
                 x => {
                     return Err(ParseError {
-                        span: None,
+                        span: Some(lexem.span),
                         case: ParseErrorCase::UnexpectedToken {
                             got: format!("{:?}", x),
                             expected: "type".to_string(),
