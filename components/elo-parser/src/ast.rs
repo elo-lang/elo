@@ -97,6 +97,10 @@ pub enum Expression {
         parent: Box<Expression>,
         child: Box<Expression>,
     },
+    StructInit {
+        name: String,
+        fields: Vec<Field>,
+    },
     IntegerLiteral {
         value: i128,
     },
@@ -140,13 +144,13 @@ pub struct FnStatement {
     pub name: String,
     pub block: Block,
     pub ret: Option<Type>,
-    pub arguments: Vec<NamedField>
+    pub arguments: Vec<TypedField>
 }
 
 #[derive(Debug)]
 pub struct StructStatement {
     pub name: String,
-    pub fields: Vec<NamedField>
+    pub fields: Vec<TypedField>
 }
 
 #[derive(Debug)]
@@ -178,9 +182,15 @@ pub enum Type {
 }
 
 #[derive(Debug)]
-pub struct NamedField {
+pub struct TypedField {
     pub name: String,
     pub typing: Type
+}
+
+#[derive(Debug)]
+pub struct Field {
+    pub name: String,
+    pub value: Expression
 }
 
 #[derive(Debug)]

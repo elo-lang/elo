@@ -126,3 +126,18 @@ fn test_enum_stmt() {
         }
     }
 }
+
+#[test]
+fn test_struct_init() {
+    let source_text = "MyStruct { a: 10 + 1*(a+b), b: 10 };";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text));
+    let mut parser = Parser::new(lx);
+    match parser.parse() {
+        Ok(ast) => {
+            println!("{:#?}", ast);
+        }
+        Err(e) => {
+            println!("{e:?}");
+        }
+    }
+}
