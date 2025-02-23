@@ -8,8 +8,7 @@ use elo_lexer::lexer::Lexer;
 use elo_lexer::token::Token;
 
 use crate::ast::{
-    BinaryOperation, Block, ConstStatement, Expression, FnStatement, LetStatement, NamedField,
-    Statement, Type, UnaryOperation, VarStatement,
+    BinaryOperation, Block, ConstStatement, Expression, FnStatement, LetStatement, NamedField, Statement, StructStatement, Type, UnaryOperation, VarStatement
 };
 use crate::node::Node;
 use crate::program::Program;
@@ -495,6 +494,17 @@ impl<'a> Parser<'a> {
             arguments: arguments,
         }))
     }
+    
+    fn parse_struct_stmt(&mut self) -> Result<Statement, ParseError> {
+        let name = self.expect_identifier()?;
+        self.expect_token(Token::Delimiter('{'))?;
+        let fields = self.parse_named_fields()?;
+        self.expect_token(Token::Delimiter('}'))?;
+        Ok(Statement::StructStatement(StructStatement {
+            name: name,
+            fields: fields,
+        }))
+    }
 
     fn parse_stmt(&mut self) -> Result<Statement, ParseError> {
         if let Some(Lexem {
@@ -507,7 +517,7 @@ impl<'a> Parser<'a> {
                 Keyword::Let => return self.parse_let_stmt(),
                 Keyword::Const => return self.parse_const_stmt(),
                 Keyword::Fn => return self.parse_fn_stmt(),
-                Keyword::Struct => todo!("struct statement"),
+                Keyword::Struct => return self.parse_struct_stmt(),
                 Keyword::Enum => todo!("enum statement"),
             }
         } else {

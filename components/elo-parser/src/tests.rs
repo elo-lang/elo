@@ -96,3 +96,18 @@ fn test_fn_stmt() {
         }
     }
 }
+
+#[test]
+fn test_struct_stmt() {
+    let source_text = "struct A { a: int }";
+    let lx = Lexer::new(InputFile::new("test.rs", source_text));
+    let mut parser = Parser::new(lx);
+    match parser.parse() {
+        Ok(ast) => {
+            println!("{:#?}", ast);
+        }
+        Err(e) => {
+            println!("{e:?}");
+        }
+    }
+}

@@ -144,6 +144,12 @@ pub struct FnStatement {
 }
 
 #[derive(Debug)]
+pub struct StructStatement {
+    pub name: String,
+    pub fields: Vec<NamedField>
+}
+
+#[derive(Debug)]
 pub enum Type {
     Named {
         name: String,
@@ -177,5 +183,6 @@ pub enum Statement {
     VarStatement(VarStatement),
     ConstStatement(ConstStatement),
     FnStatement(FnStatement),
+    StructStatement(StructStatement),
     ExpressionStatement(Expression),
 }
