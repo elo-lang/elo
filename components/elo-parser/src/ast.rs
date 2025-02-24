@@ -93,9 +93,13 @@ pub enum Expression {
     StringLiteral {
         value: String,
     },
-    Parent {
+    Access {
         parent: Box<Expression>,
         child: Box<Expression>,
+    },
+    FunctionCall {
+        function: Box<Expression>,
+        arguments: Vec<Expression>,
     },
     StructInit {
         name: String,

@@ -229,6 +229,24 @@ impl<'a> Parser<'a> {
         Ok(fields)
     }
     
+    // expr[, expr]*
+    fn parse_expression_list(&mut self) -> Result<Vec<Expression>, ParseError> {
+        let mut fields = Vec::new();
+        if let Ok(first) = self.parse_expr(1) {
+            fields.push(first);
+        }
+        while let Some(Lexem {
+            token: Token::Delimiter(','),
+            ..
+        }) = self.lexer.peek()
+        {
+            self.lexer.next();
+            let f = self.parse_expr(1)?;
+            fields.push(f);
+        }
+        Ok(fields)
+    }
+    
     // identifier[, identifier]*
     fn parse_identifier_list(&mut self) -> Result<Vec<String>, ParseError> {
         let mut fields = Vec::new();
@@ -273,7 +291,7 @@ impl<'a> Parser<'a> {
                 Token::Delimiter('.') => {
                     self.lexer.next();
                     let id2 = self.parse_identifier()?;
-                    Ok(Expression::Parent {
+                    Ok(Expression::Access {
                         parent: Box::new(Expression::Identifier { name: id1 }),
                         child: Box::new(id2),
                     })
@@ -479,6 +497,13 @@ impl<'a> Parser<'a> {
                     right: Box::new(right),
                 };
             }
+        }
+        // parse function call
+        if let Ok(()) = self.test_token(Token::Delimiter('(')) {
+            let func = left;
+            let args = self.parse_expression_list()?;
+            self.expect_token(Token::Delimiter(')'))?;
+            left = Expression::FunctionCall { function: Box::new(func), arguments: args };
         }
         Ok(left)
     }
