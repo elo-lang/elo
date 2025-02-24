@@ -633,6 +633,7 @@ impl<'a> Parser<'a> {
                 },
                 _ => {
                     let span = lexem.span;
+                    let token = lexem.token.clone();
                     // Ensure that the next token is an token valid for an expression. Otherwise, stop parsing.
                     if let Ok(expr) = self.parse_expr(1) {
                         let node = Node {
@@ -642,7 +643,13 @@ impl<'a> Parser<'a> {
                         self.expect_end()?;
                         node
                     } else {
-                        return Ok(None);
+                        return Err(ParseError {
+                            span: Some(span),
+                            case: ParseErrorCase::UnexpectedToken {
+                                got: format!("{:?}", token),
+                                expected: "expression".to_string(),
+                            },
+                        });
                     }
                 }
             });
