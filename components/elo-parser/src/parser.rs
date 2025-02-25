@@ -63,7 +63,7 @@ fn unop_precedence(op: &Token) -> Precedence {
 pub const EOF: &str = "EOF";
 
 pub struct Parser<'a> {
-    pub inputfile: InputFile,
+    pub inputfile: InputFile<'a>,
     pub lexer: Peekable<Lexer<'a>>,
 }
 
@@ -549,7 +549,7 @@ impl<'a> Parser<'a> {
 
     fn parse_block(&mut self) -> Result<Block, ParseError> {
         let mut ast = vec![];
-        while let Some(node) = self.parse_node()? {
+        while let Some(node) = self.parse_node(true)? {
             ast.push(node);
         }
         let p = Block { content: ast };
@@ -619,14 +619,16 @@ impl<'a> Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    fn parse_node(&mut self) -> Result<Option<Node>, ParseError> {
+    fn parse_node(&mut self, inside_block: bool) -> Result<Option<Node>, ParseError> {
         let mut x = None;
         if let Some(lexem) = self.lexer.peek() {
             x = Some(match lexem.token {
                 Token::Newline => {
                     self.lexer.next();
-                    return self.parse_node();
+                    return self.parse_node(inside_block);
                 }
+                // Account for trailing } when terminating block
+                Token::Delimiter('}') if inside_block => { return Ok(None); }
                 Token::Keyword(..) => Node {
                     span: lexem.span,
                     stmt: self.parse_stmt()?,
@@ -659,7 +661,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) -> Result<Program, ParseError> {
         let mut ast = vec![];
-        while let Some(node) = self.parse_node()? {
+        while let Some(node) = self.parse_node(false)? {
             ast.push(node);
         }
         let p = Program { nodes: ast };
