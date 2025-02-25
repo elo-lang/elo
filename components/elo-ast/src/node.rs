@@ -1,4 +1,4 @@
-use crate::ast::Statement;
+use crate::syntax::Statement;
 use elo_lexer::span::Span;
 
 #[derive(Debug)]

@@ -1,5 +1,5 @@
 [package]
-name = "elo-parser"
+name = "elo-ast"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,5 +7,3 @@ edition = "2021"
 
 [dependencies]
 elo-lexer = { path = "../elo-lexer" }
-elo-error = { path = "../elo-error" }
-elo-ast = { path = "../elo-ast" }

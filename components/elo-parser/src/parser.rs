@@ -7,11 +7,11 @@ use elo_lexer::lexem::Lexem;
 use elo_lexer::lexer::Lexer;
 use elo_lexer::token::Token;
 
-use crate::ast::{
+use elo_ast::syntax::{
     BinaryOperation, Block, ConstStatement, EnumStatement, Expression, Field, FnStatement, LetStatement, Statement, StructStatement, Type, TypedField, UnaryOperation, VarStatement
 };
-use crate::node::Node;
-use crate::program::Program;
+use elo_ast::node::Node;
+use elo_ast::program::Program;
 
 pub type Precedence = u8;
 
