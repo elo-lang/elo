@@ -134,7 +134,7 @@ impl<'a> Parser<'a> {
                     self.expect_token(Token::Delimiter(','))?;
                     match self.parse_number()? {
                         Expression::IntegerLiteral { value: x } => {
-                            let x = x as usize;
+                            let x = toint(&x.0, x.1) as usize;
                             self.expect_token(Token::Delimiter(']'))?;
                             return Ok(Type::Array {
                                 typ: Box::new(typ),
@@ -267,21 +267,20 @@ impl<'a> Parser<'a> {
 
     fn parse_number(&mut self) -> Result<Expression, ParseError> {
         let int = self.expect_numeric()?;
-        let int_value = toint(&int.0, int.1);
         if let Some(lexem) = self.lexer.peek() {
             return match &lexem.token {
                 Token::Delimiter('.') => {
                     self.lexer.next();
                     let float = self.expect_numeric()?;
-                    let float_value = toint(&float.0, float.1);
                     Ok(Expression::FloatLiteral {
-                        value: format!("{}.{}", int_value, float_value).parse().unwrap(),
+                        int: int,
+                        float: float,
                     })
                 }
-                _ => Ok(Expression::IntegerLiteral { value: int_value }),
+                _ => Ok(Expression::IntegerLiteral { value: int }),
             };
         }
-        Ok(Expression::IntegerLiteral { value: int_value })
+        Ok(Expression::IntegerLiteral { value: int })
     }
 
     fn parse_identifier(&mut self) -> Result<Expression, ParseError> {
