@@ -1,11 +1,11 @@
 #[derive(Debug, Clone)]
-pub struct InputFile {
+pub struct InputFile<'a> {
     pub filename: &'static str,
-    pub content: &'static str,
+    pub content: &'a str,
 }
 
-impl InputFile {
-    pub fn new(filename: &'static str, content: &'static str) -> InputFile {
+impl<'a> InputFile<'a> {
+    pub fn new(filename: &'static str, content: &'a str) -> InputFile<'a> {
         InputFile { filename, content }
     }
 }

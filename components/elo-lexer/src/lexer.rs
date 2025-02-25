@@ -9,9 +9,9 @@ use crate::span::FileSpan;
 use crate::token::Token;
 
 pub struct Lexer<'a> {
-    pub input_file: InputFile,
+    pub input_file: InputFile<'a>,
     pub chars: Peekable<Chars<'a>>,
-    pub span: FileSpan,
+    pub span: FileSpan<'a>,
 }
 
 macro_rules! whitespace {
@@ -81,7 +81,7 @@ macro_rules! identifier {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input_file: InputFile) -> Lexer<'a> {
+    pub fn new(input_file: InputFile<'a>) -> Lexer<'a> {
         Lexer {
             input_file: input_file.clone(),
             chars: input_file.content.chars().peekable(),
