@@ -141,7 +141,7 @@ pub struct ConstStatement {
 
 #[derive(Debug)]
 pub struct Block {
-    pub content: Vec<Node>
+    pub content: Vec<Node>,
 }
 
 #[derive(Debug)]
@@ -149,53 +149,53 @@ pub struct FnStatement {
     pub name: String,
     pub block: Block,
     pub ret: Option<Type>,
-    pub arguments: Vec<TypedField>
+    pub arguments: Vec<TypedField>,
 }
 
 #[derive(Debug)]
 pub struct StructStatement {
     pub name: String,
-    pub fields: Vec<TypedField>
+    pub fields: Vec<TypedField>,
 }
 
 #[derive(Debug)]
 pub struct EnumStatement {
     pub name: String,
-    pub variants: Vec<String>
+    pub variants: Vec<String>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Type {
     Named {
         name: String,
-        generic: Option<Box<Type>>
+        generic: Option<Box<Type>>,
     },
     Array {
         typ: Box<Type>,
-        amount: usize
+        amount: usize,
     },
     Tuple {
-        types: Vec<Type>
+        types: Vec<Type>,
     },
     Pointer {
-        typ: Box<Type>
+        typ: Box<Type>,
     },
     FunctionPointer {
         args: Vec<Type>,
-        return_: Box<Option<Type>>
-    }
+        return_: Box<Option<Type>>,
+    },
 }
 
 #[derive(Debug)]
 pub struct TypedField {
     pub name: String,
-    pub typing: Type
+    pub typing: Type,
 }
 
 #[derive(Debug)]
 pub struct Field {
     pub name: String,
-    pub value: Expression
+    pub value: Expression,
 }
 
 #[derive(Debug)]
