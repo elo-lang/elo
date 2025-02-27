@@ -1,6 +1,6 @@
-use crate::node::Node;
+use elo_lexer::span::Span;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum BinaryOperation {
     Add,
     Sub,
@@ -55,7 +55,7 @@ impl BinaryOperation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum UnaryOperation {
     Neg,
     Not,
@@ -102,17 +102,16 @@ pub enum Expression {
         arguments: Vec<Expression>,
     },
     StructInit {
-        name: String,
+        origin: Struct,
         fields: Vec<Field>,
     },
-    IntegerLiteral {
-        value: (String, u32),
+    Integer {
+        value: i128,
     },
-    FloatLiteral {
-        int: (String, u32),
-        float: (String, u32),
+    Float {
+        value: f32,
     },
-    BooleanLiteral {
+    Bool {
         value: bool,
     },
     Identifier {
@@ -136,60 +135,91 @@ pub struct VarStatement {
 pub struct ConstStatement {
     pub binding: String,
     pub assignment: Expression,
-    pub typing: Type,
+    pub typing: Typing,
 }
 
 #[derive(Debug)]
 pub struct Block {
-    pub content: Vec<Node>,
+    pub content: Vec<EvaluatedNode>,
 }
 
 #[derive(Debug)]
-pub struct FnStatement {
+pub struct EvaluatedProgram {
+    pub nodes: Vec<EvaluatedNode>,
+}
+
+#[derive(Debug)]
+pub struct EvaluatedNode {
+    span: Span,
+    stmt: Statement,
+}
+
+#[derive(Debug)]
+pub struct Function {
     pub name: String,
     pub block: Block,
-    pub ret: Option<Type>,
+    pub ret: Option<Typing>,
     pub arguments: Vec<TypedField>,
 }
 
-#[derive(Debug)]
-pub struct StructStatement {
+#[derive(Debug, Eq, PartialEq)]
+pub struct Struct {
     pub name: String,
     pub fields: Vec<TypedField>,
 }
 
-#[derive(Debug)]
-pub struct EnumStatement {
+#[derive(Debug, Eq, PartialEq)]
+pub struct Enum {
     pub name: String,
     pub variants: Vec<String>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum Type {
-    Named {
-        name: String,
-        generic: Option<Box<Type>>,
-    },
+pub enum Primitive {
+    I128,
+    I64,
+    I32,
+    I16,
+    I8,
+    Bool,
+    U128,
+    U64,
+    U32,
+    U16,
+    U8,
+    F32,
+    F64,
+    F128,
+    Int,
+    UInt,
+    Float,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum Typing {
+    Primitive(Primitive),
+    Struct(Struct, Option<Box<Typing>>),
+    Enum(Enum, Option<Box<Typing>>),
     Array {
-        typ: Box<Type>,
+        typ: Box<Typing>,
         amount: usize,
     },
     Tuple {
-        types: Vec<Type>,
+        types: Vec<Typing>,
     },
     Pointer {
-        typ: Box<Type>,
+        typ: Box<Typing>,
     },
     FunctionPointer {
-        args: Vec<Type>,
-        return_: Box<Option<Type>>,
+        args: Vec<Typing>,
+        ret: Box<Option<Typing>>,
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct TypedField {
     pub name: String,
-    pub typing: Type,
+    pub typing: Typing,
 }
 
 #[derive(Debug)]
@@ -203,8 +233,8 @@ pub enum Statement {
     LetStatement(LetStatement),
     VarStatement(VarStatement),
     ConstStatement(ConstStatement),
-    FnStatement(FnStatement),
-    StructStatement(StructStatement),
-    EnumStatement(EnumStatement),
+    FnStatement(Function),
+    StructStatement(Struct),
+    EnumStatement(Enum),
     ExpressionStatement(Expression),
 }

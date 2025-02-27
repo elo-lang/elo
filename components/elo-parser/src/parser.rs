@@ -7,11 +7,12 @@ use elo_lexer::lexem::Lexem;
 use elo_lexer::lexer::Lexer;
 use elo_lexer::token::Token;
 
-use elo_ast::syntax::{
-    BinaryOperation, Block, ConstStatement, EnumStatement, Expression, Field, FnStatement, LetStatement, Statement, StructStatement, Type, TypedField, UnaryOperation, VarStatement
+use elo_ast::ast::Node;
+use elo_ast::ast::Program;
+use elo_ast::ast::{
+    BinaryOperation, Block, ConstStatement, EnumStatement, Expression, Field, FnStatement,
+    LetStatement, Statement, StructStatement, Type, TypedField, UnaryOperation, VarStatement,
 };
-use elo_ast::node::Node;
-use elo_ast::program::Program;
 
 pub type Precedence = u8;
 
@@ -182,7 +183,7 @@ impl<'a> Parser<'a> {
             typing: typ,
         });
     }
-    
+
     fn parse_field(&mut self) -> Result<Field, ParseError> {
         let ident = self.expect_identifier()?;
         self.expect_token(Token::Delimiter(':'))?;
@@ -210,7 +211,7 @@ impl<'a> Parser<'a> {
         }
         Ok(fields)
     }
-    
+
     // identifier: expr[, identifier: expr]*
     fn parse_fields(&mut self) -> Result<Vec<Field>, ParseError> {
         let mut fields = Vec::new();
@@ -228,7 +229,7 @@ impl<'a> Parser<'a> {
         }
         Ok(fields)
     }
-    
+
     // expr[, expr]*
     fn parse_expression_list(&mut self) -> Result<Vec<Expression>, ParseError> {
         let mut fields = Vec::new();
@@ -246,7 +247,7 @@ impl<'a> Parser<'a> {
         }
         Ok(fields)
     }
-    
+
     // identifier[, identifier]*
     fn parse_identifier_list(&mut self) -> Result<Vec<String>, ParseError> {
         let mut fields = Vec::new();
@@ -430,7 +431,7 @@ impl<'a> Parser<'a> {
                 Token::Newline => {
                     self.lexer.next();
                     return self.parse_primary();
-                },
+                }
                 Token::Numeric(..) => return Ok(self.parse_number()?),
                 Token::Identifier(_) => return Ok(self.parse_identifier()?),
                 Token::Delimiter('(') => {
@@ -502,7 +503,10 @@ impl<'a> Parser<'a> {
             let func = left;
             let args = self.parse_expression_list()?;
             self.expect_token(Token::Delimiter(')'))?;
-            left = Expression::FunctionCall { function: Box::new(func), arguments: args };
+            left = Expression::FunctionCall {
+                function: Box::new(func),
+                arguments: args,
+            };
         }
         Ok(left)
     }
@@ -574,7 +578,7 @@ impl<'a> Parser<'a> {
             arguments: arguments,
         }))
     }
-    
+
     fn parse_struct_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('{'))?;
@@ -585,7 +589,7 @@ impl<'a> Parser<'a> {
             fields: fields,
         }))
     }
-    
+
     fn parse_enum_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('{'))?;
@@ -627,7 +631,9 @@ impl<'a> Parser<'a> {
                     return self.parse_node(inside_block);
                 }
                 // Account for trailing } when terminating block
-                Token::Delimiter('}') if inside_block => { return Ok(None); }
+                Token::Delimiter('}') if inside_block => {
+                    return Ok(None);
+                }
                 Token::Keyword(..) => Node {
                     span: lexem.span,
                     stmt: self.parse_stmt()?,

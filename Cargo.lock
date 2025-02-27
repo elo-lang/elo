@@ -21,6 +21,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "elo-ir"
+version = "0.1.0"
+dependencies = [
+ "elo-ast",
+ "elo-lexer",
+]
+
+[[package]]
 name = "elo-lexer"
 version = "0.1.0"
 
