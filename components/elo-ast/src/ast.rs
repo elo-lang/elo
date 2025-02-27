@@ -98,9 +98,9 @@ pub enum Expression {
     StringLiteral {
         value: String,
     },
-    Access {
-        parent: Box<Expression>,
-        child: Box<Expression>,
+    FieldAccess {
+        origin: Box<Expression>,
+        field: String,
     },
     FunctionCall {
         function: Box<Expression>,

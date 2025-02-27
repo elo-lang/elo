@@ -288,14 +288,6 @@ impl<'a> Parser<'a> {
         let id1 = self.expect_identifier()?;
         if let Some(lexem) = self.lexer.peek() {
             return match &lexem.token {
-                Token::Delimiter('.') => {
-                    self.lexer.next();
-                    let id2 = self.parse_identifier()?;
-                    Ok(Expression::Access {
-                        parent: Box::new(Expression::Identifier { name: id1 }),
-                        child: Box::new(id2),
-                    })
-                }
                 // Struct initialization (e.g. A { x: 10, y: 10 })
                 Token::Delimiter('{') => {
                     self.lexer.next();
@@ -498,7 +490,15 @@ impl<'a> Parser<'a> {
                 };
             }
         }
-        // parse function call
+        // Field access (e.g. instance.method(), foo.bar)
+        if let Ok(()) = self.test_token(Token::Delimiter('.')) {
+            let field = self.expect_identifier()?;
+            left = Expression::FieldAccess {
+                origin: Box::new(left),
+                field: field,
+            };
+        }
+        // Function call (e.g. foo(), bar())
         if let Ok(()) = self.test_token(Token::Delimiter('(')) {
             let func = left;
             let args = self.parse_expression_list()?;
