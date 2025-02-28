@@ -1,6 +1,6 @@
 # Elo Grammar Specification
 
-## Literals
+## Primary
 > _Primary_ :  
 > &nbsp;&nbsp;&nbsp;&nbsp; _Ident_   
 > &nbsp;&nbsp;&nbsp;&nbsp; | _NumberLiteral_  
@@ -15,13 +15,16 @@
 > &nbsp;&nbsp;&nbsp;&nbsp; | _OctalNumber_  
 > &nbsp;&nbsp;&nbsp;&nbsp; | _BinaryNumber_  
 
+> _StringLiteral_ :  
+> &nbsp;&nbsp;&nbsp;&nbsp; `"([^"\\]*(\\.[^"\\]*)*)"`
+
 > _DecimalNumber_ : `0-9`+  
 > _HexNumber_ : `'0x' [0-9A-Fa-f]+`  
 > _OctalNumber_ : `'0o' [0-7]+`  
 > _BinaryNumber_ : `'0b' [0-1]+`  
 
 ## Operators
-> **<sup>Syntax</sup>**  
+
 > _BinaryOperator_ :  
 > &nbsp;&nbsp;&nbsp;&nbsp; `"+"` | `"-"` | `"*"` | `"/"`  
 > &nbsp;&nbsp;&nbsp;&nbsp; | `"|"` | `"&"` | `"<<"` | `">>"`  
@@ -30,7 +33,7 @@
 > _UnaryOperator_ : `"-"` | `"!"` | `"&"`  
 
 ## Types
-> **<sup>Syntax</sup>**  
+
 > _Type_ :  
 > &nbsp;&nbsp;&nbsp;&nbsp; _NamedType_  
 > &nbsp;&nbsp;&nbsp;&nbsp; | _ArrayType_  
@@ -45,7 +48,7 @@
 > _FunctionPointerType_ : `"fn("` [_Type_ [`","` _Type_]*] `")"` [`":"` _Type_]  
 
 ## Statements
-> **<sup>Syntax</sup>**  
+
 > _Statement_ :  
 > &nbsp;&nbsp;&nbsp;&nbsp; _ExpressionStatement_  
 > &nbsp;&nbsp;&nbsp;&nbsp; | _KeywordStatement_  
@@ -58,7 +61,7 @@
 > _StructDefinition_ : `"struct"` _Ident_ `"{"` _TypedFields_ `"}"` [_End_]  
 
 ## Expressions
-> **<sup>Syntax</sup>**  
+
 > _Expression_ :  
 > &nbsp;&nbsp;&nbsp;&nbsp; Primary  
 > &nbsp;&nbsp;&nbsp;&nbsp; | _BinaryOperation_  
@@ -74,7 +77,7 @@
 > _NamespaceAccess_ : _Ident_ `"::"` _Ident_  
 
 ## Other
-> **<sup>Syntax</sup>**  
+
 > _End_ : `"\n"` | `";"` | _EOF_  
 > _Fields_ : _Field_ [`","` _Field_]*  
 > _TypedFields_ : _TypedField_ [`","` _TypedField_]*  
