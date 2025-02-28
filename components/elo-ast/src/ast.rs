@@ -26,7 +26,6 @@ pub enum BinaryOperation {
     LShift,
     RShift,
     Assign,
-    OpAssign(Box<BinaryOperation>),
 }
 
 impl BinaryOperation {

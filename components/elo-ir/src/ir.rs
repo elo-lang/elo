@@ -21,36 +21,30 @@ pub enum BinaryOperation {
     LShift,
     RShift,
     Assign,
-    OpAssign(Box<BinaryOperation>),
 }
 
 impl BinaryOperation {
-    pub fn from_op(first: char, second: Option<char>) -> Option<Self> {
-        let mut pat = String::from(first);
-        if let Some(c) = second {
-            pat.push(c);
-        }
-        match pat.as_str() {
-            "+" => Some(BinaryOperation::Add),
-            "-" => Some(BinaryOperation::Sub),
-            "*" => Some(BinaryOperation::Mul),
-            "/" => Some(BinaryOperation::Div),
-            "%" => Some(BinaryOperation::Mod),
-            "<" => Some(BinaryOperation::Lt),
-            ">" => Some(BinaryOperation::Gt),
-            "&" => Some(BinaryOperation::BAnd),
-            "|" => Some(BinaryOperation::BOr),
-            "^" => Some(BinaryOperation::BXor),
-            "=" => Some(BinaryOperation::Assign),
-            "==" => Some(BinaryOperation::Eq),
-            "!=" => Some(BinaryOperation::Ne),
-            "<=" => Some(BinaryOperation::Le),
-            ">=" => Some(BinaryOperation::Ge),
-            "&&" => Some(BinaryOperation::And),
-            "||" => Some(BinaryOperation::Or),
-            "<<" => Some(BinaryOperation::LShift),
-            ">>" => Some(BinaryOperation::RShift),
-            _ => None,
+    pub fn from_ast(x: elo_ast::ast::BinaryOperation) -> Self {
+        match x {
+            elo_ast::ast::BinaryOperation::Add => BinaryOperation::Add,
+            elo_ast::ast::BinaryOperation::Sub => BinaryOperation::Sub,
+            elo_ast::ast::BinaryOperation::Mul => BinaryOperation::Mul,
+            elo_ast::ast::BinaryOperation::Div => BinaryOperation::Div,
+            elo_ast::ast::BinaryOperation::Mod => BinaryOperation::Mod,
+            elo_ast::ast::BinaryOperation::Lt => BinaryOperation::Lt,
+            elo_ast::ast::BinaryOperation::Gt => BinaryOperation::Gt,
+            elo_ast::ast::BinaryOperation::BAnd => BinaryOperation::BAnd,
+            elo_ast::ast::BinaryOperation::BOr => BinaryOperation::BOr,
+            elo_ast::ast::BinaryOperation::BXor => BinaryOperation::BXor,
+            elo_ast::ast::BinaryOperation::Assign => BinaryOperation::Assign,
+            elo_ast::ast::BinaryOperation::Eq => BinaryOperation::Eq,
+            elo_ast::ast::BinaryOperation::Ne => BinaryOperation::Ne,
+            elo_ast::ast::BinaryOperation::Le => BinaryOperation::Le,
+            elo_ast::ast::BinaryOperation::Ge => BinaryOperation::Ge,
+            elo_ast::ast::BinaryOperation::And => BinaryOperation::And,
+            elo_ast::ast::BinaryOperation::Or => BinaryOperation::Or,
+            elo_ast::ast::BinaryOperation::LShift => BinaryOperation::LShift,
+            elo_ast::ast::BinaryOperation::RShift => BinaryOperation::RShift,
         }
     }
 }
@@ -64,17 +58,12 @@ pub enum UnaryOperation {
 }
 
 impl UnaryOperation {
-    pub fn from_op(first: char, second: Option<char>) -> Option<Self> {
-        let mut pat = String::from(first);
-        if let Some(c) = second {
-            pat.push(c);
-        }
-        match pat.as_str() {
-            "!" => Some(UnaryOperation::Not),
-            "~" => Some(UnaryOperation::BNot),
-            "-" => Some(UnaryOperation::Neg),
-            "&" => Some(UnaryOperation::Addr),
-            _ => None,
+    pub fn from_ast(x: elo_ast::ast::UnaryOperation) -> Self {
+        match x {
+            elo_ast::ast::UnaryOperation::Not => UnaryOperation::Not,
+            elo_ast::ast::UnaryOperation::BNot => UnaryOperation::BNot,
+            elo_ast::ast::UnaryOperation::Neg => UnaryOperation::Neg,
+            elo_ast::ast::UnaryOperation::Addr => UnaryOperation::Addr,
         }
     }
 }
@@ -93,9 +82,9 @@ pub enum Expression {
     StringLiteral {
         value: String,
     },
-    Access {
-        parent: Box<Expression>,
-        child: Box<Expression>,
+    FieldAccess {
+        origin: Box<Expression>,
+        field: String,
     },
     FunctionCall {
         function: Box<Expression>,
@@ -123,12 +112,14 @@ pub enum Expression {
 pub struct LetStatement {
     pub binding: String,
     pub assignment: Expression,
+    pub typing: Typing,
 }
 
 #[derive(Debug)]
 pub struct VarStatement {
     pub binding: String,
     pub assignment: Expression,
+    pub typing: Typing,
 }
 
 #[derive(Debug)]
