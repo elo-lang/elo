@@ -1,6 +1,5 @@
 use std::iter::Peekable;
 
-use elo_ast::ast::IfStatement;
 use elo_error::parseerror::{ParseError, ParseErrorCase};
 use elo_lexer::inputfile::InputFile;
 use elo_lexer::keyword::Keyword;
@@ -10,10 +9,7 @@ use elo_lexer::token::Token;
 
 use elo_ast::ast::Node;
 use elo_ast::ast::Program;
-use elo_ast::ast::{
-    BinaryOperation, Block, ConstStatement, EnumStatement, Expression, Field, FnStatement,
-    LetStatement, Statement, StructStatement, Type, TypedField, UnaryOperation, VarStatement,
-};
+use elo_ast::ast::*;
 
 pub type Precedence = u8;
 
@@ -641,7 +637,7 @@ impl<'a> Parser<'a> {
     fn parse_stmt(&mut self) -> Result<Statement, ParseError> {
         if let Some(Lexem {
             token: Token::Keyword(kw),
-            span: span,
+            span,
         }) = self.lexer.next()
         {
             match kw {
