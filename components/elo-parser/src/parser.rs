@@ -295,10 +295,13 @@ impl<'a> Parser<'a> {
                 self.lexer.next();
                 Ok(x)
             }
-            Some(Lexem { token: Token::Newline, .. }) => {
+            Some(Lexem {
+                token: Token::Newline,
+                ..
+            }) => {
                 self.lexer.next();
-                return self.test_token(expect)
-            },
+                return self.test_token(expect);
+            }
             Some(lexem) => Err(ParseError {
                 span: Some(lexem.span),
                 case: ParseErrorCase::UnexpectedToken {
@@ -384,17 +387,20 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_end(&mut self) -> Result<(), ParseError> {
-        match self.lexer.next() {
+        match self.lexer.peek() {
             Some(Lexem {
-                token: Token::Newline,
+                token: Token::Newline | Token::Delimiter(';'),
                 ..
-            }) => Ok(()),
+            }) => {
+                self.lexer.next();
+                return Ok(());
+            }
             Some(Lexem {
-                token: Token::Delimiter(';'),
+                token: Token::Delimiter('}'),
                 ..
             }) => Ok(()),
             Some(Lexem { token: other, span }) => Err(ParseError {
-                span: Some(span),
+                span: Some(*span),
                 case: ParseErrorCase::UnexpectedToken {
                     got: format!("{:?}", other),
                     expected: "end of statement".to_string(),
@@ -609,7 +615,9 @@ impl<'a> Parser<'a> {
                     span: elseif.span,
                     stmt: self.parse_if_stmt()?,
                 };
-                block_false = Some(Block { content: vec![if_node] });
+                block_false = Some(Block {
+                    content: vec![if_node],
+                });
             } else {
                 self.expect_token(Token::Delimiter('{'))?;
                 block_false = Some(self.parse_block()?);
@@ -618,7 +626,8 @@ impl<'a> Parser<'a> {
         }
         Ok(Statement::IfStatement(IfStatement {
             condition: expr,
-            block_false, block_true
+            block_false,
+            block_true,
         }))
     }
 
