@@ -6,6 +6,8 @@ pub enum Keyword {
     Fn,
     Struct,
     Enum,
+    If,
+    Else,
 }
 
 impl Keyword {
@@ -17,6 +19,8 @@ impl Keyword {
             "fn" => Some(Keyword::Fn),
             "struct" => Some(Keyword::Struct),
             "enum" => Some(Keyword::Enum),
+            "if" => Some(Keyword::If),
+            "else" => Some(Keyword::Else),
             _ => None,
         }
     }

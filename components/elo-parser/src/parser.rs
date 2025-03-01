@@ -1,5 +1,6 @@
 use std::iter::Peekable;
 
+use elo_ast::ast::IfStatement;
 use elo_error::parseerror::{ParseError, ParseErrorCase};
 use elo_lexer::inputfile::InputFile;
 use elo_lexer::keyword::Keyword;
@@ -288,6 +289,11 @@ impl<'a> Parser<'a> {
         let id1 = self.expect_identifier()?;
         if let Some(lexem) = self.lexer.peek() {
             return match &lexem.token {
+                // FIXME: This creates a problem with if statements when the last token of
+                //        the expression is an identifier. This function starts parsing the
+                //        if block {} like if it was struct initialization.
+                // TODO: Check for the case above.
+
                 // Struct initialization (e.g. A { x: 10, y: 10 })
                 Token::Delimiter('{') => {
                     self.lexer.next();
@@ -305,13 +311,18 @@ impl<'a> Parser<'a> {
     }
 
     // Check if a token is present at the next iteration. Only consumes if the condition is met.
-    // Doesn't ignore newlines.
-    pub fn test_token(&mut self, expect: Token) -> Result<(), ParseError> {
+    // Ignores newlines.
+    pub fn test_token(&mut self, expect: Token) -> Result<Lexem, ParseError> {
         match self.lexer.peek() {
             Some(lexem) if lexem.token == expect => {
+                let x = lexem.clone();
                 self.lexer.next();
-                Ok(())
+                Ok(x)
             }
+            Some(Lexem { token: Token::Newline, .. }) => {
+                self.lexer.next();
+                return self.test_token(expect)
+            },
             Some(lexem) => Err(ParseError {
                 span: Some(lexem.span),
                 case: ParseErrorCase::UnexpectedToken {
@@ -482,16 +493,17 @@ impl<'a> Parser<'a> {
                 ..
             }) = self.lexer.next()
             {
+                let binop = BinaryOperation::from_op(a, b);
                 let right = self.parse_expr(next_limit)?;
                 left = Expression::BinaryOperation {
-                    operator: BinaryOperation::from_op(a, b).unwrap(),
+                    operator: binop.unwrap(),
                     left: Box::new(left),
                     right: Box::new(right),
                 };
             }
         }
         // Field access (e.g. instance.method(), foo.bar)
-        if let Ok(()) = self.test_token(Token::Delimiter('.')) {
+        if let Ok(_) = self.test_token(Token::Delimiter('.')) {
             let field = self.expect_identifier()?;
             left = Expression::FieldAccess {
                 origin: Box::new(left),
@@ -499,7 +511,7 @@ impl<'a> Parser<'a> {
             };
         }
         // Function call (e.g. foo(), bar())
-        if let Ok(()) = self.test_token(Token::Delimiter('(')) {
+        if let Ok(_) = self.test_token(Token::Delimiter('(')) {
             let func = left;
             let args = self.parse_expression_list()?;
             self.expect_token(Token::Delimiter(')'))?;
@@ -601,10 +613,35 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    fn parse_if_stmt(&mut self) -> Result<Statement, ParseError> {
+        let expr = self.parse_expr(1)?;
+        self.expect_token(Token::Delimiter('{'))?;
+        let block_true = self.parse_block()?;
+        self.expect_token(Token::Delimiter('}'))?;
+        let mut block_false: Option<Block> = None;
+        if let Ok(_) = self.test_token(Token::Keyword(Keyword::Else)) {
+            if let Ok(elseif) = self.test_token(Token::Keyword(Keyword::If)) {
+                let if_node = Node {
+                    span: elseif.span,
+                    stmt: self.parse_if_stmt()?,
+                };
+                block_false = Some(Block { content: vec![if_node] });
+            } else {
+                self.expect_token(Token::Delimiter('{'))?;
+                block_false = Some(self.parse_block()?);
+                self.expect_token(Token::Delimiter('}'))?;
+            }
+        }
+        Ok(Statement::IfStatement(IfStatement {
+            condition: expr,
+            block_false, block_true
+        }))
+    }
+
     fn parse_stmt(&mut self) -> Result<Statement, ParseError> {
         if let Some(Lexem {
             token: Token::Keyword(kw),
-            ..
+            span: span,
         }) = self.lexer.next()
         {
             match kw {
@@ -614,6 +651,16 @@ impl<'a> Parser<'a> {
                 Keyword::Fn => return self.parse_fn_stmt(),
                 Keyword::Struct => return self.parse_struct_stmt(),
                 Keyword::Enum => return self.parse_enum_stmt(),
+                Keyword::If => return self.parse_if_stmt(),
+                Keyword::Else => {
+                    return Err(ParseError {
+                        span: Some(span),
+                        case: ParseErrorCase::UnexpectedToken {
+                            got: "else keyword".to_string(),
+                            expected: "valid statement".to_string(),
+                        },
+                    });
+                }
             }
         } else {
             unreachable!("asked to parse statement without keyword")

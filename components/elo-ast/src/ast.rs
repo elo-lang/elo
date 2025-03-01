@@ -174,6 +174,13 @@ pub struct EnumStatement {
     pub variants: Vec<String>,
 }
 
+#[derive(Debug)]
+pub struct IfStatement {
+    pub condition: Expression,
+    pub block_true: Block,
+    pub block_false: Option<Block>,
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum Type {
     Named {
@@ -216,5 +223,6 @@ pub enum Statement {
     FnStatement(FnStatement),
     StructStatement(StructStatement),
     EnumStatement(EnumStatement),
+    IfStatement(IfStatement),
     ExpressionStatement(Expression),
 }
