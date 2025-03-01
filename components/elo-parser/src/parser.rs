@@ -283,26 +283,6 @@ impl<'a> Parser<'a> {
 
     fn parse_identifier(&mut self) -> Result<Expression, ParseError> {
         let id1 = self.expect_identifier()?;
-        if let Some(lexem) = self.lexer.peek() {
-            return match &lexem.token {
-                // FIXME: This creates a problem with if statements when the last token of
-                //        the expression is an identifier. This function starts parsing the
-                //        if block {} like if it was struct initialization.
-                // TODO: Check for the case above.
-
-                // Struct initialization (e.g. A { x: 10, y: 10 })
-                Token::Delimiter('{') => {
-                    self.lexer.next();
-                    let fields = self.parse_fields()?;
-                    self.expect_token(Token::Delimiter('}'))?;
-                    Ok(Expression::StructInit {
-                        name: id1,
-                        fields: fields,
-                    })
-                }
-                _ => Ok(Expression::Identifier { name: id1 }),
-            };
-        }
         Ok(Expression::Identifier { name: id1 })
     }
 
@@ -438,6 +418,14 @@ impl<'a> Parser<'a> {
                     let expr = self.parse_expr(1)?;
                     self.expect_token(Token::Delimiter(')'))?;
                     return Ok(expr);
+                }
+                Token::Keyword(Keyword::Struct) => {
+                    self.lexer.next();
+                    let i = self.expect_identifier()?;
+                    self.expect_token(Token::Delimiter('{'))?;
+                    let fields = self.parse_fields()?;
+                    self.expect_token(Token::Delimiter('}'))?;
+                    return Ok(Expression::StructInit { name: i, fields });
                 }
                 token @ Token::Op(a, b) => {
                     let op = UnaryOperation::from_op(*a, b.as_ref().copied());
