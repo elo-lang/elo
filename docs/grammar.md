@@ -24,15 +24,15 @@
 > &nbsp;&nbsp;&nbsp;&nbsp; | _BinaryNumber_  
 
 > **_StringLiteral_** :  
-> &nbsp;&nbsp;&nbsp;&nbsp; `/"([^"\\]*(\\.[^"\\]*)*)"/`
+> &nbsp;&nbsp;&nbsp;&nbsp; /"([^"\\]*(\\.[^"\\]*)*)"/
 
-> **_DecimalNumber_** : `/[0-9]+/`  
+> **_DecimalNumber_** : /[0-9]+/  
 
-> **_HexNumber_** : `"0x" /[0-9A-Fa-f]+/`  
+> **_HexNumber_** : `"0x"` /[0-9A-Fa-f]+/  
 
-> **_OctalNumber_** : `"0o" /[0-7]+/`  
+> **_OctalNumber_** : `"0o"` /[0-7]+/  
 
-> **_BinaryNumber_** : `"0b" /[0-1]+/`  
+> **_BinaryNumber_** : `"0b"` /[0-1]+/  
 
 ## Operators
 
@@ -110,7 +110,7 @@
 
 > **_UnaryOperation_** : _UnaryOperator_ _Expression_  
 
-> **_StructInitialization_** : "`"struct"` _Ident_ `"{"` [_Fields_] `"}"`  
+> **_StructInitialization_** : `"struct"` _Ident_ `"{"` [_Fields_] `"}"`  
 
 > **_FieldAccess_** : _Expression_ `"."` _Ident_  
 

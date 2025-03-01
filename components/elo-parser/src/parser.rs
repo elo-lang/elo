@@ -631,6 +631,16 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    fn parse_while_stmt(&mut self) -> Result<Statement, ParseError> {
+        let condition = self.parse_expr(1)?;
+        self.expect_token(Token::Delimiter('{'))?;
+        let block = self.parse_block()?;
+        self.expect_token(Token::Delimiter('}'))?;
+        Ok(Statement::WhileStatement(WhileStatement {
+            condition, block,
+        }))
+    }
+
     fn parse_stmt(&mut self) -> Result<Statement, ParseError> {
         if let Some(Lexem {
             token: Token::Keyword(kw),
@@ -645,6 +655,7 @@ impl<'a> Parser<'a> {
                 Keyword::Struct => return self.parse_struct_stmt(),
                 Keyword::Enum => return self.parse_enum_stmt(),
                 Keyword::If => return self.parse_if_stmt(),
+                Keyword::While => return self.parse_while_stmt(),
                 Keyword::Else => {
                     return Err(ParseError {
                         span: Some(span),

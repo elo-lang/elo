@@ -181,6 +181,12 @@ pub struct IfStatement {
     pub block_false: Option<Block>,
 }
 
+#[derive(Debug)]
+pub struct WhileStatement {
+    pub condition: Expression,
+    pub block: Block,
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum Type {
     Named {
@@ -224,5 +230,6 @@ pub enum Statement {
     StructStatement(StructStatement),
     EnumStatement(EnumStatement),
     IfStatement(IfStatement),
+    WhileStatement(WhileStatement),
     ExpressionStatement(Expression),
 }
