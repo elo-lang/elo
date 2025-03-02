@@ -84,7 +84,13 @@ impl UnaryOperation {
 }
 
 #[derive(Debug)]
-pub enum Expression {
+pub struct Expression {
+    pub span: Span,
+    pub data: ExpressionData,
+}
+
+#[derive(Debug)]
+pub enum ExpressionData {
     BinaryOperation {
         operator: BinaryOperation,
         left: Box<Expression>,

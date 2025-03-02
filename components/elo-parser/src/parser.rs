@@ -5,6 +5,7 @@ use elo_lexer::inputfile::InputFile;
 use elo_lexer::keyword::Keyword;
 use elo_lexer::lexem::Lexem;
 use elo_lexer::lexer::Lexer;
+use elo_lexer::span::Span;
 use elo_lexer::token::Token;
 
 use elo_ast::ast::Node;
@@ -63,6 +64,7 @@ pub const EOF: &str = "EOF";
 pub struct Parser<'a> {
     pub inputfile: InputFile<'a>,
     pub lexer: Peekable<Lexer<'a>>,
+    current_span: Option<Span>,
 }
 
 impl<'a> Parser<'a> {
@@ -71,11 +73,12 @@ impl<'a> Parser<'a> {
         Parser {
             lexer: lexer.peekable(),
             inputfile,
+            current_span: None,
         }
     }
 
     fn expect_numeric(&mut self) -> Result<(String, u32), ParseError> {
-        match self.lexer.next() {
+        match self.next() {
             Some(Lexem {
                 token: Token::Numeric(num, base),
                 ..
@@ -102,7 +105,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_type(&mut self) -> Result<Type, ParseError> {
-        if let Some(lexem) = self.lexer.next() {
+        if let Some(lexem) = self.next() {
             match lexem.token {
                 Token::Identifier(x) => {
                     if let Some(Lexem {
@@ -110,7 +113,7 @@ impl<'a> Parser<'a> {
                         ..
                     }) = self.lexer.peek()
                     {
-                        self.lexer.next();
+                        self.next();
                         let generic = self.parse_type()?;
                         self.expect_token(Token::Op('>', None))?;
                         return Ok(Type::Named {
@@ -130,8 +133,8 @@ impl<'a> Parser<'a> {
                 Token::Delimiter('[') => {
                     let typ = self.parse_type()?;
                     self.expect_token(Token::Delimiter(','))?;
-                    match self.parse_number()? {
-                        Expression::IntegerLiteral { value: x } => {
+                    match self.parse_number()?.data {
+                        ExpressionData::IntegerLiteral { value: x } => {
                             let x = toint(&x.0, x.1) as usize;
                             self.expect_token(Token::Delimiter(']'))?;
                             return Ok(Type::Array {
@@ -139,7 +142,7 @@ impl<'a> Parser<'a> {
                                 amount: x,
                             });
                         }
-                        Expression::FloatLiteral { .. } => {
+                        ExpressionData::FloatLiteral { .. } => {
                             return Err(ParseError {
                                 span: Some(lexem.span),
                                 case: ParseErrorCase::UnexpectedToken {
@@ -202,7 +205,7 @@ impl<'a> Parser<'a> {
             ..
         }) = self.lexer.peek()
         {
-            self.lexer.next();
+            self.next();
             let f = self.parse_typed_field()?;
             fields.push(f);
         }
@@ -220,7 +223,7 @@ impl<'a> Parser<'a> {
             ..
         }) = self.lexer.peek()
         {
-            self.lexer.next();
+            self.next();
             let f = self.parse_field()?;
             fields.push(f);
         }
@@ -238,7 +241,7 @@ impl<'a> Parser<'a> {
             ..
         }) = self.lexer.peek()
         {
-            self.lexer.next();
+            self.next();
             let f = self.parse_expr(1)?;
             fields.push(f);
         }
@@ -256,7 +259,7 @@ impl<'a> Parser<'a> {
             ..
         }) = self.lexer.peek()
         {
-            self.lexer.next();
+            self.next();
             let f = self.expect_identifier()?;
             fields.push(f);
         }
@@ -265,25 +268,38 @@ impl<'a> Parser<'a> {
 
     fn parse_number(&mut self) -> Result<Expression, ParseError> {
         let int = self.expect_numeric()?;
+        let span = self.current_span.unwrap();
         if let Some(lexem) = self.lexer.peek() {
             return match &lexem.token {
                 Token::Delimiter('.') => {
-                    self.lexer.next();
+                    self.next();
                     let float = self.expect_numeric()?;
-                    Ok(Expression::FloatLiteral {
-                        int: int,
-                        float: float,
+                    Ok(Expression {
+                        span: span.merge(self.current_span.unwrap()),
+                        data: ExpressionData::FloatLiteral {
+                            int: int,
+                            float: float,
+                        }
                     })
                 }
-                _ => Ok(Expression::IntegerLiteral { value: int }),
+                _ => Ok(Expression {
+                    span: span,
+                    data: ExpressionData::IntegerLiteral { value: int }
+                }),
             };
         }
-        Ok(Expression::IntegerLiteral { value: int })
+        Ok(Expression {
+            span: span,
+            data: ExpressionData::IntegerLiteral { value: int }
+        })
     }
 
     fn parse_identifier(&mut self) -> Result<Expression, ParseError> {
         let id1 = self.expect_identifier()?;
-        Ok(Expression::Identifier { name: id1 })
+        Ok(Expression {
+            span: self.current_span.unwrap(),
+            data: ExpressionData::Identifier { name: id1 }
+        })
     }
 
     // Check if a token is present at the next iteration. Only consumes if the condition is met.
@@ -292,14 +308,14 @@ impl<'a> Parser<'a> {
         match self.lexer.peek() {
             Some(lexem) if lexem.token == expect => {
                 let x = lexem.clone();
-                self.lexer.next();
+                self.next();
                 Ok(x)
             }
             Some(Lexem {
                 token: Token::Newline,
                 ..
             }) => {
-                self.lexer.next();
+                self.next();
                 return self.test_token(expect);
             }
             Some(lexem) => Err(ParseError {
@@ -322,7 +338,7 @@ impl<'a> Parser<'a> {
     // Expects a specific token in the next iteration of lexems. Always consumes the iterator.
     // If the next token is a newline, ignores it and goes to the next iteration.
     pub fn expect_token(&mut self, expect: Token) -> Result<Token, ParseError> {
-        match self.lexer.next() {
+        match self.next() {
             Some(Lexem {
                 token: Token::Newline,
                 ..
@@ -359,14 +375,14 @@ impl<'a> Parser<'a> {
                 ..
             }) => {
                 let ident: String = ident.clone();
-                self.lexer.next();
+                self.next();
                 Ok(ident)
             }
             Some(Lexem {
                 token: Token::Newline,
                 ..
             }) => {
-                self.lexer.next();
+                self.next();
                 return self.expect_identifier();
             }
             Some(Lexem { token: other, span }) => Err(ParseError {
@@ -392,7 +408,7 @@ impl<'a> Parser<'a> {
                 token: Token::Newline | Token::Delimiter(';'),
                 ..
             }) => {
-                self.lexer.next();
+                self.next();
                 return Ok(());
             }
             Some(Lexem {
@@ -414,33 +430,41 @@ impl<'a> Parser<'a> {
         if let Some(lexem) = self.lexer.peek() {
             match &lexem.token {
                 Token::Newline => {
-                    self.lexer.next();
+                    self.next();
                     return self.parse_primary();
                 }
                 Token::Numeric(..) => return Ok(self.parse_number()?),
                 Token::Identifier(_) => return Ok(self.parse_identifier()?),
                 Token::Delimiter('(') => {
-                    self.lexer.next();
+                    self.next();
                     let expr = self.parse_expr(1)?;
                     self.expect_token(Token::Delimiter(')'))?;
                     return Ok(expr);
                 }
                 Token::Keyword(Keyword::Struct) => {
-                    self.lexer.next();
+                    self.next();
+                    let span = self.current_span.unwrap();
                     let i = self.expect_identifier()?;
                     self.expect_token(Token::Delimiter('{'))?;
                     let fields = self.parse_fields()?;
                     self.expect_token(Token::Delimiter('}'))?;
-                    return Ok(Expression::StructInit { name: i, fields });
+                    let span = span.merge(self.current_span.unwrap());
+                    return Ok(Expression {
+                        span: span,
+                        data: ExpressionData::StructInit { name: i, fields }
+                    });
                 }
                 token @ Token::Op(a, b) => {
                     let op = UnaryOperation::from_op(*a, b.as_ref().copied());
                     if let Some(unop) = op {
                         let prec = unop_precedence(token);
-                        self.lexer.next();
-                        return Ok(Expression::UnaryOperation {
-                            operator: unop,
-                            operand: Box::new(self.parse_expr(prec)?),
+                        self.next();
+                        return Ok(Expression {
+                            span: self.current_span.unwrap(),
+                            data: ExpressionData::UnaryOperation {
+                                operator: unop,
+                                operand: Box::new(self.parse_expr(prec)?),
+                            }
                         });
                     }
                     return Err(ParseError {
@@ -481,33 +505,41 @@ impl<'a> Parser<'a> {
             if let Some(Lexem {
                 token: Token::Op(a, b),
                 ..
-            }) = self.lexer.next()
+            }) = self.next()
             {
                 let binop = BinaryOperation::from_op(a, b);
                 let right = self.parse_expr(next_limit)?;
-                left = Expression::BinaryOperation {
-                    operator: binop.unwrap(),
-                    left: Box::new(left),
-                    right: Box::new(right),
+                left = Expression {
+                    span: left.span.merge(self.current_span.unwrap()),
+                    data: ExpressionData::BinaryOperation {
+                        operator: binop.unwrap(),
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
                 };
             }
         }
         // Field access (e.g. instance.method(), foo.bar)
         if let Ok(_) = self.test_token(Token::Delimiter('.')) {
             let field = self.expect_identifier()?;
-            left = Expression::FieldAccess {
-                origin: Box::new(left),
-                field: field,
+            left = Expression {
+                span: left.span.merge(self.current_span.unwrap()),
+                data: ExpressionData::FieldAccess {
+                    origin: Box::new(left),
+                    field: field,
+                }
             };
         }
         // Function call (e.g. foo(), bar())
         if let Ok(_) = self.test_token(Token::Delimiter('(')) {
-            let func = left;
             let args = self.parse_expression_list()?;
             self.expect_token(Token::Delimiter(')'))?;
-            left = Expression::FunctionCall {
-                function: Box::new(func),
-                arguments: args,
+            left = Expression {
+                span: left.span.merge(self.current_span.unwrap()),
+                data: ExpressionData::FunctionCall {
+                    function: Box::new(left),
+                    arguments: args,
+                }
             };
         }
         Ok(left)
@@ -645,7 +677,7 @@ impl<'a> Parser<'a> {
         if let Some(Lexem {
             token: Token::Keyword(kw),
             span,
-        }) = self.lexer.next()
+        }) = self.next()
         {
             match kw {
                 Keyword::Var => return self.parse_var_stmt(),
@@ -673,12 +705,20 @@ impl<'a> Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
+    fn next(&mut self) -> Option<Lexem> {
+        if let Some(l) = self.lexer.next() {
+            self.current_span = Some(l.span);
+            return Some(l);
+        }
+        return None;
+    }
+
     fn parse_node(&mut self, inside_block: bool) -> Result<Option<Node>, ParseError> {
         let mut x = None;
         if let Some(lexem) = self.lexer.peek() {
             x = Some(match lexem.token {
                 Token::Newline => {
-                    self.lexer.next();
+                    self.next();
                     return self.parse_node(inside_block);
                 }
                 // Account for trailing } when terminating block

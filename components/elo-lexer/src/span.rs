@@ -33,3 +33,13 @@ pub struct Span {
     pub start: usize,
     pub end: usize,
 }
+
+impl Span {
+    pub fn merge(&self, other: Span) -> Span {
+        Span {
+            line: self.line,
+            start: self.start,
+            end: other.end,
+        }
+    }
+}
