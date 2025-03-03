@@ -7,17 +7,15 @@ fn test_error() {
     let filespan = FileSpan {
         input_file: InputFile {
             filename: "test.txt",
-            content: "fn is_even(\na\n: int): {\n }",
+            content: "let x = 6 + 6.7;",
         },
-        line: 3,
-        start: 8,
-        end: 9,
+        line: 1, start: 8, end: 15
     };
     error(
-        "Parse Error",
-        "message",
+        "Type Error",
+        "unexpected type",
         &filespan,
-        Some("help"),
-        Some("submessage"),
+        None,
+        Some("expected Int but found F64"),
     );
 }

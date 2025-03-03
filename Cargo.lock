@@ -40,3 +40,14 @@ dependencies = [
  "elo-error",
  "elo-lexer",
 ]
+
+[[package]]
+name = "elo-validation"
+version = "0.1.0"
+dependencies = [
+ "elo-ast",
+ "elo-error",
+ "elo-ir",
+ "elo-lexer",
+ "elo-parser",
+]

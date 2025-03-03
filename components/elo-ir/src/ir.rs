@@ -24,7 +24,7 @@ pub enum BinaryOperation {
 }
 
 impl BinaryOperation {
-    pub fn from_ast(x: elo_ast::ast::BinaryOperation) -> Self {
+    pub fn from_ast(x: &elo_ast::ast::BinaryOperation) -> Self {
         match x {
             elo_ast::ast::BinaryOperation::Add => BinaryOperation::Add,
             elo_ast::ast::BinaryOperation::Sub => BinaryOperation::Sub,
@@ -58,7 +58,7 @@ pub enum UnaryOperation {
 }
 
 impl UnaryOperation {
-    pub fn from_ast(x: elo_ast::ast::UnaryOperation) -> Self {
+    pub fn from_ast(x: &elo_ast::ast::UnaryOperation) -> Self {
         match x {
             elo_ast::ast::UnaryOperation::Not => UnaryOperation::Not,
             elo_ast::ast::UnaryOperation::BNot => UnaryOperation::BNot,
@@ -98,7 +98,7 @@ pub enum Expression {
         value: i128,
     },
     Float {
-        value: f32,
+        value: f64,
     },
     Bool {
         value: bool,
@@ -131,18 +131,18 @@ pub struct ConstStatement {
 
 #[derive(Debug)]
 pub struct Block {
-    pub content: Vec<EvaluatedNode>,
+    pub content: Vec<ValidatedNode>,
 }
 
 #[derive(Debug)]
-pub struct EvaluatedProgram {
-    pub nodes: Vec<EvaluatedNode>,
+pub struct ValidatedProgram {
+    pub nodes: Vec<ValidatedNode>,
 }
 
 #[derive(Debug)]
-pub struct EvaluatedNode {
-    span: Span,
-    stmt: Statement,
+pub struct ValidatedNode {
+    pub span: Span,
+    pub stmt: Statement,
 }
 
 #[derive(Debug)]
