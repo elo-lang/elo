@@ -116,19 +116,28 @@ impl<'a> Parser<'a> {
                         self.next();
                         let generic = self.parse_type()?;
                         self.expect_token(Token::Op('>', None))?;
-                        return Ok(Type::Named {
-                            name: x,
-                            generic: Some(Box::new(generic)),
+                        return Ok(Type {
+                            span: lexem.span.merge(self.current_span.unwrap()),
+                            typing: Typing::Named {
+                                name: x,
+                                generic: Some(Box::new(generic)),
+                            }
                         });
                     }
-                    return Ok(Type::Named {
-                        name: x,
-                        generic: None,
+                    return Ok(Type {
+                        span: lexem.span,
+                        typing: Typing::Named {
+                            name: x,
+                            generic: None,
+                        }
                     });
                 }
                 Token::Op('*', None) => {
                     let typ = self.parse_type()?;
-                    return Ok(Type::Pointer { typ: Box::new(typ) });
+                    return Ok(Type {
+                        span: lexem.span.merge(self.current_span.unwrap()),
+                        typing: Typing::Pointer { typ: Box::new(typ) }
+                    });
                 }
                 Token::Delimiter('[') => {
                     let typ = self.parse_type()?;
@@ -137,9 +146,12 @@ impl<'a> Parser<'a> {
                         ExpressionData::IntegerLiteral { value: x } => {
                             let x = toint(&x.0, x.1) as usize;
                             self.expect_token(Token::Delimiter(']'))?;
-                            return Ok(Type::Array {
-                                typ: Box::new(typ),
-                                amount: x,
+                            return Ok(Type {
+                                span: lexem.span.merge(self.current_span.unwrap()),
+                                typing: Typing::Array {
+                                    typ: Box::new(typ),
+                                    amount: x,
+                                }
                             });
                         }
                         ExpressionData::FloatLiteral { .. } => {

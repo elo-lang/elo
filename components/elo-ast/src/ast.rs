@@ -194,7 +194,13 @@ pub struct WhileStatement {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum Type {
+pub struct Type {
+    pub span: Span,
+    pub typing: Typing,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum Typing {
     Named {
         name: String,
         generic: Option<Box<Type>>,
