@@ -61,6 +61,12 @@ fn unop_precedence(op: &Token) -> Precedence {
 
 pub const EOF: &str = "EOF";
 
+macro_rules! block_keywords {
+    () => {
+        Keyword::Let | Keyword::Var | Keyword::If | Keyword::While
+    };
+}
+
 pub struct Parser<'a> {
     pub inputfile: InputFile<'a>,
     pub lexer: Peekable<Lexer<'a>>,
@@ -736,6 +742,15 @@ impl<'a> Parser<'a> {
                 // Account for trailing } when terminating block
                 Token::Delimiter('}') if inside_block => {
                     return Ok(None);
+                }
+                Token::Keyword(block_keywords!()) if !inside_block => {
+                    return Err(ParseError {
+                        span: Some(lexem.span),
+                        case: ParseErrorCase::UnexpectedToken {
+                            got: format!("{:?}", lexem.token),
+                            expected: "fn, struct, enum or const".to_string(),
+                        }
+                    });
                 }
                 Token::Keyword(..) => Node {
                     span: lexem.span,
