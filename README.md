@@ -10,9 +10,6 @@ Elo is a **compiled programming language** designed to
 allow developers to **build software intuitively**, without having to deal with too
 complex programming knowledge often associated with (or even required by)
 modern compiled programming languages.
-Elo has the goal to have a **clean and objective syntax**, but still have most part
-(or even the same amount) of performance and reliability when compared
-with other compiled programming languages.
 
 ## Development
 Elo is in its early stages of development, we are still brainstorming a lot.

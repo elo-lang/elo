@@ -41,7 +41,7 @@ fn my_function_using(using Color) {
     # with their respective values
 }
 
-let c = Color { r: 0, g: 0, b: 0, a: 1 }
+let c = struct Color { r: 0, g: 0, b: 0, a: 1 }
 my_function_using(c)
 ```
 
