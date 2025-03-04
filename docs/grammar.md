@@ -80,6 +80,7 @@
 > &nbsp;&nbsp;&nbsp;&nbsp; | _StructDefinition_  
 > &nbsp;&nbsp;&nbsp;&nbsp; | _EnumDefinition_  
 > &nbsp;&nbsp;&nbsp;&nbsp; | _IfStatement_  
+> &nbsp;&nbsp;&nbsp;&nbsp; | _WhileStatement_  
 
 > **_LetStatement_** :  
 > &nbsp;&nbsp;&nbsp;&nbsp; `"let"` _Ident_ `"="` _Expression_ _End_  
@@ -95,6 +96,9 @@
 
 > **_IfStatement_** :  
 > &nbsp;&nbsp;&nbsp;&nbsp; `"if"` _Expression_ _Block_ [`"else"` (_Block_ | _IfStatement_)]
+
+> **_WhileStatement_** :  
+> &nbsp;&nbsp;&nbsp;&nbsp; `"while"` _Expression_ _Block_
 
 ## Expressions
 
