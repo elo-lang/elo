@@ -5,6 +5,7 @@ use crate::error::error;
 #[derive(Debug)]
 pub enum TypeErrorCase {
     TypeMismatch { got: String, expected: String },
+    InvalidType { what: String }
 }
 
 #[derive(Debug)]
@@ -19,6 +20,15 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
             error(
                 "Type Error",
                 &format!("type mismatch: expected {expected} but got {got}"),
+                filespan,
+                None,
+                None,
+            );
+        }
+        TypeErrorCase::InvalidType { what } => {
+            error(
+                "Type Error",
+                &format!("invalid type: {what}"),
                 filespan,
                 None,
                 None,

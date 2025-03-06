@@ -180,10 +180,34 @@ pub enum Primitive {
     U8,
     F32,
     F64,
-    F128,
     Int,
     UInt,
     Float,
+}
+
+impl Primitive {
+    // return corresponding Primitive from str
+    pub fn from_str(s: &str) -> Option<Primitive> {
+        match s {
+            "f32" => Some(Primitive::F32),
+            "f64" => Some(Primitive::F64),
+            "float" => Some(Primitive::Float),
+            "int" => Some(Primitive::Int),
+            "uint" => Some(Primitive::UInt),
+            "i8" => Some(Primitive::I8),
+            "i16" => Some(Primitive::I16),
+            "i32" => Some(Primitive::I32),
+            "i64" => Some(Primitive::I64),
+            "i128" => Some(Primitive::I128),
+            "u8" => Some(Primitive::U8),
+            "u16" => Some(Primitive::U16),
+            "u32" => Some(Primitive::U32),
+            "u64" => Some(Primitive::U64),
+            "u128" => Some(Primitive::U128),
+            "bool" => Some(Primitive::Bool),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]

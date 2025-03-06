@@ -13,6 +13,26 @@ impl Validator {
         }
     }
 
+    fn validate_type(&self, typ: &ast::Type) -> Result<ir::Typing, TypeError> {
+        match &typ.typing {
+            // TODO: Add generics
+            ast::Typing::Named { name, .. } => {
+                if let Some(t) = ir::Primitive::from_str(name) {
+                    return Ok(ir::Typing::Primitive(t));
+                }
+                // TODO: Handle other cases of Named: Struct and Enum 
+                return Err(TypeError {
+                    span: Some(typ.span),
+                    case: TypeErrorCase::InvalidType { what: format!("{:?}", typ.typing) }
+                });
+            }
+            x => Err(TypeError {
+                span: Some(typ.span),
+                case: TypeErrorCase::InvalidType { what: format!("{:?}", x) }
+            }),
+        }
+    }
+
     fn validate_expr(&self, expr: &ast::Expression) -> Result<(ir::Expression, ir::Typing), TypeError> {
         match &expr.data {
             ast::ExpressionData::BinaryOperation { operator, left, right } => {
@@ -98,10 +118,40 @@ impl Validator {
                 })
             }
             ast::Statement::VarStatement(stmt) => {
-                todo!();
+                let assignment = &stmt.assignment;
+                let name = &stmt.binding;
+                let (expr, typ) = self.validate_expr(assignment)?;
+                Ok(ir::ValidatedNode {
+                    span: node.span,
+                    stmt: ir::Statement::VarStatement(ir::VarStatement {
+                        assignment: expr,
+                        binding: name.clone(),
+                        typing: typ,
+                    })
+                })
             }
             ast::Statement::ConstStatement(stmt) => {
-                todo!();
+                let assignment = &stmt.assignment;
+                let name = &stmt.binding;
+                let (expr, typ) = self.validate_expr(assignment)?;
+                let annotated = self.validate_type(&stmt.typing)?;
+                if annotated != typ {
+                    return Err(TypeError {
+                        span: Some(stmt.typing.span),
+                        case: TypeErrorCase::TypeMismatch {
+                            got: format!("{:?}", typ),
+                            expected: format!("{:?}", annotated), 
+                        }
+                    });
+                }
+                Ok(ir::ValidatedNode {
+                    span: node.span,
+                    stmt: ir::Statement::ConstStatement(ir::ConstStatement {
+                        assignment: expr,
+                        binding: name.clone(),
+                        typing: typ,
+                    })
+                })
             }
             ast::Statement::FnStatement(stmt) => {
                 todo!();
