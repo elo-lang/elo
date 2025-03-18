@@ -107,6 +107,9 @@ pub enum ExpressionData {
         origin: Box<Expression>,
         field: String,
     },
+    Tuple {
+        exprs: Vec<Expression>,
+    },
     FunctionCall {
         function: Box<Expression>,
         arguments: Vec<Expression>,

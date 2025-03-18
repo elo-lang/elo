@@ -65,6 +65,9 @@ impl Validator {
             ast::ExpressionData::StringLiteral { value } => {
                 todo!();
             }
+            ast::ExpressionData::Tuple { exprs } => {
+                todo!();
+            }
             ast::ExpressionData::FieldAccess { origin, field } => {
                 todo!();
             }

@@ -475,8 +475,21 @@ impl<'a> Parser<'a> {
                 Token::Identifier(_) => return Ok(self.parse_identifier()?),
                 Token::Delimiter('(') => {
                     self.next();
+                    let init_span = self.current_span.unwrap();
                     let expr = self.parse_expr(1)?;
-                    self.expect_token(Token::Delimiter(')'))?;
+                    if let Ok(_) = self.test_token(Token::Delimiter(',')) {
+                        let tail = self.parse_expression_list()?;
+                        self.expect_token(Token::Delimiter(')'))?;
+                        let span = init_span.merge(self.current_span.unwrap());
+                        let mut exprs = vec![expr];
+                        exprs.extend(tail);
+                        return Ok(Expression {
+                            span: span,
+                            data: ExpressionData::Tuple {
+                                exprs: exprs,
+                            }
+                        });
+                    }
                     return Ok(expr);
                 }
                 Token::Keyword(Keyword::Struct) => {
