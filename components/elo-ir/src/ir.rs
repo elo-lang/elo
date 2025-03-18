@@ -183,6 +183,7 @@ pub enum Primitive {
     Int,
     UInt,
     Float,
+    Str,
 }
 
 impl Primitive {

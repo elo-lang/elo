@@ -172,6 +172,26 @@ impl<'a> Parser<'a> {
                         _ => unreachable!(),
                     }
                 }
+                Token::Delimiter('(') => {
+                    let mut types = Vec::new();
+                    if let Ok(first) = self.parse_type() {
+                        types.push(first);
+                    }
+                    while let Some(Lexem {
+                        token: Token::Delimiter(','),
+                        ..
+                    }) = self.lexer.peek()
+                    {
+                        self.next();
+                        let t = self.parse_type()?;
+                        types.push(t);
+                    }
+                    self.expect_token(Token::Delimiter(')'))?;
+                    return Ok(Type {
+                        span: lexem.span.merge(self.current_span.unwrap()),
+                        typing: Typing::Tuple { types },
+                    });
+                }
                 x => {
                     return Err(ParseError {
                         span: Some(lexem.span),
