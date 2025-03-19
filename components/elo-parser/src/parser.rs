@@ -113,6 +113,7 @@ impl<'a> Parser<'a> {
     fn parse_type(&mut self) -> Result<Type, ParseError> {
         if let Some(lexem) = self.next() {
             match lexem.token {
+                Token::Newline => return self.parse_type(),
                 Token::Identifier(x) => {
                     if let Some(Lexem {
                         token: Token::Op('<', None),
@@ -127,7 +128,7 @@ impl<'a> Parser<'a> {
                             typing: Typing::Named {
                                 name: x,
                                 generic: Some(Box::new(generic)),
-                            }
+                            },
                         });
                     }
                     return Ok(Type {
@@ -135,14 +136,14 @@ impl<'a> Parser<'a> {
                         typing: Typing::Named {
                             name: x,
                             generic: None,
-                        }
+                        },
                     });
                 }
                 Token::Op('*', None) => {
                     let typ = self.parse_type()?;
                     return Ok(Type {
                         span: lexem.span.merge(self.current_span.unwrap()),
-                        typing: Typing::Pointer { typ: Box::new(typ) }
+                        typing: Typing::Pointer { typ: Box::new(typ) },
                     });
                 }
                 Token::Delimiter('[') => {
@@ -157,7 +158,7 @@ impl<'a> Parser<'a> {
                                 typing: Typing::Array {
                                     typ: Box::new(typ),
                                     amount: x,
-                                }
+                                },
                             });
                         }
                         ExpressionData::FloatLiteral { .. } => {
@@ -317,18 +318,18 @@ impl<'a> Parser<'a> {
                         data: ExpressionData::FloatLiteral {
                             int: int,
                             float: float,
-                        }
+                        },
                     })
                 }
                 _ => Ok(Expression {
                     span: span,
-                    data: ExpressionData::IntegerLiteral { value: int }
+                    data: ExpressionData::IntegerLiteral { value: int },
                 }),
             };
         }
         Ok(Expression {
             span: span,
-            data: ExpressionData::IntegerLiteral { value: int }
+            data: ExpressionData::IntegerLiteral { value: int },
         })
     }
 
@@ -336,7 +337,7 @@ impl<'a> Parser<'a> {
         let id1 = self.expect_identifier()?;
         Ok(Expression {
             span: self.current_span.unwrap(),
-            data: ExpressionData::Identifier { name: id1 }
+            data: ExpressionData::Identifier { name: id1 },
         })
     }
 
@@ -485,9 +486,7 @@ impl<'a> Parser<'a> {
                         exprs.extend(tail);
                         return Ok(Expression {
                             span: span,
-                            data: ExpressionData::Tuple {
-                                exprs: exprs,
-                            }
+                            data: ExpressionData::Tuple { exprs: exprs },
                         });
                     }
                     return Ok(expr);
@@ -502,7 +501,7 @@ impl<'a> Parser<'a> {
                     let span = span.merge(self.current_span.unwrap());
                     return Ok(Expression {
                         span: span,
-                        data: ExpressionData::StructInit { name: i, fields }
+                        data: ExpressionData::StructInit { name: i, fields },
                     });
                 }
                 token @ Token::Op(a, b) => {
@@ -515,7 +514,7 @@ impl<'a> Parser<'a> {
                             data: ExpressionData::UnaryOperation {
                                 operator: unop,
                                 operand: Box::new(self.parse_expr(prec)?),
-                            }
+                            },
                         });
                     }
                     return Err(ParseError {
@@ -566,7 +565,7 @@ impl<'a> Parser<'a> {
                         operator: binop.unwrap(),
                         left: Box::new(left),
                         right: Box::new(right),
-                    }
+                    },
                 };
             }
         }
@@ -578,7 +577,7 @@ impl<'a> Parser<'a> {
                 data: ExpressionData::FieldAccess {
                     origin: Box::new(left),
                     field: field,
-                }
+                },
             };
         }
         // Function call (e.g. foo(), bar())
@@ -590,7 +589,7 @@ impl<'a> Parser<'a> {
                 data: ExpressionData::FunctionCall {
                     function: Box::new(left),
                     arguments: args,
-                }
+                },
             };
         }
         Ok(left)
@@ -720,7 +719,8 @@ impl<'a> Parser<'a> {
         let block = self.parse_block()?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::WhileStatement(WhileStatement {
-            condition, block,
+            condition,
+            block,
         }))
     }
 
@@ -782,7 +782,7 @@ impl<'a> Parser<'a> {
                         case: ParseErrorCase::UnexpectedToken {
                             got: format!("{:?}", lexem.token),
                             expected: "fn, struct, enum or const".to_string(),
-                        }
+                        },
                     });
                 }
                 Token::Keyword(..) => Node {
