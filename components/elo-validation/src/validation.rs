@@ -63,7 +63,13 @@ impl Validator {
                 ))
             }
             ast::ExpressionData::StringLiteral { value } => {
-                todo!();
+                return Ok((
+                    ir::Expression::StringLiteral { value: value.clone() },
+                    ir::Typing::Tuple { types: vec![
+                        ir::Typing::Pointer { typ: Box::new(ir::Typing::Primitive(ir::Primitive::U8)) },
+                        ir::Typing::Primitive(ir::Primitive::UInt),
+                    ] },
+                ));
             }
             ast::ExpressionData::Tuple { exprs } => {
                 todo!();
