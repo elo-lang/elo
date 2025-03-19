@@ -491,6 +491,14 @@ impl<'a> Parser<'a> {
                     }
                     return Ok(expr);
                 }
+                Token::StringLiteral(s) => {
+                    let s = s.clone();
+                    self.next();
+                    return Ok(Expression {
+                        span: self.current_span.unwrap(),
+                        data: ExpressionData::StringLiteral { value: s },
+                    });
+                }
                 Token::Keyword(Keyword::Struct) => {
                     self.next();
                     let span = self.current_span.unwrap();
