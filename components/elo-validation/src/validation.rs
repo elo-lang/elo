@@ -1,19 +1,29 @@
+use std::collections::HashMap;
+
 use elo_ast::ast;
 use elo_ir::ir;
 use elo_error::typeerror::{TypeError, TypeErrorCase};
 
 pub struct Validator {
     input: ast::Program,
+    structs: HashMap<String, ir::Struct>,
+    enums: HashMap<String, ir::Enum>,
+    constants: HashMap<String, ir::Typing>,
+    fns: HashMap<String, ir::Function>
 }
 
 impl Validator {
     pub fn new(input: ast::Program) -> Validator {
         Validator {
-            input
+            input,
+            structs: HashMap::new(),
+            enums: HashMap::new(),
+            constants: HashMap::new(),
+            fns: HashMap::new(),
         }
     }
 
-    fn validate_type(&self, typ: &ast::Type) -> Result<ir::Typing, TypeError> {
+    fn validate_type(&mut self, typ: &ast::Type) -> Result<ir::Typing, TypeError> {
         match &typ.typing {
             // TODO: Add generics
             ast::Typing::Named { name, .. } => {
@@ -33,7 +43,7 @@ impl Validator {
         }
     }
 
-    fn validate_expr(&self, expr: &ast::Expression) -> Result<(ir::Expression, ir::Typing), TypeError> {
+    fn validate_expr(&mut self, expr: &ast::Expression) -> Result<(ir::Expression, ir::Typing), TypeError> {
         match &expr.data {
             ast::ExpressionData::BinaryOperation { operator, left, right } => {
                 let operator = ir::BinaryOperation::from_ast(operator);
@@ -111,7 +121,7 @@ impl Validator {
         }
     }
 
-    fn validate_node(&self, node: &ast::Node) -> Result<ir::ValidatedNode, TypeError> {
+    fn validate_node(&mut self, node: &ast::Node) -> Result<ir::ValidatedNode, TypeError> {
         match &node.stmt {
             ast::Statement::LetStatement(stmt) => {
                 let assignment = &stmt.assignment;
@@ -163,7 +173,35 @@ impl Validator {
                 })
             }
             ast::Statement::FnStatement(stmt) => {
-                todo!();
+                // TODO: Add type-checking
+                let mut validated_args = Vec::new();
+                for a in stmt.arguments.iter() {
+                    validated_args.push(ir::TypedField {
+                        name: a.name.clone(),
+                        typing: self.validate_type(&a.typing)?
+                    });
+                }
+                let validated_ret_type = match &stmt.ret {
+                    Some(ret_type) => Some(self.validate_type(ret_type)?),
+                    None => None,
+                };
+                let mut validated_block = ir::Block { content: Vec::new() };
+                for a in stmt.block.content.iter() {
+                    validated_block.content.push(self.validate_node(a)?);
+                }
+                let validated = ir::Function {
+                    name: stmt.name.clone(),
+                    block: validated_block,
+                    ret: validated_ret_type,
+                    arguments: validated_args,
+                };
+                self.fns.insert(stmt.name.clone(), validated.clone());
+                return Ok(
+                    ir::ValidatedNode {
+                        span: node.span,
+                        stmt: ir::Statement::FnStatement(validated)
+                    }
+                );
             }
             ast::Statement::StructStatement(stmt) => {
                 todo!();
@@ -183,13 +221,12 @@ impl Validator {
         }
     }
 
-    pub fn validate(self) -> Result<ir::ValidatedProgram, TypeError> {
+    pub fn validate(mut self) -> Result<ir::ValidatedProgram, TypeError> {
+        // This is why i'm making a language
         let mut nodes = Vec::new();
-        for node in self.input.nodes.iter() {
-            nodes.push(self.validate_node(node)?);
+        for node in std::mem::take(&mut self.input.nodes) {
+            nodes.push(self.validate_node(&node)?);
         }
-         Ok(ir::ValidatedProgram {
-            nodes: nodes
-        })
+        Ok(ir::ValidatedProgram { nodes })
     }
 }

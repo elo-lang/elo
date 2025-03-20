@@ -1,6 +1,6 @@
 use elo_lexer::span::Span;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum BinaryOperation {
     Add,
     Sub,
@@ -49,7 +49,7 @@ impl BinaryOperation {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum UnaryOperation {
     Neg,
     Not,
@@ -68,7 +68,7 @@ impl UnaryOperation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     BinaryOperation {
         operator: BinaryOperation,
@@ -108,44 +108,44 @@ pub enum Expression {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LetStatement {
     pub binding: String,
     pub assignment: Expression,
     pub typing: Typing,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VarStatement {
     pub binding: String,
     pub assignment: Expression,
     pub typing: Typing,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConstStatement {
     pub binding: String,
     pub assignment: Expression,
     pub typing: Typing,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Block {
     pub content: Vec<ValidatedNode>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ValidatedProgram {
     pub nodes: Vec<ValidatedNode>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ValidatedNode {
     pub span: Span,
     pub stmt: Statement,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
     pub block: Block,
@@ -153,19 +153,19 @@ pub struct Function {
     pub arguments: Vec<TypedField>,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Struct {
     pub name: String,
     pub fields: Vec<TypedField>,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Enum {
     pub name: String,
     pub variants: Vec<String>,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Primitive {
     I128,
     I64,
@@ -211,7 +211,7 @@ impl Primitive {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Typing {
     Primitive(Primitive),
     Struct(Struct, Option<Box<Typing>>),
@@ -232,19 +232,19 @@ pub enum Typing {
     },
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct TypedField {
     pub name: String,
     pub typing: Typing,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Field {
     pub name: String,
     pub value: Expression,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     LetStatement(LetStatement),
     VarStatement(VarStatement),
