@@ -1,4 +1,5 @@
 use std::iter::Peekable;
+use std::process::Termination;
 
 use elo_error::parseerror::{ParseError, ParseErrorCase};
 use elo_lexer::inputfile::InputFile;
@@ -270,7 +271,7 @@ impl<'a> Parser<'a> {
     }
 
     // expr[, expr]*[,]?
-    fn parse_expression_list(&mut self) -> Result<Vec<Expression>, ParseError> {
+    fn parse_expression_list(&mut self, termination: Token) -> Result<Vec<Expression>, ParseError> {
         let mut fields = Vec::new();
         if let Ok(first) = self.parse_expr(1) {
             fields.push(first);
@@ -281,15 +282,13 @@ impl<'a> Parser<'a> {
         }) = self.lexer.peek()
         {
             self.next();
-            if let Some(Lexem {
-                token: Token::Delimiter(')'),
-                ..
-            }) = self.lexer.peek()
-            {
-                break;
+            if let Some(Lexem { token, ..}) = self.lexer.peek() {
+                if token == &termination {
+                    break;
+                }
             }
-            let f = self.parse_expr(1)?;
-            fields.push(f);
+            let expr = self.parse_expr(1)?;
+            fields.push(expr);
         }
         Ok(fields)
     }
@@ -486,7 +485,7 @@ impl<'a> Parser<'a> {
                     let init_span = self.current_span.unwrap();
                     let expr = self.parse_expr(1)?;
                     if let Ok(_) = self.test_token(Token::Delimiter(',')) {
-                        let tail = self.parse_expression_list()?;
+                        let tail = self.parse_expression_list(Token::Delimiter(')'))?;
                         self.expect_token(Token::Delimiter(')'))?;
                         let span = init_span.merge(self.current_span.unwrap());
                         let mut exprs = vec![expr];
@@ -598,7 +597,7 @@ impl<'a> Parser<'a> {
         }
         // Function call (e.g. foo(), bar())
         if let Ok(_) = self.test_token(Token::Delimiter('(')) {
-            let args = self.parse_expression_list()?;
+            let args = self.parse_expression_list(Token::Delimiter(')'))?;
             self.expect_token(Token::Delimiter(')'))?;
             left = Expression {
                 span: left.span.merge(self.current_span.unwrap()),
