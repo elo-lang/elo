@@ -269,7 +269,7 @@ impl<'a> Parser<'a> {
         Ok(fields)
     }
 
-    // expr[, expr]*
+    // expr[, expr]*[,]?
     fn parse_expression_list(&mut self) -> Result<Vec<Expression>, ParseError> {
         let mut fields = Vec::new();
         if let Ok(first) = self.parse_expr(1) {
@@ -281,6 +281,13 @@ impl<'a> Parser<'a> {
         }) = self.lexer.peek()
         {
             self.next();
+            if let Some(Lexem {
+                token: Token::Delimiter(')'),
+                ..
+            }) = self.lexer.peek()
+            {
+                break;
+            }
             let f = self.parse_expr(1)?;
             fields.push(f);
         }
@@ -407,8 +414,7 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_identifier(&mut self) -> Result<String, ParseError> {
-        let a = self.lexer.peek();
-        match a {
+        match self.lexer.peek() {
             Some(Lexem {
                 token: Token::Identifier(ident),
                 ..
@@ -475,6 +481,7 @@ impl<'a> Parser<'a> {
                 Token::Numeric(..) => return Ok(self.parse_number()?),
                 Token::Identifier(_) => return Ok(self.parse_identifier()?),
                 Token::Delimiter('(') => {
+                    // TODO: Parse () unit tuple
                     self.next();
                     let init_span = self.current_span.unwrap();
                     let expr = self.parse_expr(1)?;
@@ -489,6 +496,7 @@ impl<'a> Parser<'a> {
                             data: ExpressionData::Tuple { exprs: exprs },
                         });
                     }
+                    self.expect_token(Token::Delimiter(')'))?;
                     return Ok(expr);
                 }
                 Token::StringLiteral(s) => {
