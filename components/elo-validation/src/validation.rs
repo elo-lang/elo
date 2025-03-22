@@ -172,6 +172,9 @@ impl Validator {
                     })
                 })
             }
+            ast::Statement::ReturnStatement(stmt) => {
+                todo!()
+            }
             ast::Statement::FnStatement(stmt) => {
                 // TODO: Add type-checking
                 let mut validated_args = Vec::new();

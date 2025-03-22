@@ -9,6 +9,7 @@ pub enum Keyword {
     If,
     Else,
     While,
+    Return,
 }
 
 impl Keyword {
@@ -23,6 +24,7 @@ impl Keyword {
             "if" => Some(Keyword::If),
             "else" => Some(Keyword::Else),
             "while" => Some(Keyword::While),
+            "return" => Some(Keyword::Return),
             _ => None,
         }
     }

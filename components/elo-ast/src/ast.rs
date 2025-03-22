@@ -196,6 +196,11 @@ pub struct WhileStatement {
     pub block: Block,
 }
 
+#[derive(Debug)]
+pub struct ReturnStatement {
+    pub expr: Expression,
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct Type {
     pub span: Span,
@@ -247,4 +252,5 @@ pub enum Statement {
     IfStatement(IfStatement),
     WhileStatement(WhileStatement),
     ExpressionStatement(Expression),
+    ReturnStatement(ReturnStatement),
 }

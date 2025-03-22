@@ -1,5 +1,4 @@
 use std::iter::Peekable;
-use std::process::Termination;
 
 use elo_error::parseerror::{ParseError, ParseErrorCase};
 use elo_lexer::inputfile::InputFile;
@@ -65,6 +64,12 @@ pub const EOF: &str = "EOF";
 macro_rules! block_keywords {
     () => {
         Keyword::Let | Keyword::Var | Keyword::If | Keyword::While
+    };
+}
+
+macro_rules! fn_keywords {
+    () => {
+        block_keywords!() | Keyword::Return
     };
 }
 
@@ -649,9 +654,9 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn parse_block(&mut self) -> Result<Block, ParseError> {
+    fn parse_block(&mut self, inside_fn: bool) -> Result<Block, ParseError> {
         let mut ast = vec![];
-        while let Some(node) = self.parse_node(true)? {
+        while let Some(node) = self.parse_node(true, inside_fn)? {
             ast.push(node);
         }
         let p = Block { content: ast };
@@ -668,7 +673,7 @@ impl<'a> Parser<'a> {
             typ = Some(self.parse_type()?);
         }
         self.expect_token(Token::Delimiter('{'))?;
-        let block = self.parse_block()?;
+        let block = self.parse_block(true)?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::FnStatement(FnStatement {
             name: name,
@@ -703,7 +708,7 @@ impl<'a> Parser<'a> {
     fn parse_if_stmt(&mut self) -> Result<Statement, ParseError> {
         let expr = self.parse_expr(1)?;
         self.expect_token(Token::Delimiter('{'))?;
-        let block_true = self.parse_block()?;
+        let block_true = self.parse_block(false)?;
         self.expect_token(Token::Delimiter('}'))?;
         let mut block_false: Option<Block> = None;
         if let Ok(_) = self.test_token(Token::Keyword(Keyword::Else)) {
@@ -717,7 +722,7 @@ impl<'a> Parser<'a> {
                 });
             } else {
                 self.expect_token(Token::Delimiter('{'))?;
-                block_false = Some(self.parse_block()?);
+                block_false = Some(self.parse_block(false)?);
                 self.expect_token(Token::Delimiter('}'))?;
             }
         }
@@ -731,11 +736,19 @@ impl<'a> Parser<'a> {
     fn parse_while_stmt(&mut self) -> Result<Statement, ParseError> {
         let condition = self.parse_expr(1)?;
         self.expect_token(Token::Delimiter('{'))?;
-        let block = self.parse_block()?;
+        let block = self.parse_block(false)?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::WhileStatement(WhileStatement {
             condition,
             block,
+        }))
+    }
+
+    fn parse_return_stmt(&mut self) -> Result<Statement, ParseError> {
+        let expr = self.parse_expr(1)?;
+        self.expect_end()?;
+        Ok(Statement::ReturnStatement(ReturnStatement {
+            expr: expr,
         }))
     }
 
@@ -754,6 +767,7 @@ impl<'a> Parser<'a> {
                 Keyword::Enum => return self.parse_enum_stmt(),
                 Keyword::If => return self.parse_if_stmt(),
                 Keyword::While => return self.parse_while_stmt(),
+                Keyword::Return => return self.parse_return_stmt(),
                 Keyword::Else => {
                     return Err(ParseError {
                         span: Some(span),
@@ -779,13 +793,13 @@ impl<'a> Parser<'a> {
         return None;
     }
 
-    fn parse_node(&mut self, inside_block: bool) -> Result<Option<Node>, ParseError> {
+    fn parse_node(&mut self, inside_block: bool, inside_fn: bool) -> Result<Option<Node>, ParseError> {
         let mut x = None;
         if let Some(lexem) = self.lexer.peek() {
             x = Some(match lexem.token {
                 Token::Newline => {
                     self.next();
-                    return self.parse_node(inside_block);
+                    return self.parse_node(inside_block, inside_fn);
                 }
                 // Account for trailing } when terminating block
                 Token::Delimiter('}') if inside_block => {
@@ -797,6 +811,15 @@ impl<'a> Parser<'a> {
                         case: ParseErrorCase::UnexpectedToken {
                             got: format!("{:?}", lexem.token),
                             expected: "fn, struct, enum or const".to_string(),
+                        },
+                    });
+                }
+                Token::Keyword(fn_keywords!()) if !inside_fn => {
+                    return Err(ParseError {
+                        span: Some(lexem.span),
+                        case: ParseErrorCase::UnexpectedToken {
+                            got: format!("{:?}", lexem.token),
+                            expected: "valid statement".to_string(),
                         },
                     });
                 }
@@ -832,7 +855,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) -> Result<Program, ParseError> {
         let mut ast = vec![];
-        while let Some(node) = self.parse_node(false)? {
+        while let Some(node) = self.parse_node(false, false)? {
             ast.push(node);
         }
         let p = Program { nodes: ast };
