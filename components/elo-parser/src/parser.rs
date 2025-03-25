@@ -61,18 +61,6 @@ fn unop_precedence(op: &Token) -> Precedence {
 
 pub const EOF: &str = "EOF";
 
-macro_rules! block_keywords {
-    () => {
-        Keyword::Let | Keyword::Var | Keyword::If | Keyword::While
-    };
-}
-
-macro_rules! fn_keywords {
-    () => {
-        block_keywords!() | Keyword::Return
-    };
-}
-
 pub struct Parser<'a> {
     pub inputfile: InputFile<'a>,
     pub lexer: Peekable<Lexer<'a>>,
@@ -654,9 +642,9 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn parse_block(&mut self, inside_fn: bool) -> Result<Block, ParseError> {
+    fn parse_block(&mut self) -> Result<Block, ParseError> {
         let mut ast = vec![];
-        while let Some(node) = self.parse_node(true, inside_fn)? {
+        while let Some(node) = self.parse_node(true)? {
             ast.push(node);
         }
         let p = Block { content: ast };
@@ -673,7 +661,7 @@ impl<'a> Parser<'a> {
             typ = Some(self.parse_type()?);
         }
         self.expect_token(Token::Delimiter('{'))?;
-        let block = self.parse_block(true)?;
+        let block = self.parse_block()?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::FnStatement(FnStatement {
             name: name,
@@ -708,7 +696,7 @@ impl<'a> Parser<'a> {
     fn parse_if_stmt(&mut self) -> Result<Statement, ParseError> {
         let expr = self.parse_expr(1)?;
         self.expect_token(Token::Delimiter('{'))?;
-        let block_true = self.parse_block(false)?;
+        let block_true = self.parse_block()?;
         self.expect_token(Token::Delimiter('}'))?;
         let mut block_false: Option<Block> = None;
         if let Ok(_) = self.test_token(Token::Keyword(Keyword::Else)) {
@@ -722,7 +710,7 @@ impl<'a> Parser<'a> {
                 });
             } else {
                 self.expect_token(Token::Delimiter('{'))?;
-                block_false = Some(self.parse_block(false)?);
+                block_false = Some(self.parse_block()?);
                 self.expect_token(Token::Delimiter('}'))?;
             }
         }
@@ -736,7 +724,7 @@ impl<'a> Parser<'a> {
     fn parse_while_stmt(&mut self) -> Result<Statement, ParseError> {
         let condition = self.parse_expr(1)?;
         self.expect_token(Token::Delimiter('{'))?;
-        let block = self.parse_block(false)?;
+        let block = self.parse_block()?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::WhileStatement(WhileStatement {
             condition,
@@ -752,19 +740,28 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn parse_stmt(&mut self) -> Result<Statement, ParseError> {
+    fn parse_stmt(&mut self, inside_block: bool) -> Result<Statement, ParseError> {
         if let Some(Lexem {
             token: Token::Keyword(kw),
             span,
         }) = self.next()
         {
             match kw {
+                Keyword::Struct => return self.parse_struct_stmt(),
+                Keyword::Fn => return self.parse_fn_stmt(),
+                Keyword::Enum => return self.parse_enum_stmt(),
+                Keyword::Const => return self.parse_const_stmt(),
+                kw if !inside_block => {
+                    return Err(ParseError {
+                        span: Some(span),
+                        case: ParseErrorCase::UnexpectedToken {
+                            got: format!("{kw:?}"),
+                            expected: "valid statement".to_string(),
+                        },
+                    });
+                }
                 Keyword::Var => return self.parse_var_stmt(),
                 Keyword::Let => return self.parse_let_stmt(),
-                Keyword::Const => return self.parse_const_stmt(),
-                Keyword::Fn => return self.parse_fn_stmt(),
-                Keyword::Struct => return self.parse_struct_stmt(),
-                Keyword::Enum => return self.parse_enum_stmt(),
                 Keyword::If => return self.parse_if_stmt(),
                 Keyword::While => return self.parse_while_stmt(),
                 Keyword::Return => return self.parse_return_stmt(),
@@ -793,39 +790,21 @@ impl<'a> Parser<'a> {
         return None;
     }
 
-    fn parse_node(&mut self, inside_block: bool, inside_fn: bool) -> Result<Option<Node>, ParseError> {
+    fn parse_node(&mut self, inside_block: bool) -> Result<Option<Node>, ParseError> {
         let mut x = None;
         if let Some(lexem) = self.lexer.peek() {
             x = Some(match lexem.token {
                 Token::Newline => {
                     self.next();
-                    return self.parse_node(inside_block, inside_fn);
+                    return self.parse_node(inside_block);
                 }
                 // Account for trailing } when terminating block
                 Token::Delimiter('}') if inside_block => {
                     return Ok(None);
                 }
-                Token::Keyword(block_keywords!()) if !inside_block => {
-                    return Err(ParseError {
-                        span: Some(lexem.span),
-                        case: ParseErrorCase::UnexpectedToken {
-                            got: format!("{:?}", lexem.token),
-                            expected: "fn, struct, enum or const".to_string(),
-                        },
-                    });
-                }
-                Token::Keyword(fn_keywords!()) if !inside_fn => {
-                    return Err(ParseError {
-                        span: Some(lexem.span),
-                        case: ParseErrorCase::UnexpectedToken {
-                            got: format!("{:?}", lexem.token),
-                            expected: "valid statement".to_string(),
-                        },
-                    });
-                }
                 Token::Keyword(..) => Node {
                     span: lexem.span,
-                    stmt: self.parse_stmt()?,
+                    stmt: self.parse_stmt(inside_block)?,
                 },
                 _ => {
                     let span = lexem.span;
@@ -855,7 +834,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) -> Result<Program, ParseError> {
         let mut ast = vec![];
-        while let Some(node) = self.parse_node(false, false)? {
+        while let Some(node) = self.parse_node(false)? {
             ast.push(node);
         }
         let p = Program { nodes: ast };
