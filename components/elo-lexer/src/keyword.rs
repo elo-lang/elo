@@ -25,6 +25,7 @@ impl Keyword {
             "else" => Some(Keyword::Else),
             "while" => Some(Keyword::While),
             "return" => Some(Keyword::Return),
+            "ret" => Some(Keyword::Return),
             _ => None,
         }
     }
