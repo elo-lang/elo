@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, iter::Zip, sync::Arc};
 
-use elo_ast::ast;
-use elo_ir::ir;
+use elo_ast::ast::{self, ExpressionData};
+use elo_ir::ir::{self, Typing, ValidatedNode};
 use elo_error::typeerror::{TypeError, TypeErrorCase};
 
 pub struct Validator {
@@ -88,7 +88,34 @@ impl Validator {
                 todo!();
             }
             ast::ExpressionData::FunctionCall { function, arguments } => {
-                todo!();
+                if let ExpressionData::Identifier { name } = &function.data {
+                    if let Some(func) = self.fns.get(name) {
+                        let mut validated_args = Vec::new();
+                        let arguments_to_check: Vec<Typing> = func.arguments.iter().map(|x| x.typing.clone()).collect();
+                        let len_args = func.arguments.len();
+                        let return_type = func.ret.as_ref().unwrap().clone();
+                        for i in arguments {
+                            validated_args.push(self.validate_expr(i)?);
+                        }
+                        if validated_args.len() != len_args {
+                            panic!();
+                        }
+                        if validated_args.iter().map(|x| x.1.clone()).collect::<Vec<Typing>>() != arguments_to_check {
+                            panic!();
+                        }
+                        return Ok((
+                            ir::Expression::FunctionCall {
+                                function: Box::new(self.validate_expr(function)?.0),
+                                arguments: validated_args.iter().map(|x| x.0.clone()).collect()
+                            },
+                            return_type.clone()
+                        ));
+                    } else {
+                        panic!();
+                    }
+                } else {
+                    panic!();
+                }
             }
             ast::ExpressionData::StructInit { name, fields } => {
                 todo!();
@@ -116,7 +143,7 @@ impl Validator {
                 ))
             }
             ast::ExpressionData::Identifier { name } => {
-                todo!();
+                return Ok((ir::Expression::Identifier { name: name.clone() }, ir::Typing::Void))
             }
         }
     }
@@ -219,7 +246,12 @@ impl Validator {
                 todo!();
             }
             ast::Statement::ExpressionStatement(stmt) => {
-                todo!();
+                return Ok(
+                    ir::ValidatedNode {
+                        span: stmt.span,
+                        stmt: ir::Statement::ExpressionStatement(self.validate_expr(stmt)?.0)
+                    }
+                )
             }
         }
     }
