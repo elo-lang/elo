@@ -164,17 +164,17 @@ impl<'a> Lexer<'a> {
     }
 
     fn token_op(&mut self, ch: &char) -> Token {
-        let next = self.chars.peek();
-        let op = match next {
-            Some(&b) if matches!(b, op_next!()) => {
-                self.advance_span(1);
-                self.chars.next();
-                Some(b)
-            }
-            _ => None,
-        };
         self.advance_span(1);
-        return Token::Op(*ch, op);
+        match self.chars.peek() {
+            Some(&b) if matches!(b, op_next!()) => {
+                self.chars.next();
+                self.span.end += 1;
+                return Token::Op(*ch, Some(b));
+            }
+            _ => {
+                return Token::Op(*ch, None);
+            },
+        };
     }
 
     fn token_string(&mut self) -> Token {

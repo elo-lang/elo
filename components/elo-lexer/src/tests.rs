@@ -3,7 +3,7 @@ use crate::lexer::Lexer;
 
 #[test]
 fn test_integers() {
-    let source_text = "15 16 17 69";
+    let source_text = "15 0x16 17";
     let lx = Lexer::new(InputFile::new("test", source_text));
 
     for lexem in lx {
