@@ -213,6 +213,7 @@ impl Primitive {
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Typing {
+    Void,
     Primitive(Primitive),
     Struct(Struct, Option<Box<Typing>>),
     Enum(Enum, Option<Box<Typing>>),
