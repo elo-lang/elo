@@ -45,6 +45,17 @@ let c = struct Color { r: 0, g: 0, b: 0, a: 1 }
 my_function_using(c)
 ```
 
+Return statements can be expressed using both `return` and `ret` keywords. Both options are valid Elo code:
+```
+fn foo(): int {
+    ret 0
+}
+
+fn foo(): int {
+    return 0
+}
+```
+
 ## Compound Structures
 
 ### Structs

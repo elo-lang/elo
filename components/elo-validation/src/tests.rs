@@ -10,7 +10,7 @@ fn test_file() {
     let filename = "test.elo";
     let source_text = &read_to_string(filename).unwrap();
     let lx = Lexer::new(InputFile::new("test.rs", source_text));
-
+    
     let prog = Parser::new(lx).parse().unwrap();
     let val= Validator::new(prog);
     match val.validate() {
