@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter::Zip, sync::Arc};
+use std::{collections::HashMap, env::consts::EXE_SUFFIX, iter::Zip, sync::Arc};
 
 use elo_ast::ast::{self, ExpressionData};
 use elo_ir::ir::{self, Typing, ValidatedNode};
@@ -90,31 +90,55 @@ impl Validator {
             ast::ExpressionData::FunctionCall { function, arguments } => {
                 if let ExpressionData::Identifier { name } = &function.data {
                     if let Some(func) = self.fns.get(name) {
-                        let mut validated_args = Vec::new();
                         let arguments_to_check: Vec<Typing> = func.arguments.iter().map(|x| x.typing.clone()).collect();
                         let len_args = func.arguments.len();
-                        let return_type = func.ret.as_ref().unwrap().clone();
-                        for i in arguments {
-                            validated_args.push(self.validate_expr(i)?);
+                        let return_type = func.ret.as_ref().unwrap_or(&ir::Typing::Void).clone();
+                        if arguments.len() != len_args {
+                            return Err(TypeError {
+                                span: Some(function.span),
+                                case: TypeErrorCase::UnmatchedArguments {
+                                    name: name.clone(),
+                                    got: arguments.len(),
+                                    expected: len_args
+                                }
+                            });
                         }
-                        if validated_args.len() != len_args {
-                            panic!();
-                        }
-                        if validated_args.iter().map(|x| x.1.clone()).collect::<Vec<Typing>>() != arguments_to_check {
-                            panic!();
+                        let mut validated_args = Vec::new();
+                        for (expr, expected_type) in arguments.iter().zip(arguments_to_check) {
+                            let span = expr.span;
+                            let (validated, got_type) = self.validate_expr(expr)?;
+                            if got_type != expected_type {
+                                return Err(TypeError {
+                                    span: Some(span),
+                                    case: TypeErrorCase::TypeMismatch {
+                                        got: format!("{:?}", got_type),
+                                        expected: format!("{:?}", expected_type),
+                                    }
+                                });
+                            }
+                            validated_args.push(validated);
                         }
                         return Ok((
                             ir::Expression::FunctionCall {
                                 function: Box::new(self.validate_expr(function)?.0),
-                                arguments: validated_args.iter().map(|x| x.0.clone()).collect()
+                                arguments: validated_args
                             },
                             return_type.clone()
                         ));
                     } else {
-                        panic!();
+                        return Err(TypeError {
+                            span: Some(expr.span),
+                            case: TypeErrorCase::UnresolvedName { name: name.clone() }
+                        })
                     }
                 } else {
-                    panic!();
+                    return Err(TypeError {
+                        span: Some(expr.span),
+                        case: TypeErrorCase::InvalidExpression {
+                            what: format!("{:?}", &function.data),
+                            should: "identifier".to_string()
+                        },
+                    })
                 }
             }
             ast::ExpressionData::StructInit { name, fields } => {
