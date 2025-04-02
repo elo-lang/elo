@@ -2,6 +2,7 @@ use elo_lexer::span::Span;
 
 #[derive(Debug)]
 pub struct Program {
+    pub filename: String,
     pub nodes: Vec<Node>,
 }
 

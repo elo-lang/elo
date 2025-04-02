@@ -837,7 +837,7 @@ impl<'a> Parser<'a> {
         while let Some(node) = self.parse_node(false)? {
             ast.push(node);
         }
-        let p = Program { nodes: ast };
+        let p = Program { filename: self.inputfile.filename.to_string(), nodes: ast };
         Ok(p)
     }
 }
