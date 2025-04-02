@@ -342,12 +342,12 @@ impl<'a> Parser<'a> {
 
     // Check if a token is present at the next iteration. Only consumes if the condition is met.
     // Ignores newlines.
-    pub fn test_token(&mut self, expect: Token) -> Result<Lexem, ParseError> {
+    pub fn test_token(&mut self, expect: Token) -> Option<Lexem> {
         match self.lexer.peek() {
             Some(lexem) if lexem.token == expect => {
                 let x = lexem.clone();
                 self.next();
-                Ok(x)
+                Some(x)
             }
             Some(Lexem {
                 token: Token::Newline,
@@ -356,20 +356,7 @@ impl<'a> Parser<'a> {
                 self.next();
                 return self.test_token(expect);
             }
-            Some(lexem) => Err(ParseError {
-                span: Some(lexem.span),
-                case: ParseErrorCase::UnexpectedToken {
-                    got: format!("{:?}", lexem.token),
-                    expected: format!("{:?}", expect),
-                },
-            }),
-            None => Err(ParseError {
-                span: None,
-                case: ParseErrorCase::UnexpectedToken {
-                    got: EOF.to_string(),
-                    expected: format!("{:?}", expect),
-                },
-            }),
+            _ => None,
         }
     }
 
@@ -477,7 +464,7 @@ impl<'a> Parser<'a> {
                     self.next();
                     let init_span = self.current_span.unwrap();
                     let expr = self.parse_expr(1)?;
-                    if let Ok(_) = self.test_token(Token::Delimiter(',')) {
+                    if let Some(_) = self.test_token(Token::Delimiter(',')) {
                         let tail = self.parse_expression_list(Token::Delimiter(')'))?;
                         self.expect_token(Token::Delimiter(')'))?;
                         let span = init_span.merge(self.current_span.unwrap());
@@ -578,7 +565,7 @@ impl<'a> Parser<'a> {
             }
         }
         // Field access (e.g. instance.method(), foo.bar)
-        if let Ok(_) = self.test_token(Token::Delimiter('.')) {
+        if let Some(_) = self.test_token(Token::Delimiter('.')) {
             let field = self.expect_identifier()?;
             left = Expression {
                 span: left.span.merge(self.current_span.unwrap()),
@@ -589,7 +576,7 @@ impl<'a> Parser<'a> {
             };
         }
         // Function call (e.g. foo(), bar())
-        if let Ok(_) = self.test_token(Token::Delimiter('(')) {
+        if let Some(_) = self.test_token(Token::Delimiter('(')) {
             let args = self.parse_expression_list(Token::Delimiter(')'))?;
             self.expect_token(Token::Delimiter(')'))?;
             left = Expression {
@@ -657,7 +644,7 @@ impl<'a> Parser<'a> {
         let arguments = self.parse_typed_fields()?;
         self.expect_token(Token::Delimiter(')'))?;
         let mut typ = None;
-        if let Ok(_) = self.test_token(Token::Delimiter(':')) {
+        if let Some(_) = self.test_token(Token::Delimiter(':')) {
             typ = Some(self.parse_type()?);
         }
         self.expect_token(Token::Delimiter('{'))?;
@@ -699,8 +686,8 @@ impl<'a> Parser<'a> {
         let block_true = self.parse_block()?;
         self.expect_token(Token::Delimiter('}'))?;
         let mut block_false: Option<Block> = None;
-        if let Ok(_) = self.test_token(Token::Keyword(Keyword::Else)) {
-            if let Ok(elseif) = self.test_token(Token::Keyword(Keyword::If)) {
+        if let Some(_) = self.test_token(Token::Keyword(Keyword::Else)) {
+            if let Some(elseif) = self.test_token(Token::Keyword(Keyword::If)) {
                 let if_node = Node {
                     span: elseif.span,
                     stmt: self.parse_if_stmt()?,
