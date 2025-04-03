@@ -215,8 +215,8 @@ impl Primitive {
 pub enum Typing {
     Void,
     Primitive(Primitive),
-    Struct(Struct, Option<Box<Typing>>),
-    Enum(Enum, Option<Box<Typing>>),
+    Struct(Struct),
+    Enum(Enum),
     Array {
         typ: Box<Typing>,
         amount: usize,

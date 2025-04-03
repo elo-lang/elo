@@ -29,8 +29,9 @@ impl Validator {
             ast::Typing::Named { name, .. } => {
                 if let Some(t) = ir::Primitive::from_str(name) {
                     return Ok(ir::Typing::Primitive(t));
+                } else if let Some(e) = self.enums.get(name) {
+                    return Ok(ir::Typing::Enum(e.clone()));
                 }
-                // TODO: Handle other cases of Named: Struct and Enum 
                 return Err(TypeError {
                     span: Some(typ.span),
                     case: TypeErrorCase::InvalidType { what: format!("{:?}", typ.typing) }
@@ -169,14 +170,16 @@ impl Validator {
             ast::ExpressionData::Identifier { name } => {
                 if let Some(typ) = self.constants.get(name) {
                     return Ok((ir::Expression::Identifier { name: name.clone() }, typ.clone()))
+                } else if let Some(e) = self.enums.get(name) {
+                    return Ok((ir::Expression::Identifier { name: name.clone() }, ir::Typing::Enum(e.clone())))
                 }
                 return Ok((ir::Expression::Identifier { name: name.clone() }, ir::Typing::Void))
             }
         }
     }
 
-    fn validate_node(&mut self, node: &ast::Node) -> Result<ir::ValidatedNode, TypeError> {
-        match &node.stmt {
+    fn validate_node(&mut self, node: ast::Node) -> Result<ir::ValidatedNode, TypeError> {
+        match node.stmt {
             ast::Statement::LetStatement(stmt) => {
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
@@ -244,7 +247,8 @@ impl Validator {
                     None => None,
                 };
                 let mut validated_block = ir::Block { content: Vec::new() };
-                for a in stmt.block.content.iter() {
+                let xs = Box::new(stmt.block.content);
+                for a in xs.into_iter() {
                     validated_block.content.push(self.validate_node(a)?);
                 }
                 let validated = ir::Function {
@@ -253,7 +257,7 @@ impl Validator {
                     ret: validated_ret_type,
                     arguments: validated_args,
                 };
-                self.fns.insert(stmt.name.clone(), validated.clone());
+                self.fns.insert(stmt.name, validated.clone());
                 return Ok(
                     ir::ValidatedNode {
                         span: node.span,
@@ -265,7 +269,15 @@ impl Validator {
                 todo!();
             }
             ast::Statement::EnumStatement(stmt) => {
-                todo!();
+                let e = ir::Enum {
+                    name: stmt.name,
+                    variants: stmt.variants,
+                };
+                self.enums.insert(e.name.clone(), e.clone());
+                return Ok(ir::ValidatedNode {
+                    span: node.span,
+                    stmt: ir::Statement::EnumStatement(e)
+                })
             }
             ast::Statement::IfStatement(stmt) => {
                 todo!();
@@ -277,7 +289,7 @@ impl Validator {
                 return Ok(
                     ir::ValidatedNode {
                         span: stmt.span,
-                        stmt: ir::Statement::ExpressionStatement(self.validate_expr(stmt)?.0)
+                        stmt: ir::Statement::ExpressionStatement(self.validate_expr(&stmt)?.0)
                     }
                 )
             }
@@ -288,7 +300,7 @@ impl Validator {
         // This is why i'm making a language
         let mut nodes = Vec::new();
         for node in std::mem::take(&mut self.input.nodes) {
-            nodes.push(self.validate_node(&node)?);
+            nodes.push(self.validate_node(node)?);
         }
         Ok(ir::ValidatedProgram { nodes })
     }
