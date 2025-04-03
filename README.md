@@ -15,6 +15,9 @@ modern compiled programming languages.
 Elo is in its early stages of development, we are still brainstorming a lot.
 This repository contains the source code of Elo's compiler.
 
+- Web Page: [elo-lang.github.io](https://elo-lang.github.io/)
+- Design Docs: [elo-lang.github.io/designdocs.html](https://elo-lang.github.io/designdocs.html)
+
 ## Getting started
 The compiler is implemented in [**Rust**](https://rust-lang.org/).
 You need to use [**cargo**](https://doc.rust-lang.org/stable/cargo/) to build the project.
