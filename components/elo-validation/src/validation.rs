@@ -167,6 +167,9 @@ impl Validator {
                 ))
             }
             ast::ExpressionData::Identifier { name } => {
+                if let Some(typ) = self.constants.get(name) {
+                    return Ok((ir::Expression::Identifier { name: name.clone() }, typ.clone()))
+                }
                 return Ok((ir::Expression::Identifier { name: name.clone() }, ir::Typing::Void))
             }
         }
@@ -214,6 +217,7 @@ impl Validator {
                         }
                     });
                 }
+                self.constants.insert(name.clone(), typ.clone());
                 Ok(ir::ValidatedNode {
                     span: node.span,
                     stmt: ir::Statement::ConstStatement(ir::ConstStatement {
