@@ -1,25 +1,26 @@
 use std::{collections::HashMap, env::consts::EXE_SUFFIX, iter::Zip, sync::Arc};
 
+use crate::namespace::*;
 use elo_ast::ast::{self, ExpressionData};
 use elo_ir::ir::{self, Typing, ValidatedNode};
 use elo_error::typeerror::{TypeError, TypeErrorCase};
 
 pub struct Validator {
     input: ast::Program,
-    structs: HashMap<String, ir::Struct>,
-    enums: HashMap<String, ir::Enum>,
-    constants: HashMap<String, ir::Typing>,
-    fns: HashMap<String, ir::Function>
+    namespace: Namespace,
 }
 
 impl Validator {
     pub fn new(input: ast::Program) -> Validator {
         Validator {
             input,
-            structs: HashMap::new(),
-            enums: HashMap::new(),
-            constants: HashMap::new(),
-            fns: HashMap::new(),
+            namespace: Namespace {
+                name: None,
+                structs: HashMap::new(),
+                enums: HashMap::new(),
+                constants: HashMap::new(),
+                functions: HashMap::new(),
+            }
         }
     }
 
@@ -29,7 +30,7 @@ impl Validator {
             ast::Typing::Named { name, .. } => {
                 if let Some(t) = ir::Primitive::from_str(name) {
                     return Ok(ir::Typing::Primitive(t));
-                } else if let Some(e) = self.enums.get(name) {
+                } else if let Some(e) = self.namespace.enums.get(name) {
                     return Ok(ir::Typing::Enum(e.clone()));
                 }
                 return Err(TypeError {
@@ -90,7 +91,7 @@ impl Validator {
             }
             ast::ExpressionData::FunctionCall { function, arguments } => {
                 if let ExpressionData::Identifier { name } = &function.data {
-                    if let Some(func) = self.fns.get(name) {
+                    if let Some(func) = self.namespace.functions.get(name) {
                         let arguments_to_check: Vec<Typing> = func.arguments.iter().map(|x| x.typing.clone()).collect();
                         let len_args = func.arguments.len();
                         let return_type = func.ret.as_ref().unwrap_or(&ir::Typing::Void).clone();
@@ -168,9 +169,9 @@ impl Validator {
                 ))
             }
             ast::ExpressionData::Identifier { name } => {
-                if let Some(typ) = self.constants.get(name) {
+                if let Some(typ) = self.namespace.constants.get(name) {
                     return Ok((ir::Expression::Identifier { name: name.clone() }, typ.clone()))
-                } else if let Some(e) = self.enums.get(name) {
+                } else if let Some(e) = self.namespace.enums.get(name) {
                     return Ok((ir::Expression::Identifier { name: name.clone() }, ir::Typing::Enum(e.clone())))
                 }
                 return Ok((ir::Expression::Identifier { name: name.clone() }, ir::Typing::Void))
@@ -220,7 +221,7 @@ impl Validator {
                         }
                     });
                 }
-                self.constants.insert(name.clone(), typ.clone());
+                self.namespace.constants.insert(name.clone(), typ.clone());
                 Ok(ir::ValidatedNode {
                     span: node.span,
                     stmt: ir::Statement::ConstStatement(ir::ConstStatement {
@@ -257,7 +258,7 @@ impl Validator {
                     ret: validated_ret_type,
                     arguments: validated_args,
                 };
-                self.fns.insert(stmt.name, validated.clone());
+                self.namespace.functions.insert(stmt.name, validated.clone());
                 return Ok(
                     ir::ValidatedNode {
                         span: node.span,
@@ -273,7 +274,7 @@ impl Validator {
                     name: stmt.name,
                     variants: stmt.variants,
                 };
-                self.enums.insert(e.name.clone(), e.clone());
+                self.namespace.enums.insert(e.name.clone(), e.clone());
                 return Ok(ir::ValidatedNode {
                     span: node.span,
                     stmt: ir::Statement::EnumStatement(e)
