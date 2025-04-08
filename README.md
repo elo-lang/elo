@@ -1,24 +1,14 @@
 # Elo
-Building software intuitively
-
-> **WARNING**: Elo is not a finished language. There's no warranty of this piece of software. **Use it at your own risk**.
-
-> **NOTE**: Read [LICENSE](./LICENSE) for more information.
-
-## The idea
-Elo is a **compiled programming language** designed to
-allow developers to **build software intuitively**, without having to deal with too
-complex programming knowledge often associated with (or even required by)
-modern compiled programming languages.
+Building software intuitively.
 
 ## Development
 Elo is in its early stages of development, we are still brainstorming a lot.
 This repository contains the source code of Elo's compiler.
 
-- Web Page: [elo-lang.github.io](https://elo-lang.github.io/)
-- Design Docs: [elo-lang.github.io/designdocs.html](https://elo-lang.github.io/designdocs.html)
-
 ## Getting started
+
+> **WARNING**: Elo is not a finished language. There's no warranty of this piece of software. **Use it at your own risk**.
+
 The compiler is implemented in [**Rust**](https://rust-lang.org/).
 You need to use [**cargo**](https://doc.rust-lang.org/stable/cargo/) to build the project.
 
@@ -28,6 +18,7 @@ You need to use [**cargo**](https://doc.rust-lang.org/stable/cargo/) to build th
     > cd path\to\elo
     > cargo build --release
     ```
+
 - Linux/MacOS
   * Run cargo to compile from source
     ```console
@@ -37,6 +28,6 @@ You need to use [**cargo**](https://doc.rust-lang.org/stable/cargo/) to build th
 
 ---
 
-> By [Igor Ferreira](https://github.com/igotfr)
+> By [Igor Ferreira](https://github.com/igotfr), [Marcio Dantes](https://github.com/marc-dantas)
 
-> By [Marcio Dantes](https://github.com/marc-dantas)
+> Licensed under MIT License. Read [LICENSE](./LICENSE) for more information.
