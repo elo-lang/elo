@@ -28,6 +28,6 @@ You need to use [**cargo**](https://doc.rust-lang.org/stable/cargo/) to build th
 
 ---
 
-> By [Igor Ferreira](https://github.com/igotfr), [Marcio Dantes](https://github.com/marc-dantas)
+> By [Igor Ferreira](https://github.com/igotfr), [Marcio Dantas](https://github.com/marc-dantas)
 
 > Licensed under MIT License. Read [LICENSE](./LICENSE) for more information.
