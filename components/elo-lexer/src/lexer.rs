@@ -32,9 +32,10 @@ macro_rules! op {
     };
 }
 
-macro_rules! op_next {
+macro_rules! two_char_op {
     () => {
-        '=' | '+' | '-' | '&' | '|'
+          "+=" | "-=" | "/=" | "*=" | "%=" | "&=" | "|=" | "^=" | "~="
+        | ">=" | "<=" | "!=" | "==" | "&&" | "||" | ">>" | "<<"
     };
 }
 
@@ -166,7 +167,7 @@ impl<'a> Lexer<'a> {
     fn token_op(&mut self, ch: &char) -> Token {
         self.advance_span(1);
         match self.chars.peek() {
-            Some(&b) if matches!(b, op_next!()) => {
+            Some(&b) if matches!(format!("{ch}{b}").as_str(), two_char_op!()) => {
                 self.chars.next();
                 self.span.end += 1;
                 return Token::Op(*ch, Some(b));
@@ -195,7 +196,7 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Lexem> {
         if let Some(ch) = self.chars.next() {
             return match ch {
-                '#' => {
+                '/' if self.chars.peek() == Some(&'/') => {
                     let _ = self.consume_while(Some(&ch), |c| c != '\n');
                     self.chars.next(); // Consume \n
                     self.advance_line();

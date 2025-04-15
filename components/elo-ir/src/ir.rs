@@ -17,10 +17,20 @@ pub enum BinaryOperation {
     Or,
     BAnd,
     BOr,
+    BNot,
     BXor,
     LShift,
     RShift,
     Assign,
+    AssignAdd,
+    AssignSub,
+    AssignMul,
+    AssignDiv,
+    AssignMod,
+    AssignBAnd,
+    AssignBOr,
+    AssignBXor,
+    AssignBNot,
 }
 
 impl BinaryOperation {
@@ -36,6 +46,7 @@ impl BinaryOperation {
             elo_ast::ast::BinaryOperation::BAnd => BinaryOperation::BAnd,
             elo_ast::ast::BinaryOperation::BOr => BinaryOperation::BOr,
             elo_ast::ast::BinaryOperation::BXor => BinaryOperation::BXor,
+            elo_ast::ast::BinaryOperation::BNot => BinaryOperation::BNot,
             elo_ast::ast::BinaryOperation::Assign => BinaryOperation::Assign,
             elo_ast::ast::BinaryOperation::Eq => BinaryOperation::Eq,
             elo_ast::ast::BinaryOperation::Ne => BinaryOperation::Ne,
@@ -45,6 +56,15 @@ impl BinaryOperation {
             elo_ast::ast::BinaryOperation::Or => BinaryOperation::Or,
             elo_ast::ast::BinaryOperation::LShift => BinaryOperation::LShift,
             elo_ast::ast::BinaryOperation::RShift => BinaryOperation::RShift,
+            elo_ast::ast::BinaryOperation::AssignAdd => BinaryOperation::AssignAdd,
+            elo_ast::ast::BinaryOperation::AssignSub => BinaryOperation::AssignSub,
+            elo_ast::ast::BinaryOperation::AssignMul => BinaryOperation::AssignMul,
+            elo_ast::ast::BinaryOperation::AssignDiv => BinaryOperation::AssignDiv,
+            elo_ast::ast::BinaryOperation::AssignMod => BinaryOperation::AssignMod,
+            elo_ast::ast::BinaryOperation::AssignBAnd => BinaryOperation::AssignBAnd,
+            elo_ast::ast::BinaryOperation::AssignBOr => BinaryOperation::AssignBOr,
+            elo_ast::ast::BinaryOperation::AssignBXor => BinaryOperation::AssignBXor,
+            elo_ast::ast::BinaryOperation::AssignBNot => BinaryOperation::AssignBNot,
         }
     }
 }
