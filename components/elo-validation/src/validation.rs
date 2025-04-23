@@ -77,10 +77,7 @@ impl Validator {
             ast::ExpressionData::StringLiteral { value } => {
                 return Ok((
                     ir::Expression::StringLiteral { value: value.clone() },
-                    ir::Typing::Tuple { types: vec![
-                        ir::Typing::Pointer { typ: Box::new(ir::Typing::Primitive(ir::Primitive::U8)) },
-                        ir::Typing::Primitive(ir::Primitive::UInt),
-                    ] },
+                    ir::Typing::Primitive(ir::Primitive::Str),
                 ));
             }
             ast::ExpressionData::Tuple { exprs } => {
