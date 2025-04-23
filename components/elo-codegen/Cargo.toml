@@ -1,0 +1,16 @@
+[package]
+name = "elo-codegen"
+version.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+elo-ir = { path = "../elo-ir" }
+elo-error = { path = "../elo-error" }
+elo-ast = { path = "../elo-ast" }
+elo-lexer = { path = "../elo-lexer" }
+elo-parser = { path = "../elo-parser" }
+elo-validation = { path = "../elo-validation" }
+
+inkwell = { version = "0.5.0", features = ["llvm14-0"] }
