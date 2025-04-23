@@ -183,7 +183,6 @@ impl Validator {
                 let name = &stmt.binding;
                 let (expr, typ) = self.validate_expr(assignment)?;
                 Ok(ir::ValidatedNode {
-                    span: node.span,
                     stmt: ir::Statement::LetStatement(ir::LetStatement {
                         assignment: expr,
                         binding: name.clone(),
@@ -196,7 +195,6 @@ impl Validator {
                 let name = &stmt.binding;
                 let (expr, typ) = self.validate_expr(assignment)?;
                 Ok(ir::ValidatedNode {
-                    span: node.span,
                     stmt: ir::Statement::VarStatement(ir::VarStatement {
                         assignment: expr,
                         binding: name.clone(),
@@ -220,7 +218,6 @@ impl Validator {
                 }
                 self.namespace.constants.insert(name.clone(), typ.clone());
                 Ok(ir::ValidatedNode {
-                    span: node.span,
                     stmt: ir::Statement::ConstStatement(ir::ConstStatement {
                         assignment: expr,
                         binding: name.clone(),
@@ -258,7 +255,6 @@ impl Validator {
                 self.namespace.functions.insert(stmt.name, validated.clone());
                 return Ok(
                     ir::ValidatedNode {
-                        span: node.span,
                         stmt: ir::Statement::FnStatement(validated)
                     }
                 );
@@ -273,7 +269,6 @@ impl Validator {
                 };
                 self.namespace.enums.insert(e.name.clone(), e.clone());
                 return Ok(ir::ValidatedNode {
-                    span: node.span,
                     stmt: ir::Statement::EnumStatement(e)
                 })
             }
@@ -286,7 +281,6 @@ impl Validator {
             ast::Statement::ExpressionStatement(stmt) => {
                 return Ok(
                     ir::ValidatedNode {
-                        span: stmt.span,
                         stmt: ir::Statement::ExpressionStatement(self.validate_expr(&stmt)?.0)
                     }
                 )
@@ -294,6 +288,7 @@ impl Validator {
         }
     }
 
+    // Type-check and transform the AST into the IR of Elo code
     pub fn validate(mut self) -> Result<ir::ValidatedProgram, TypeError> {
         // This is why i'm making a language
         let mut nodes = Vec::new();

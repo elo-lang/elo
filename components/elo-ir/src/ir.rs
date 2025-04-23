@@ -1,5 +1,3 @@
-use elo_lexer::span::Span;
-
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum BinaryOperation {
     Add,
@@ -161,7 +159,6 @@ pub struct ValidatedProgram {
 
 #[derive(Debug, Clone)]
 pub struct ValidatedNode {
-    pub span: Span,
     pub stmt: Statement,
 }
 
