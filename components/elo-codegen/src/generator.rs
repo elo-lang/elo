@@ -2,8 +2,8 @@ use elo_ir::ir::{self, ValidatedProgram};
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::builder::Builder;
-use inkwell::types::BasicTypeEnum;
-use inkwell::values::BasicValueEnum;
+use inkwell::types::{BasicType, BasicTypeEnum};
+use inkwell::values::{BasicMetadataValueEnum, BasicValueEnum};
 use inkwell::AddressSpace;
 
 pub struct Generator<'a> {
@@ -14,90 +14,120 @@ pub struct Generator<'a> {
 }
 
 impl<'a> Generator<'a> {
-    pub fn foo(&self, t: ir::Typing) -> BasicTypeEnum<'a> {
-        match t {
-            ir::Typing::Primitive(ir::Primitive::Int) => self.context.i32_type().into(),
-            ir::Typing::Primitive(ir::Primitive::UInt) => self.context.i32_type().into(),
+    pub fn choose_type(&self, t: ir::Typing) -> Option<BasicTypeEnum<'a>> {
+        return match t {
+            ir::Typing::Primitive(ir::Primitive::I128) => Some(self.context.i128_type().into()),
+            ir::Typing::Primitive(ir::Primitive::I64) => Some(self.context.i64_type().into()),
+            ir::Typing::Primitive(ir::Primitive::I32) => Some(self.context.i32_type().into()),
+            ir::Typing::Primitive(ir::Primitive::I16) => Some(self.context.i16_type().into()),
+            ir::Typing::Primitive(ir::Primitive::I8) => Some(self.context.i8_type().into()),
+            ir::Typing::Primitive(ir::Primitive::Bool) => Some(self.context.bool_type().into()),
+            ir::Typing::Primitive(ir::Primitive::U128) => Some(self.context.i128_type().into()),
+            ir::Typing::Primitive(ir::Primitive::U64) => Some(self.context.i64_type().into()),
+            ir::Typing::Primitive(ir::Primitive::U32) => Some(self.context.i32_type().into()),
+            ir::Typing::Primitive(ir::Primitive::U16) => Some(self.context.i16_type().into()),
+            ir::Typing::Primitive(ir::Primitive::U8) => Some(self.context.i8_type().into()),
+            ir::Typing::Primitive(ir::Primitive::F32) => Some(self.context.f32_type().into()),
+            ir::Typing::Primitive(ir::Primitive::F64) => Some(self.context.f64_type().into()),
+            // TODO: Make these int and uint to have the same size as the target architecture
+            ir::Typing::Primitive(ir::Primitive::Int) => Some(self.context.i32_type().into()),
+            ir::Typing::Primitive(ir::Primitive::UInt) => Some(self.context.i32_type().into()),
+            // TODO: Make float have the size as the target architecture
+            ir::Typing::Primitive(ir::Primitive::Float) => Some(self.context.f64_type().into()),
+            ir::Typing::Primitive(ir::Primitive::Str) => Some(self.context.i8_type().ptr_type(AddressSpace::default()).into()),
+            ir::Typing::Void => None,
             _ => todo!()
         }
     }
 
-    pub fn generate(&mut self) {
-        for node in self.input.nodes.iter() {
-            match &node.stmt {
-                ir::Statement::ConstStatement(stmt) => {
-                    let t = self.foo(stmt.typing.clone());
-                    match &stmt.typing {
-                        ir::Typing::Primitive(ir::Primitive::Int) => {
-                            match stmt.assignment {
-                                ir::Expression::Integer { value } => {
-                                    let const_val = self.context.i32_type().const_int(value.try_into().unwrap(), false);
-                                    let global_const = self.module.add_global(self.context.i32_type(), None, &stmt.binding);
-                                    global_const.set_initializer(&const_val);
-                                    global_const.set_constant(true);
-                                }
-                                _ => todo!()
-                            }
-                        }
-                        _ => todo!()
+    pub fn generate_from_node(&mut self, node: &mut ir::ValidatedNode, toplevel: bool) {
+        match &mut node.stmt {
+            ir::Statement::ConstStatement(stmt) => {
+                match &stmt.assignment {
+                    ir::Expression::Integer { value } => {
+                        let const_val = self.context.i32_type().const_int((*value).try_into().unwrap(), false);
+                        let global_const = self.module.add_global(self.context.i32_type(), None, &stmt.binding);
+                        global_const.set_initializer(&const_val);
+                        global_const.set_constant(true);
                     }
+                    ir::Expression::Float { value } => {
+                        let const_val = self.context.f32_type().const_float(*value);
+                        let global_const = self.module.add_global(self.context.f32_type(), None, &stmt.binding);
+                        global_const.set_initializer(&const_val);
+                        global_const.set_constant(true);
+                    }
+                    ir::Expression::StringLiteral { value } => {
+                        let const_val = self.context.const_string(value.as_bytes(), false);
+                        let global_const = self.module.add_global(self.context.i8_type().array_type(value.as_bytes().len() as u32), None, &stmt.binding);
+                        global_const.set_initializer(&const_val);
+                        global_const.set_constant(true);
+                    }
+                    _ => todo!()
                 }
-                ir::Statement::FnStatement(Function) => {
-                    todo!();
-                }
-                ir::Statement::StructStatement(Struct) => {
-                    todo!();
-                }
-                ir::Statement::EnumStatement(Enum) => {
-                    todo!();
-                }
-                _ => unreachable!("The parser should have caught this"),
             }
+            ir::Statement::FnStatement(stmt) => {
+                let fn_type;
+                if let Some(t) = self.choose_type(stmt.ret.clone()) {
+                    fn_type = t.fn_type(&[], false);
+                } else {
+                    fn_type = self.context.void_type().fn_type(&[], false);
+                }
+                let function = self.module.add_function(&stmt.name, fn_type, None);
+                let entry_block = self.context.append_basic_block(function, "entry");
+                self.builder.position_at_end(entry_block);
+                for mut i in std::mem::take(&mut stmt.block.content) {
+                    self.generate_from_node(&mut i, false);
+                }
+            }
+            ir::Statement::StructStatement(Struct) => {
+                todo!();
+            }
+            ir::Statement::EnumStatement(Enum) => {
+                todo!();
+            }
+            ir::Statement::LetStatement(stmt) if !toplevel => {
+                let t = self.choose_type(stmt.typing.clone()).unwrap();
+                let local = self.builder.build_alloca(t, &stmt.binding).unwrap();
+                // store
+                match &stmt.assignment {
+                    ir::Expression::Integer { value } => {
+                        let const_val = self.context.i32_type().const_int((*value).try_into().unwrap(), false);
+                        self.builder.build_store(local, const_val).unwrap();
+                    }
+                    _ => todo!()
+                }
+            }
+            ir::Statement::ExpressionStatement(expr) => {
+                match &expr {
+                    ir::Expression::FunctionCall { function, arguments } => {
+                        match &**function {
+                            ir::Expression::Identifier { name } => {
+                                let function = self.module.get_function(&name).unwrap();
+                                let mut arg_vals: Vec<BasicMetadataValueEnum<'_>> = Vec::new();
+                                for arg in arguments {
+                                    match arg {
+                                        ir::Expression::Integer { value } => {
+                                            let const_val = self.context.i32_type().const_int((*value).try_into().unwrap(), false);
+                                            arg_vals.push(const_val.into());
+                                        }
+                                        _ => todo!()
+                                    }
+                                }
+                                self.builder.build_call(function, arg_vals.as_slice(), "call").unwrap();
+                            }
+                            _ => todo!()
+                        }
+                    }
+                    _ => todo!()
+                }
+            }
+            _ => unreachable!("The parser should have caught this"),
         }
-        // let i32_type = self.context.i32_type();
-        // let i8_type = self.context.i8_type();
+    }
 
-        // // === Declare `main` function ===
-        // let main_fn_type = i32_type.fn_type(&[], false);
-        // let main_func = self.module.add_function("main", main_fn_type, None);
-        // let entry_block = self.context.append_basic_block(main_func, "entry");
-        // self.builder.position_at_end(entry_block);
-        // let t = BasicTypeEnum::PointerType(i8_type.ptr_type(AddressSpace::default())).into();
-        // self.builder.build_malloc::<BasicTypeEnum>(
-        //     t,
-        //     "x"
-        // ).unwrap();
-        
-        // let bb = self.context.append_basic_block(main_func, "bb");
-        // self.builder.build_unconditional_branch(bb).unwrap();
-        
-        // self.builder.position_at_end(bb);
-        // // === Declare `printf` ===
-        // let printf_type = i32_type.fn_type(
-        //     &[BasicTypeEnum::PointerType(i8_type.ptr_type(AddressSpace::default())).into()],
-        //     true, // variadic
-        // );
-        // let printf = self.module.add_function("printf", printf_type, None);
-        
-        // // === Build call to printf("%d\n", 42) ===
-        // // Allocate [4 x i8]
-        // let array_type = i8_type.array_type(4);
-        // let format_alloca = self.builder.build_alloca(array_type, "").unwrap();
-        
-        // // Store the string
-        // let string_constant = self.context.const_string(b"%d\n\0", false);
-        // self.builder.build_store(format_alloca, string_constant).unwrap();
-        
-        // // Bitcast [4 x i8]* to i8*
-        // let i8_ptr_type = i8_type.ptr_type(AddressSpace::default());
-        // let format_ptr = self.builder.build_bit_cast(format_alloca, i8_ptr_type, "casted_fmt")
-        // .unwrap();
-
-        // let value_to_print = i32_type.const_int(42, false);
-        // self.builder.build_call(printf, &[format_ptr.into(), value_to_print.into()], "printf_call").unwrap();
-
-        // self.builder.build_unconditional_branch(bb).unwrap();
-        // // === Return 0 from main ===
-        // self.builder.build_return(Some(&i32_type.const_int(0, false))).unwrap();
+    pub fn generate(&mut self) {
+        for mut node in std::mem::take(&mut self.input.nodes) {
+            self.generate_from_node(&mut node, true);
+        }
     }
 }

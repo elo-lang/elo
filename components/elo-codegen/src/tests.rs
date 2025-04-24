@@ -13,7 +13,7 @@ fn test_file() {
     let prog = Parser::new(lx).parse().unwrap();
     let val = Validator::new(prog).validate().unwrap();
     let context = inkwell::context::Context::create();
-    let module = context.create_module("elo");
+    let module = context.create_module("test");
     let mut r#gen = crate::generator::Generator {
         input: val,
         context: &context,
