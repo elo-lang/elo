@@ -341,20 +341,13 @@ impl<'a> Parser<'a> {
     }
 
     // Check if a token is present at the next iteration. Only consumes if the condition is met.
-    // Ignores newlines.
+    // Does not ignore newlines.
     pub fn test_token(&mut self, expect: Token) -> Option<Lexem> {
         match self.lexer.peek() {
             Some(lexem) if lexem.token == expect => {
                 let x = lexem.clone();
                 self.next();
                 Some(x)
-            }
-            Some(Lexem {
-                token: Token::Newline,
-                ..
-            }) => {
-                self.next();
-                return self.test_token(expect);
             }
             _ => None,
         }
