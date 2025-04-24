@@ -91,7 +91,7 @@ impl Validator {
                     if let Some(func) = self.namespace.functions.get(name) {
                         let arguments_to_check: Vec<Typing> = func.arguments.iter().map(|x| x.typing.clone()).collect();
                         let len_args = func.arguments.len();
-                        let return_type = func.ret.as_ref().unwrap_or(&ir::Typing::Void).clone();
+                        let return_type = func.ret.clone();
                         if arguments.len() != len_args {
                             return Err(TypeError {
                                 span: Some(function.span),
@@ -156,7 +156,7 @@ impl Validator {
                 let number = integer + (fractional / 10u32.pow(float.0.chars().count() as u32) as f64);
                 Ok((
                     ir::Expression::Float { value: number },
-                    ir::Typing::Primitive(ir::Primitive::F64),
+                    ir::Typing::Primitive(ir::Primitive::Float),
                 ))
             }
             ast::ExpressionData::BooleanLiteral { value } => {
@@ -238,8 +238,8 @@ impl Validator {
                     });
                 }
                 let validated_ret_type = match &stmt.ret {
-                    Some(ret_type) => Some(self.validate_type(ret_type)?),
-                    None => None,
+                    Some(ret_type) => self.validate_type(ret_type)?,
+                    None => ir::Typing::Void,
                 };
                 let mut validated_block = ir::Block { content: Vec::new() };
                 let xs = Box::new(stmt.block.content);
