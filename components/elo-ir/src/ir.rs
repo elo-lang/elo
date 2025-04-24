@@ -166,7 +166,7 @@ pub struct ValidatedNode {
 pub struct Function {
     pub name: String,
     pub block: Block,
-    pub ret: Option<Typing>,
+    pub ret: Typing,
     pub arguments: Vec<TypedField>,
 }
 
@@ -223,6 +223,7 @@ impl Primitive {
             "u64" => Some(Primitive::U64),
             "u128" => Some(Primitive::U128),
             "bool" => Some(Primitive::Bool),
+            "str" => Some(Primitive::Str),
             _ => None,
         }
     }
