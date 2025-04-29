@@ -121,11 +121,24 @@ impl<'a> Generator<'a> {
                     _ => todo!()
                 }
             }
+            ir::Statement::ReturnStatement(stmt) => {
+                match &stmt.value {
+                    ir::Expression::Integer { value } => {
+                        let const_val = self.context.i32_type().const_int((*value).try_into().unwrap(), false);
+                        self.builder.build_return(Some(&const_val)).unwrap();
+                    }
+                    _ => todo!()
+                }
+            }
             _ => unreachable!("The parser should have caught this"),
         }
     }
 
     pub fn generate(&mut self) {
+        // add a declaration to puts from libc
+        let exit_type = self.context.void_type().fn_type(&[self.context.i32_type().into()], false);
+        self.module.add_function("exit", exit_type, None);
+        
         for mut node in std::mem::take(&mut self.input.nodes) {
             self.generate_from_node(&mut node, true);
         }

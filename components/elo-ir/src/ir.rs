@@ -264,6 +264,12 @@ pub struct Field {
 }
 
 #[derive(Debug, Clone)]
+pub struct ReturnStatement {
+    pub value: Expression,
+    pub typing: Typing,
+}
+
+#[derive(Debug, Clone)]
 pub enum Statement {
     LetStatement(LetStatement),
     VarStatement(VarStatement),
@@ -272,4 +278,5 @@ pub enum Statement {
     StructStatement(Struct),
     EnumStatement(Enum),
     ExpressionStatement(Expression),
+    ReturnStatement(ReturnStatement),
 }

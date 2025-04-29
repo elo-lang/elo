@@ -124,6 +124,24 @@ impl Validator {
                             },
                             return_type.clone()
                         ));
+                    } else if name == "exit" {
+                        let (validated, got_type) = self.validate_expr(&arguments[0])?;
+                        if got_type != ir::Typing::Primitive(ir::Primitive::Int) {
+                            return Err(TypeError {
+                                span: Some(function.span),
+                                case: TypeErrorCase::TypeMismatch {
+                                    got: format!("{:?}", got_type),
+                                    expected: "int".to_string(),
+                                }
+                            });
+                        }
+                        return Ok((
+                            ir::Expression::FunctionCall {
+                                function: Box::new(self.validate_expr(function)?.0),
+                                arguments: vec![validated]
+                            },
+                            ir::Typing::Void,
+                        ));
                     } else {
                         return Err(TypeError {
                             span: Some(expr.span),
@@ -226,7 +244,10 @@ impl Validator {
                 })
             }
             ast::Statement::ReturnStatement(stmt) => {
-                todo!()
+                let (expr, typ) = self.validate_expr(&stmt.expr)?;
+                Ok(ir::ValidatedNode {
+                    stmt: ir::Statement::ReturnStatement(ir::ReturnStatement { value: expr, typing: typ })
+                })
             }
             ast::Statement::FnStatement(stmt) => {
                 // TODO: Add type-checking
