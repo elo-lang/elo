@@ -170,6 +170,14 @@ pub struct Function {
     pub arguments: Vec<TypedField>,
 }
 
+#[derive(Debug, Clone)]
+pub struct FunctionHead {
+    pub name: String,
+    pub ret: Typing,
+    pub arguments: Vec<TypedField>,
+}
+
+
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Struct {
     pub name: String,
@@ -275,6 +283,7 @@ pub enum Statement {
     VarStatement(VarStatement),
     ConstStatement(ConstStatement),
     FnStatement(Function),
+    ExternFnStatement(FunctionHead),
     StructStatement(Struct),
     EnumStatement(Enum),
     ExpressionStatement(Expression),

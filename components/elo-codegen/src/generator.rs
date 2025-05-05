@@ -1,8 +1,9 @@
+use elo_ast::ast::UnaryOperation;
 use elo_ir::ir::{self, ValidatedProgram};
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::builder::Builder;
-use inkwell::types::{BasicType, BasicTypeEnum};
+use inkwell::types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
 use inkwell::values::{BasicMetadataValueEnum, BasicValueEnum};
 use inkwell::AddressSpace;
 
@@ -79,6 +80,22 @@ impl<'a> Generator<'a> {
                     self.generate_from_node(&mut i, false);
                 }
             }
+            ir::Statement::ExternFnStatement(stmt) => {
+                let fn_type;
+                let args: Vec<BasicMetadataTypeEnum<'_>> = stmt.arguments.iter().map(|arg| {
+                    if let Some(t) = self.choose_type(arg.typing.clone()) {
+                        t.into()
+                    } else {
+                        unreachable!()
+                    }
+                }).collect::<Vec<_>>();
+                if let Some(t) = self.choose_type(stmt.ret.clone()) {
+                    fn_type = t.fn_type(args.as_slice(), false);
+                } else {
+                    fn_type = self.context.void_type().fn_type(args.as_slice(), false);
+                }
+                self.module.add_function(&stmt.name, fn_type, None);
+            }
             ir::Statement::StructStatement(Struct) => {
                 todo!();
             }
@@ -135,10 +152,6 @@ impl<'a> Generator<'a> {
     }
 
     pub fn generate(&mut self) {
-        // add a declaration to puts from libc
-        let exit_type = self.context.void_type().fn_type(&[self.context.i32_type().into()], false);
-        self.module.add_function("exit", exit_type, None);
-        
         for mut node in std::mem::take(&mut self.input.nodes) {
             self.generate_from_node(&mut node, true);
         }

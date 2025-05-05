@@ -651,6 +651,34 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    fn parse_fn_decl(&mut self) -> Result<Statement, ParseError> {
+        let name = self.expect_identifier()?;
+        self.expect_token(Token::Delimiter('('))?;
+        let arguments = self.parse_typed_fields()?;
+        self.expect_token(Token::Delimiter(')'))?;
+        let mut typ = None;
+        if let Some(_) = self.test_token(Token::Delimiter(':')) {
+            typ = Some(self.parse_type()?);
+        }
+        self.expect_end()?;
+        Ok(Statement::FnStatement(FnStatement {
+            name: name,
+            block: Block { content: vec![] },
+            ret: typ,
+            arguments: arguments,
+        }))
+    }
+
+    fn parse_extern_fn_stmt(&mut self) -> Result<Statement, ParseError> {
+        self.next(); // consume fn
+        let f = self.parse_fn_decl()?;
+        if let Statement::FnStatement(f) = f {
+            return Ok(Statement::ExternFnStatement(f));
+        } else {
+            unreachable!("extern fn statement should be a function statement")
+        }
+    }
+
     fn parse_struct_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('{'))?;
@@ -729,6 +757,7 @@ impl<'a> Parser<'a> {
             match kw {
                 Keyword::Struct => return self.parse_struct_stmt(),
                 Keyword::Fn => return self.parse_fn_stmt(),
+                Keyword::Extern => return self.parse_extern_fn_stmt(),
                 Keyword::Enum => return self.parse_enum_stmt(),
                 Keyword::Const => return self.parse_const_stmt(),
                 kw if !inside_block => {

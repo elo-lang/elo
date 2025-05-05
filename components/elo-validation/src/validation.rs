@@ -2,7 +2,7 @@ use std::{collections::HashMap, env::consts::EXE_SUFFIX, iter::Zip, sync::Arc};
 
 use crate::namespace::*;
 use elo_ast::ast::{self, ExpressionData};
-use elo_ir::ir::{self, Typing, ValidatedNode};
+use elo_ir::ir::{self, FunctionHead, Typing, ValidatedNode};
 use elo_error::typeerror::{TypeError, TypeErrorCase};
 
 pub struct Validator {
@@ -123,24 +123,6 @@ impl Validator {
                                 arguments: validated_args
                             },
                             return_type.clone()
-                        ));
-                    } else if name == "exit" {
-                        let (validated, got_type) = self.validate_expr(&arguments[0])?;
-                        if got_type != ir::Typing::Primitive(ir::Primitive::Int) {
-                            return Err(TypeError {
-                                span: Some(function.span),
-                                case: TypeErrorCase::TypeMismatch {
-                                    got: format!("{:?}", got_type),
-                                    expected: "int".to_string(),
-                                }
-                            });
-                        }
-                        return Ok((
-                            ir::Expression::FunctionCall {
-                                function: Box::new(self.validate_expr(function)?.0),
-                                arguments: vec![validated]
-                            },
-                            ir::Typing::Void,
                         ));
                     } else {
                         return Err(TypeError {
@@ -277,6 +259,36 @@ impl Validator {
                 return Ok(
                     ir::ValidatedNode {
                         stmt: ir::Statement::FnStatement(validated)
+                    }
+                );
+            }
+            ast::Statement::ExternFnStatement(stmt) => {
+                // TODO: Add type-checking
+                let mut validated_args = Vec::new();
+                for a in stmt.arguments.iter() {
+                    validated_args.push(ir::TypedField {
+                        name: a.name.clone(),
+                        typing: self.validate_type(&a.typing)?
+                    });
+                }
+                let validated_ret_type = match &stmt.ret {
+                    Some(ret_type) => self.validate_type(ret_type)?,
+                    None => ir::Typing::Void,
+                };
+                let validated = ir::Function {
+                    name: stmt.name.clone(),
+                    block: ir::Block { content: Vec::new() },
+                    ret: validated_ret_type.clone(),
+                    arguments: validated_args.clone(),
+                };
+                self.namespace.functions.insert(stmt.name.clone(), validated.clone());
+                return Ok(
+                    ir::ValidatedNode {
+                        stmt: ir::Statement::ExternFnStatement(ir::FunctionHead {
+                            name: stmt.name,
+                            ret: validated_ret_type,
+                            arguments: validated_args,
+                        })
                     }
                 );
             }
