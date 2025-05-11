@@ -41,6 +41,47 @@ impl<'a> Generator<'a> {
         }
     }
 
+    pub fn generate_expression(&mut self, expr: &ir::Expression) -> BasicValueEnum<'a> {
+        match expr {
+            ir::Expression::Integer { value } => {
+                let const_val = self.context.i32_type().const_int((*value).try_into().unwrap(), false);
+                return const_val.into();
+            }
+            ir::Expression::Float { value } => {
+                let const_val = self.context.f32_type().const_float(*value);
+                return const_val.into();
+            }
+            ir::Expression::StringLiteral { value } => {
+                let const_val = self.context.const_string(value.as_bytes(), false);
+                return const_val.into();
+            }
+            ir::Expression::BinaryOperation { operator, left, right } => {
+                let lhs = self.generate_expression(left);
+                let rhs = self.generate_expression(right);
+                match *operator {
+                    ir::BinaryOperation::Add => {
+                        let x = self.builder.build_int_add(lhs.into_int_value(), rhs.into_int_value(), "add").unwrap();
+                        return x.into();
+                    }
+                    ir::BinaryOperation::Sub => {
+                        let x = self.builder.build_int_sub(lhs.into_int_value(), rhs.into_int_value(), "sub").unwrap();
+                        return x.into();
+                    }
+                    ir::BinaryOperation::Mul => {
+                        let x = self.builder.build_int_mul(lhs.into_int_value(), rhs.into_int_value(), "mul").unwrap();
+                        return x.into();
+                    }
+                    ir::BinaryOperation::Div => {
+                        let x = self.builder.build_int_signed_div(lhs.into_int_value(), rhs.into_int_value(), "div").unwrap();
+                        return x.into();
+                    }
+                    _ => todo!()
+                }
+            }
+            _ => todo!()
+        }
+    }
+
     pub fn generate_from_node(&mut self, node: &mut ir::ValidatedNode, toplevel: bool) {
         match &mut node.stmt {
             ir::Statement::ConstStatement(stmt) => {
@@ -105,14 +146,8 @@ impl<'a> Generator<'a> {
             ir::Statement::LetStatement(stmt) if !toplevel => {
                 let t = self.choose_type(stmt.typing.clone()).unwrap();
                 let local = self.builder.build_alloca(t, &stmt.binding).unwrap();
-                // store
-                match &stmt.assignment {
-                    ir::Expression::Integer { value } => {
-                        let const_val = self.context.i32_type().const_int((*value).try_into().unwrap(), false);
-                        self.builder.build_store(local, const_val).unwrap();
-                    }
-                    _ => todo!()
-                }
+                let expr = self.generate_expression(&stmt.assignment);
+                self.builder.build_store(local, expr).unwrap();
             }
             ir::Statement::ExpressionStatement(expr) => {
                 match &expr {
@@ -139,13 +174,9 @@ impl<'a> Generator<'a> {
                 }
             }
             ir::Statement::ReturnStatement(stmt) => {
-                match &stmt.value {
-                    ir::Expression::Integer { value } => {
-                        let const_val = self.context.i32_type().const_int((*value).try_into().unwrap(), false);
-                        self.builder.build_return(Some(&const_val)).unwrap();
-                    }
-                    _ => todo!()
-                }
+                let expr = self.generate_expression(&stmt.value);
+                assert_eq!(expr.get_type(), self.context.i32_type().into());
+                self.builder.build_return(Some(&expr)).unwrap();
             }
             _ => unreachable!("The parser should have caught this"),
         }
