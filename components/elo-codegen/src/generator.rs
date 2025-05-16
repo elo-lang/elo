@@ -4,7 +4,7 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::builder::Builder;
 use inkwell::types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
-use inkwell::values::{BasicMetadataValueEnum, BasicValueEnum};
+use inkwell::values::{AsValueRef, BasicMetadataValueEnum, BasicValueEnum};
 use inkwell::AddressSpace;
 
 pub struct Generator<'a> {
@@ -41,39 +41,55 @@ impl<'a> Generator<'a> {
         }
     }
 
-    pub fn generate_expression(&mut self, expr: &ir::Expression) -> BasicValueEnum<'a> {
+    pub fn generate_expression(&mut self, expr: &ir::Expression) -> Option<BasicValueEnum<'a>> {
         match expr {
             ir::Expression::Integer { value } => {
                 let const_val = self.context.i32_type().const_int((*value).try_into().unwrap(), false);
-                return const_val.into();
+                return Some(const_val.into());
             }
             ir::Expression::Float { value } => {
                 let const_val = self.context.f32_type().const_float(*value);
-                return const_val.into();
+                return Some(const_val.into());
             }
             ir::Expression::StringLiteral { value } => {
                 let const_val = self.context.const_string(value.as_bytes(), false);
-                return const_val.into();
+                return Some(const_val.into());
             }
             ir::Expression::BinaryOperation { operator, left, right } => {
-                let lhs = self.generate_expression(left);
-                let rhs = self.generate_expression(right);
+                let lhs = self.generate_expression(left).unwrap();
+                let rhs = self.generate_expression(right).unwrap();
                 match *operator {
                     ir::BinaryOperation::Add => {
                         let x = self.builder.build_int_add(lhs.into_int_value(), rhs.into_int_value(), "add").unwrap();
-                        return x.into();
+                        return Some(x.into());
                     }
                     ir::BinaryOperation::Sub => {
                         let x = self.builder.build_int_sub(lhs.into_int_value(), rhs.into_int_value(), "sub").unwrap();
-                        return x.into();
+                        return Some(x.into());
                     }
                     ir::BinaryOperation::Mul => {
                         let x = self.builder.build_int_mul(lhs.into_int_value(), rhs.into_int_value(), "mul").unwrap();
-                        return x.into();
+                        return Some(x.into());
                     }
                     ir::BinaryOperation::Div => {
                         let x = self.builder.build_int_signed_div(lhs.into_int_value(), rhs.into_int_value(), "div").unwrap();
-                        return x.into();
+                        return Some(x.into());
+                    }
+                    _ => todo!()
+                }
+            }
+            ir::Expression::FunctionCall { function, arguments } => {
+                match function.as_ref() {
+                    ir::Expression::Identifier { name } => {
+                        let function = self.module.get_function(&name).unwrap();
+                        let mut arg_vals: Vec<BasicMetadataValueEnum<'_>> = Vec::new();
+                        for arg in arguments {
+                            let arg = self.generate_expression(arg).unwrap();
+                            arg_vals.push(arg.into());
+                        }
+                        let call_site = self.builder.build_call(function, arg_vals.as_slice(), "static_call").unwrap();
+                        // NOTE: The type-checking pass should have ensured that the function has a return type
+                        return call_site.try_as_basic_value().left();
                     }
                     _ => todo!()
                 }
@@ -147,34 +163,13 @@ impl<'a> Generator<'a> {
                 let t = self.choose_type(stmt.typing.clone()).unwrap();
                 let local = self.builder.build_alloca(t, &stmt.binding).unwrap();
                 let expr = self.generate_expression(&stmt.assignment);
-                self.builder.build_store(local, expr).unwrap();
+                self.builder.build_store(local, expr.unwrap()).unwrap();
             }
             ir::Statement::ExpressionStatement(expr) => {
-                match &expr {
-                    ir::Expression::FunctionCall { function, arguments } => {
-                        match &**function {
-                            ir::Expression::Identifier { name } => {
-                                let function = self.module.get_function(&name).unwrap();
-                                let mut arg_vals: Vec<BasicMetadataValueEnum<'_>> = Vec::new();
-                                for arg in arguments {
-                                    match arg {
-                                        ir::Expression::Integer { value } => {
-                                            let const_val = self.context.i32_type().const_int((*value).try_into().unwrap(), false);
-                                            arg_vals.push(const_val.into());
-                                        }
-                                        _ => todo!()
-                                    }
-                                }
-                                self.builder.build_call(function, arg_vals.as_slice(), "call").unwrap();
-                            }
-                            _ => todo!()
-                        }
-                    }
-                    _ => todo!()
-                }
+                self.generate_expression(expr);
             }
             ir::Statement::ReturnStatement(stmt) => {
-                let expr = self.generate_expression(&stmt.value);
+                let expr = self.generate_expression(&stmt.value).unwrap();
                 assert_eq!(expr.get_type(), self.context.i32_type().into());
                 self.builder.build_return(Some(&expr)).unwrap();
             }
