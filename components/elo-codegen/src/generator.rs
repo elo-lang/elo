@@ -1,10 +1,9 @@
-use elo_ast::ast::UnaryOperation;
 use elo_ir::ir::{self, ValidatedProgram};
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::builder::Builder;
 use inkwell::types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
-use inkwell::values::{AsValueRef, BasicMetadataValueEnum, BasicValueEnum};
+use inkwell::values::{BasicMetadataValueEnum, BasicValueEnum};
 use inkwell::AddressSpace;
 
 pub struct Generator<'a> {
@@ -153,10 +152,10 @@ impl<'a> Generator<'a> {
                 }
                 self.module.add_function(&stmt.name, fn_type, None);
             }
-            ir::Statement::StructStatement(Struct) => {
+            ir::Statement::StructStatement(_stmt) => {
                 todo!();
             }
-            ir::Statement::EnumStatement(Enum) => {
+            ir::Statement::EnumStatement(_stmt) => {
                 todo!();
             }
             ir::Statement::LetStatement(stmt) if !toplevel => {

@@ -1,9 +1,8 @@
-use std::{collections::HashMap, env::consts::EXE_SUFFIX, iter::Zip, sync::Arc};
-
 use crate::namespace::*;
 use elo_ast::ast::{self, ExpressionData};
-use elo_ir::ir::{self, FunctionHead, Typing, ValidatedNode};
+use elo_ir::ir::{self, Typing};
 use elo_error::typeerror::{TypeError, TypeErrorCase};
+use std::collections::HashMap;
 
 pub struct Validator {
     input: ast::Program,
@@ -80,10 +79,10 @@ impl Validator {
                     ir::Typing::Primitive(ir::Primitive::Str),
                 ));
             }
-            ast::ExpressionData::Tuple { exprs } => {
+            ast::ExpressionData::Tuple { exprs: _exprs } => {
                 todo!();
             }
-            ast::ExpressionData::FieldAccess { origin, field } => {
+            ast::ExpressionData::FieldAccess { origin: _origin, field: _field } => {
                 todo!();
             }
             ast::ExpressionData::FunctionCall { function, arguments } => {
@@ -140,7 +139,7 @@ impl Validator {
                     })
                 }
             }
-            ast::ExpressionData::StructInit { name, fields } => {
+            ast::ExpressionData::StructInit { name: _name, fields: _fields } => {
                 todo!();
             }
             ast::ExpressionData::IntegerLiteral { value } => {
@@ -292,7 +291,7 @@ impl Validator {
                     }
                 );
             }
-            ast::Statement::StructStatement(stmt) => {
+            ast::Statement::StructStatement(_stmt) => {
                 todo!();
             }
             ast::Statement::EnumStatement(stmt) => {
@@ -305,10 +304,10 @@ impl Validator {
                     stmt: ir::Statement::EnumStatement(e)
                 })
             }
-            ast::Statement::IfStatement(stmt) => {
+            ast::Statement::IfStatement(_stmt) => {
                 todo!();
             }
-            ast::Statement::WhileStatement(stmt) => {
+            ast::Statement::WhileStatement(_stmt) => {
                 todo!();
             }
             ast::Statement::ExpressionStatement(stmt) => {
