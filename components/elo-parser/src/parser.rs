@@ -451,9 +451,33 @@ impl<'a> Parser<'a> {
                     return self.parse_primary();
                 }
                 Token::Numeric(..) => return Ok(self.parse_number()?),
-                Token::Identifier(_) => return Ok(self.parse_identifier()?),
+                Token::Identifier(_) => {
+                    let i = self.parse_identifier()?;
+
+                    // Function call (e.g. foo(), bar())
+                    if let Some(_) = self.test_token(Token::Delimiter('(')) {
+                        let args = self.parse_expression_list(Token::Delimiter(')'))?;
+                        self.expect_token(Token::Delimiter(')'))?;
+                        return Ok(Expression {
+                            span: i.span.merge(self.current_span.unwrap()),
+                            data: ExpressionData::FunctionCall {
+                                function: Box::new(i),
+                                arguments: args,
+                            },
+                        });
+                    } else if let Some(_) = self.test_token(Token::Delimiter('.')) { // Field access (e.g. instance.method(), foo.bar)
+                        let field = self.expect_identifier()?;
+                        return Ok(Expression {
+                            span: i.span.merge(self.current_span.unwrap()),
+                            data: ExpressionData::FieldAccess {
+                                origin: Box::new(i),
+                                field: field,
+                            },
+                        });
+                    }
+                    return Ok(i);
+                },
                 Token::Delimiter('(') => {
-                    // TODO: Parse () unit tuple
                     self.next();
                     let init_span = self.current_span.unwrap();
                     let expr = self.parse_expr(1)?;
@@ -556,29 +580,6 @@ impl<'a> Parser<'a> {
                     },
                 };
             }
-        }
-        // Field access (e.g. instance.method(), foo.bar)
-        if let Some(_) = self.test_token(Token::Delimiter('.')) {
-            let field = self.expect_identifier()?;
-            left = Expression {
-                span: left.span.merge(self.current_span.unwrap()),
-                data: ExpressionData::FieldAccess {
-                    origin: Box::new(left),
-                    field: field,
-                },
-            };
-        }
-        // Function call (e.g. foo(), bar())
-        if let Some(_) = self.test_token(Token::Delimiter('(')) {
-            let args = self.parse_expression_list(Token::Delimiter(')'))?;
-            self.expect_token(Token::Delimiter(')'))?;
-            left = Expression {
-                span: left.span.merge(self.current_span.unwrap()),
-                data: ExpressionData::FunctionCall {
-                    function: Box::new(left),
-                    arguments: args,
-                },
-            };
         }
         Ok(left)
     }
