@@ -22,6 +22,7 @@ fn test_file() {
         context: &context,
         module: module,
         builder: context.create_builder(),
+        variables: std::collections::HashMap::new(),
     };
     r#gen.generate();
 
@@ -33,7 +34,7 @@ fn test_file() {
     let target = Target::from_triple(&triple).unwrap();
     let cpu = "generic";
     let features = "";
-    let opt_level = OptimizationLevel::Default;
+    let opt_level = OptimizationLevel::Aggressive;
     let reloc = RelocMode::PIC;
     let code_model = CodeModel::Default;
 

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use elo_ir::ir::{self, ValidatedProgram};
 use inkwell::context::Context;
 use inkwell::module::Module;
@@ -11,6 +13,7 @@ pub struct Generator<'a> {
     pub context: &'a Context,
     pub module: Module<'a>,
     pub builder: Builder<'a>,
+    pub variables: HashMap<String, inkwell::values::PointerValue<'a>>,
 }
 
 impl<'a> Generator<'a> {
@@ -93,6 +96,12 @@ impl<'a> Generator<'a> {
                     _ => todo!()
                 }
             }
+            ir::Expression::Identifier { name } => {
+                if let Some(var) = self.variables.get(name) {
+                    return Some(self.builder.build_load(*var, name).unwrap().into());
+                }
+                unreachable!("unreachable point at compile-time: variable {} not found", name);
+            }
             _ => todo!()
         }
     }
@@ -163,6 +172,7 @@ impl<'a> Generator<'a> {
                 let local = self.builder.build_alloca(t, &stmt.binding).unwrap();
                 let expr = self.generate_expression(&stmt.assignment);
                 self.builder.build_store(local, expr.unwrap()).unwrap();
+                self.variables.insert(stmt.binding.clone(), local);
             }
             ir::Statement::ExpressionStatement(expr) => {
                 self.generate_expression(expr);
