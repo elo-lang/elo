@@ -136,7 +136,7 @@ fn test_floats() {
 
 #[test]
 fn test_strings() {
-    let source_text = "\"hello\"";
+    let source_text = "\"hello world\"";
     let lx = Lexer::new(InputFile::new("test", source_text));
 
     for lexem in lx {

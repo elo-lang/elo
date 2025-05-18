@@ -1,9 +1,8 @@
-use std::{collections::HashMap, env::consts::EXE_SUFFIX, iter::Zip, sync::Arc};
-
 use crate::namespace::*;
 use elo_ast::ast::{self, ExpressionData};
-use elo_ir::ir::{self, Typing, ValidatedNode};
+use elo_ir::ir::{self, Typing};
 use elo_error::typeerror::{TypeError, TypeErrorCase};
+use std::collections::HashMap;
 
 pub struct Validator {
     input: ast::Program,
@@ -20,6 +19,7 @@ impl Validator {
                 enums: HashMap::new(),
                 constants: HashMap::new(),
                 functions: HashMap::new(),
+                locals: Vec::new(),
             }
         }
     }
@@ -80,10 +80,10 @@ impl Validator {
                     ir::Typing::Primitive(ir::Primitive::Str),
                 ));
             }
-            ast::ExpressionData::Tuple { exprs } => {
+            ast::ExpressionData::Tuple { exprs: _exprs } => {
                 todo!();
             }
-            ast::ExpressionData::FieldAccess { origin, field } => {
+            ast::ExpressionData::FieldAccess { origin: _origin, field: _field } => {
                 todo!();
             }
             ast::ExpressionData::FunctionCall { function, arguments } => {
@@ -91,7 +91,7 @@ impl Validator {
                     if let Some(func) = self.namespace.functions.get(name) {
                         let arguments_to_check: Vec<Typing> = func.arguments.iter().map(|x| x.typing.clone()).collect();
                         let len_args = func.arguments.len();
-                        let return_type = func.ret.as_ref().unwrap_or(&ir::Typing::Void).clone();
+                        let return_type = func.ret.clone();
                         if arguments.len() != len_args {
                             return Err(TypeError {
                                 span: Some(function.span),
@@ -140,7 +140,7 @@ impl Validator {
                     })
                 }
             }
-            ast::ExpressionData::StructInit { name, fields } => {
+            ast::ExpressionData::StructInit { name: _name, fields: _fields } => {
                 todo!();
             }
             ast::ExpressionData::IntegerLiteral { value } => {
@@ -156,7 +156,7 @@ impl Validator {
                 let number = integer + (fractional / 10u32.pow(float.0.chars().count() as u32) as f64);
                 Ok((
                     ir::Expression::Float { value: number },
-                    ir::Typing::Primitive(ir::Primitive::F64),
+                    ir::Typing::Primitive(ir::Primitive::Float),
                 ))
             }
             ast::ExpressionData::BooleanLiteral { value } => {
@@ -170,8 +170,16 @@ impl Validator {
                     return Ok((ir::Expression::Identifier { name: name.clone() }, typ.clone()))
                 } else if let Some(e) = self.namespace.enums.get(name) {
                     return Ok((ir::Expression::Identifier { name: name.clone() }, ir::Typing::Enum(e.clone())))
+                } else if let Some(v) = self.namespace.locals.last().unwrap().content.get(name) {
+                    return Ok((ir::Expression::Identifier { name: name.clone() }, v.typing.clone()))
+                } else if let Some(f) = self.namespace.functions.get(name) {
+                    return Ok((ir::Expression::Identifier { name: name.clone() }, f.ret.clone()))
+                } else {
+                    return Err(TypeError {
+                        span: Some(expr.span),
+                        case: TypeErrorCase::UnresolvedName { name: name.clone() }
+                    });
                 }
-                return Ok((ir::Expression::Identifier { name: name.clone() }, ir::Typing::Void))
             }
         }
     }
@@ -182,6 +190,17 @@ impl Validator {
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
                 let (expr, typ) = self.validate_expr(assignment)?;
+                
+                // Add the variable to the current scope
+                self.namespace.locals.last_mut().unwrap().content.insert(
+                    name.clone(),
+                    Variable {
+                        name: name.clone(),
+                        mutable: false,
+                        typing: typ.clone(),
+                    }
+                );
+
                 Ok(ir::ValidatedNode {
                     stmt: ir::Statement::LetStatement(ir::LetStatement {
                         assignment: expr,
@@ -194,6 +213,17 @@ impl Validator {
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
                 let (expr, typ) = self.validate_expr(assignment)?;
+
+                // Add the variable to the current scope
+                self.namespace.locals.last_mut().unwrap().content.insert(
+                    name.clone(),
+                    Variable {
+                        name: name.clone(),
+                        mutable: true,
+                        typing: typ.clone(),
+                    }
+                );
+
                 Ok(ir::ValidatedNode {
                     stmt: ir::Statement::VarStatement(ir::VarStatement {
                         assignment: expr,
@@ -226,7 +256,10 @@ impl Validator {
                 })
             }
             ast::Statement::ReturnStatement(stmt) => {
-                todo!()
+                let (expr, typ) = self.validate_expr(&stmt.expr)?;
+                Ok(ir::ValidatedNode {
+                    stmt: ir::Statement::ReturnStatement(ir::ReturnStatement { value: expr, typing: typ })
+                })
             }
             ast::Statement::FnStatement(stmt) => {
                 // TODO: Add type-checking
@@ -237,29 +270,74 @@ impl Validator {
                         typing: self.validate_type(&a.typing)?
                     });
                 }
+
                 let validated_ret_type = match &stmt.ret {
-                    Some(ret_type) => Some(self.validate_type(ret_type)?),
-                    None => None,
+                    Some(ret_type) => self.validate_type(ret_type)?,
+                    None => ir::Typing::Void,
                 };
                 let mut validated_block = ir::Block { content: Vec::new() };
                 let xs = Box::new(stmt.block.content);
+                
+                // Create a new scope for the function
+                // TODO: Add the arguments to the scope
+                self.namespace.locals.push(Scope {
+                    content: HashMap::new(),
+                });
+                
                 for a in xs.into_iter() {
                     validated_block.content.push(self.validate_node(a)?);
                 }
+
+                // Pop the scope
+                self.namespace.locals.pop();
+                
                 let validated = ir::Function {
                     name: stmt.name.clone(),
                     block: validated_block,
                     ret: validated_ret_type,
                     arguments: validated_args,
                 };
+
+                // Insert the function into the namespace
                 self.namespace.functions.insert(stmt.name, validated.clone());
+                
                 return Ok(
                     ir::ValidatedNode {
                         stmt: ir::Statement::FnStatement(validated)
                     }
                 );
             }
-            ast::Statement::StructStatement(stmt) => {
+            ast::Statement::ExternFnStatement(stmt) => {
+                // TODO: Add type-checking
+                let mut validated_args = Vec::new();
+                for a in stmt.arguments.iter() {
+                    validated_args.push(ir::TypedField {
+                        name: a.name.clone(),
+                        typing: self.validate_type(&a.typing)?
+                    });
+                }
+                let validated_ret_type = match &stmt.ret {
+                    Some(ret_type) => self.validate_type(ret_type)?,
+                    None => ir::Typing::Void,
+                };
+                let validated = ir::Function {
+                    name: stmt.name.clone(),
+                    block: ir::Block { content: Vec::new() },
+                    ret: validated_ret_type.clone(),
+                    arguments: validated_args.clone(),
+                };
+                self.namespace.functions.insert(stmt.name.clone(), validated.clone());
+                return Ok(
+                    ir::ValidatedNode {
+                        stmt: ir::Statement::ExternFnStatement(ir::FunctionHead {
+                            name: stmt.name,
+                            ret: validated_ret_type,
+                            arguments: validated_args,
+                        })
+                    }
+                );
+            }
+            ast::Statement::StructStatement(_stmt) => {
                 todo!();
             }
             ast::Statement::EnumStatement(stmt) => {
@@ -272,10 +350,12 @@ impl Validator {
                     stmt: ir::Statement::EnumStatement(e)
                 })
             }
-            ast::Statement::IfStatement(stmt) => {
+            ast::Statement::IfStatement(_stmt) => {
+                // TODO: Remember to push a new scope to the namespace
                 todo!();
             }
-            ast::Statement::WhileStatement(stmt) => {
+            ast::Statement::WhileStatement(_stmt) => {
+                // TODO: Remember to push a new scope to the namespace
                 todo!();
             }
             ast::Statement::ExpressionStatement(stmt) => {

@@ -268,6 +268,7 @@ pub enum Statement {
     VarStatement(VarStatement),
     ConstStatement(ConstStatement),
     FnStatement(FnStatement),
+    ExternFnStatement(FnStatement),
     StructStatement(StructStatement),
     EnumStatement(EnumStatement),
     IfStatement(IfStatement),

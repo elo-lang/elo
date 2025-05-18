@@ -179,10 +179,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn token_string(&mut self) -> Token {
-        let s = self.consume_while(None, |c| c != '"');
-        if self.chars.peek() != Some(&'"') {
-            panic!("Unterminated string literal");
-        }
+        let s = self.consume_while(None, |c| c != '"' && c != '\n');
         self.chars.next(); // Compensate for the last "
         self.advance_span(s.len());
         self.span.end += 2; // Compensate span to get the last "

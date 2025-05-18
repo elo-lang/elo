@@ -341,20 +341,13 @@ impl<'a> Parser<'a> {
     }
 
     // Check if a token is present at the next iteration. Only consumes if the condition is met.
-    // Ignores newlines.
+    // Does not ignore newlines.
     pub fn test_token(&mut self, expect: Token) -> Option<Lexem> {
         match self.lexer.peek() {
             Some(lexem) if lexem.token == expect => {
                 let x = lexem.clone();
                 self.next();
                 Some(x)
-            }
-            Some(Lexem {
-                token: Token::Newline,
-                ..
-            }) => {
-                self.next();
-                return self.test_token(expect);
             }
             _ => None,
         }
@@ -458,9 +451,33 @@ impl<'a> Parser<'a> {
                     return self.parse_primary();
                 }
                 Token::Numeric(..) => return Ok(self.parse_number()?),
-                Token::Identifier(_) => return Ok(self.parse_identifier()?),
+                Token::Identifier(_) => {
+                    let i = self.parse_identifier()?;
+
+                    // Function call (e.g. foo(), bar())
+                    if let Some(_) = self.test_token(Token::Delimiter('(')) {
+                        let args = self.parse_expression_list(Token::Delimiter(')'))?;
+                        self.expect_token(Token::Delimiter(')'))?;
+                        return Ok(Expression {
+                            span: i.span.merge(self.current_span.unwrap()),
+                            data: ExpressionData::FunctionCall {
+                                function: Box::new(i),
+                                arguments: args,
+                            },
+                        });
+                    } else if let Some(_) = self.test_token(Token::Delimiter('.')) { // Field access (e.g. instance.method(), foo.bar)
+                        let field = self.expect_identifier()?;
+                        return Ok(Expression {
+                            span: i.span.merge(self.current_span.unwrap()),
+                            data: ExpressionData::FieldAccess {
+                                origin: Box::new(i),
+                                field: field,
+                            },
+                        });
+                    }
+                    return Ok(i);
+                },
                 Token::Delimiter('(') => {
-                    // TODO: Parse () unit tuple
                     self.next();
                     let init_span = self.current_span.unwrap();
                     let expr = self.parse_expr(1)?;
@@ -564,29 +581,6 @@ impl<'a> Parser<'a> {
                 };
             }
         }
-        // Field access (e.g. instance.method(), foo.bar)
-        if let Some(_) = self.test_token(Token::Delimiter('.')) {
-            let field = self.expect_identifier()?;
-            left = Expression {
-                span: left.span.merge(self.current_span.unwrap()),
-                data: ExpressionData::FieldAccess {
-                    origin: Box::new(left),
-                    field: field,
-                },
-            };
-        }
-        // Function call (e.g. foo(), bar())
-        if let Some(_) = self.test_token(Token::Delimiter('(')) {
-            let args = self.parse_expression_list(Token::Delimiter(')'))?;
-            self.expect_token(Token::Delimiter(')'))?;
-            left = Expression {
-                span: left.span.merge(self.current_span.unwrap()),
-                data: ExpressionData::FunctionCall {
-                    function: Box::new(left),
-                    arguments: args,
-                },
-            };
-        }
         Ok(left)
     }
 
@@ -656,6 +650,34 @@ impl<'a> Parser<'a> {
             ret: typ,
             arguments: arguments,
         }))
+    }
+
+    fn parse_fn_decl(&mut self) -> Result<Statement, ParseError> {
+        let name = self.expect_identifier()?;
+        self.expect_token(Token::Delimiter('('))?;
+        let arguments = self.parse_typed_fields()?;
+        self.expect_token(Token::Delimiter(')'))?;
+        let mut typ = None;
+        if let Some(_) = self.test_token(Token::Delimiter(':')) {
+            typ = Some(self.parse_type()?);
+        }
+        self.expect_end()?;
+        Ok(Statement::FnStatement(FnStatement {
+            name: name,
+            block: Block { content: vec![] },
+            ret: typ,
+            arguments: arguments,
+        }))
+    }
+
+    fn parse_extern_fn_stmt(&mut self) -> Result<Statement, ParseError> {
+        self.next(); // consume fn
+        let f = self.parse_fn_decl()?;
+        if let Statement::FnStatement(f) = f {
+            return Ok(Statement::ExternFnStatement(f));
+        } else {
+            unreachable!("extern fn statement should be a function statement")
+        }
     }
 
     fn parse_struct_stmt(&mut self) -> Result<Statement, ParseError> {
@@ -736,6 +758,7 @@ impl<'a> Parser<'a> {
             match kw {
                 Keyword::Struct => return self.parse_struct_stmt(),
                 Keyword::Fn => return self.parse_fn_stmt(),
+                Keyword::Extern => return self.parse_extern_fn_stmt(),
                 Keyword::Enum => return self.parse_enum_stmt(),
                 Keyword::Const => return self.parse_const_stmt(),
                 kw if !inside_block => {
