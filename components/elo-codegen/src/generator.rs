@@ -43,6 +43,8 @@ impl<'a> Generator<'a> {
         }
     }
 
+    // NOTE: I'm using an option here in case of a function call that returns void,
+    // which is not a valid value in LLVM unfortunately.
     pub fn generate_expression(&mut self, expr: &ir::Expression) -> Option<BasicValueEnum<'a>> {
         match expr {
             ir::Expression::Integer { value } => {
@@ -55,6 +57,10 @@ impl<'a> Generator<'a> {
             }
             ir::Expression::StringLiteral { value } => {
                 let const_val = self.context.const_string(value.as_bytes(), false);
+                return Some(const_val.into());
+            }
+            ir::Expression::Bool { value } => {
+                let const_val = self.context.bool_type().const_int(if *value { 1 } else { 0 }, false);
                 return Some(const_val.into());
             }
             ir::Expression::BinaryOperation { operator, left, right } => {
