@@ -174,6 +174,13 @@ impl<'a> Generator<'a> {
                 self.builder.build_store(local, expr.unwrap()).unwrap();
                 self.variables.insert(stmt.binding.clone(), local);
             }
+            ir::Statement::VarStatement(stmt) if !toplevel => {
+                let t = self.choose_type(stmt.typing.clone()).unwrap();
+                let local = self.builder.build_alloca(t, &stmt.binding).unwrap();
+                let expr = self.generate_expression(&stmt.assignment);
+                self.builder.build_store(local, expr.unwrap()).unwrap();
+                self.variables.insert(stmt.binding.clone(), local);
+            }
             ir::Statement::ExpressionStatement(expr) => {
                 self.generate_expression(expr);
             }
@@ -182,7 +189,7 @@ impl<'a> Generator<'a> {
                 assert_eq!(expr.get_type(), self.context.i32_type().into());
                 self.builder.build_return(Some(&expr)).unwrap();
             }
-            _ => unreachable!("The parser should have caught this"),
+            _ => todo!(),
         }
     }
 
