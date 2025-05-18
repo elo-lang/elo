@@ -63,6 +63,30 @@ impl<'a> Generator<'a> {
                 let const_val = self.context.bool_type().const_int(if *value { 1 } else { 0 }, false);
                 return Some(const_val.into());
             }
+            ir::Expression::UnaryOperation { operator, operand } => {
+                let op = self.generate_expression(operand).unwrap();
+                match *operator {
+                    ir::UnaryOperation::Neg => {
+                        let x = self.builder.build_int_neg(op.into_int_value(), "-").unwrap();
+                        return Some(x.into());
+                    }
+                    ir::UnaryOperation::BNot | ir::UnaryOperation::Not => {
+                        let x = self.builder.build_not(op.into_int_value(), "not").unwrap();
+                        return Some(x.into());
+                    }
+                    ir::UnaryOperation::Addr => {
+                        let x = self.builder.build_alloca(op.get_type(), "addr").unwrap();
+                        self.builder.build_store(x, op).unwrap();
+                        return Some(x.into());
+                    }
+                    // TODO: Implement dereference operator
+                    // *x syntax to load a value from a pointer
+                    // ir::UnaryOperation::Deref => {
+                    //     let x = self.builder.build_load(op.into_pointer_value(), "addr").unwrap();
+                    //     return Some(x.into());
+                    // }
+                }
+            }
             ir::Expression::BinaryOperation { operator, left, right } => {
                 let lhs = self.generate_expression(left).unwrap();
                 let rhs = self.generate_expression(right).unwrap();
