@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use elo_lexer::inputfile::InputFile;
 use elo_lexer::lexer::Lexer;
 use elo_parser::parser::Parser;
+use crate::generator::Namespace;
 use elo_validation::validation::Validator;
 
 use inkwell::targets::{InitializationConfig, Target, TargetMachine, RelocMode, CodeModel, FileType};
@@ -22,13 +25,16 @@ fn test_file() {
         context: &context,
         module: module,
         builder: context.create_builder(),
-        variables: std::collections::HashMap::new(),
+        namespace: Namespace {
+            locals: HashMap::new(),
+            constants: HashMap::new(),
+        },
     };
     r#gen.generate();
 
     println!("{}", r#gen.module.to_string());
     Target::initialize_native(&InitializationConfig::default())
-    .expect("Failed to initialize native target");
+      .expect("Failed to initialize native target");
 
     let triple = TargetMachine::get_default_triple();
     let target = Target::from_triple(&triple).unwrap();

@@ -8,12 +8,18 @@ use inkwell::types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
 use inkwell::values::{BasicMetadataValueEnum, BasicValueEnum};
 use inkwell::AddressSpace;
 
+#[derive(Debug)]
+pub struct Namespace<'a> {
+    pub locals: HashMap<String, inkwell::values::PointerValue<'a>>,
+    pub constants: HashMap<String, inkwell::values::PointerValue<'a>>,
+}
+
 pub struct Generator<'a> {
     pub input: ValidatedProgram,
     pub context: &'a Context,
     pub module: Module<'a>,
     pub builder: Builder<'a>,
-    pub variables: HashMap<String, inkwell::values::PointerValue<'a>>,
+    pub namespace: Namespace<'a>,
 }
 
 impl<'a> Generator<'a> {
@@ -127,7 +133,7 @@ impl<'a> Generator<'a> {
                 }
             }
             ir::Expression::Identifier { name } => {
-                if let Some(var) = self.variables.get(name) {
+                if let Some(var) = self.namespace.locals.get(name) {
                     return Some(self.builder.build_load(*var, name).unwrap().into());
                 }
                 unreachable!("unreachable point at compile-time: variable {} not found", name);
@@ -202,14 +208,14 @@ impl<'a> Generator<'a> {
                 let local = self.builder.build_alloca(t, &stmt.binding).unwrap();
                 let expr = self.generate_expression(&stmt.assignment);
                 self.builder.build_store(local, expr.unwrap()).unwrap();
-                self.variables.insert(stmt.binding.clone(), local);
+                self.namespace.locals.insert(stmt.binding.clone(), local);
             }
             ir::Statement::VarStatement(stmt) if !toplevel => {
                 let t = self.choose_type(stmt.typing.clone()).unwrap();
                 let local = self.builder.build_alloca(t, &stmt.binding).unwrap();
                 let expr = self.generate_expression(&stmt.assignment);
                 self.builder.build_store(local, expr.unwrap()).unwrap();
-                self.variables.insert(stmt.binding.clone(), local);
+                self.namespace.locals.insert(stmt.binding.clone(), local);
             }
             ir::Statement::ExpressionStatement(expr) => {
                 self.generate_expression(expr);
