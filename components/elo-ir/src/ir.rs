@@ -166,9 +166,17 @@ pub struct ValidatedNode {
 pub struct Function {
     pub name: String,
     pub block: Block,
-    pub ret: Option<Typing>,
+    pub ret: Typing,
     pub arguments: Vec<TypedField>,
 }
+
+#[derive(Debug, Clone)]
+pub struct FunctionHead {
+    pub name: String,
+    pub ret: Typing,
+    pub arguments: Vec<TypedField>,
+}
+
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Struct {
@@ -223,6 +231,7 @@ impl Primitive {
             "u64" => Some(Primitive::U64),
             "u128" => Some(Primitive::U128),
             "bool" => Some(Primitive::Bool),
+            "str" => Some(Primitive::Str),
             _ => None,
         }
     }
@@ -263,12 +272,20 @@ pub struct Field {
 }
 
 #[derive(Debug, Clone)]
+pub struct ReturnStatement {
+    pub value: Expression,
+    pub typing: Typing,
+}
+
+#[derive(Debug, Clone)]
 pub enum Statement {
     LetStatement(LetStatement),
     VarStatement(VarStatement),
     ConstStatement(ConstStatement),
     FnStatement(Function),
+    ExternFnStatement(FunctionHead),
     StructStatement(Struct),
     EnumStatement(Enum),
     ExpressionStatement(Expression),
+    ReturnStatement(ReturnStatement),
 }
