@@ -136,6 +136,7 @@ impl<'a> Generator<'a> {
                 if let Some(var) = self.namespace.locals.get(name) {
                     return Some(self.builder.build_load(*var, name).unwrap().into());
                 }
+                // TODO: In case of a function name, it should return the function pointer
                 unreachable!("unreachable point at compile-time: variable {} not found", name);
             }
             _ => todo!()
