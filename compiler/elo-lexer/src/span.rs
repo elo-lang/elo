@@ -53,4 +53,13 @@ impl Span {
             end: other.end,
         }
     }
+
+    pub fn into_filespan<'a>(&self, input_file: InputFile<'a>) -> FileSpan<'a> {
+        FileSpan {
+            input_file,
+            line: self.line,
+            start: self.start,
+            end: self.end,
+        }
+    }
 }
