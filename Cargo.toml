@@ -13,3 +13,12 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+elo-lexer = { path = "compiler/elo-lexer" }
+elo-parser = { path = "compiler/elo-parser" }
+elo-validation = { path = "compiler/elo-validation" }
+elo-codegen = { path = "compiler/elo-codegen" }
+elo-error = { path = "compiler/elo-error" }
+elo-ir = { path = "compiler/elo-ir" }
+elo-ast = { path = "compiler/elo-ast" }
+
+inkwell = { version = "0.5.0", features = ["llvm14-0"] }

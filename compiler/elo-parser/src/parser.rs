@@ -342,6 +342,8 @@ impl<'a> Parser<'a> {
 
     // Check if a token is present at the next iteration. Only consumes if the condition is met.
     // Does not ignore newlines by default, unless `lazy` argument is set to true.
+    // If you put a Token::Newline in the `expect` argument and `lazy` is true,
+    // it will skip all newlines until it finds the expected token, it will always return None.
     pub fn test_token(&mut self, expect: Token, lazy: bool) -> Option<Lexem> {
         match self.lexer.peek() {
             Some(lexem) if lexem.token == expect => {
