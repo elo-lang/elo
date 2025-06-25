@@ -150,7 +150,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
             "-O3" => optimization = O::Aggressive,
             _ if arg.starts_with("-o") => {
                 let rest= arg[2..].to_string();
-                if (rest.is_empty()) {
+                if rest.is_empty() {
                     // get the next argument instead
                     if let Some(next_arg) = args.get(i + 1) {
                         output = Some(next_arg.to_string());

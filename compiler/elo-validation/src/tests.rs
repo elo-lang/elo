@@ -1,11 +1,10 @@
-use elo_lexer::inputfile::InputFile;
-use elo_lexer::lexer::Lexer;
-use elo_parser::parser::Parser;
-
-use crate::validation::Validator;
-
 #[test]
 fn test_file() {
+    use elo_lexer::inputfile::InputFile;
+    use elo_lexer::lexer::Lexer;
+    use elo_parser::parser::Parser;
+    use crate::validation::Validator;
+
     use std::fs::read_to_string;
     let filename = "test.elo";
     let source_text = &read_to_string(filename).unwrap();

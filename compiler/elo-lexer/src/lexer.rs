@@ -1,4 +1,3 @@
-use core::panic;
 use std::iter::Peekable;
 use std::str::Chars;
 
