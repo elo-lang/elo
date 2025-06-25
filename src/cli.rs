@@ -140,7 +140,9 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
     let mut output = None;
     let mut optimization = O::Normal;
 
-    for arg in args.iter().skip(2) {
+    let mut i = 2; // Start after the command and program name
+    while i < args.len() {
+        let arg = &args[i];
         match arg.as_str() {
             "-O0" => optimization = O::None,
             "-O1" => optimization = O::Normal,
@@ -150,8 +152,9 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
                 let rest= arg[2..].to_string();
                 if (rest.is_empty()) {
                     // get the next argument instead
-                    if let Some(next_arg) = args.iter().skip_while(|x| x != &arg).nth(1) {
+                    if let Some(next_arg) = args.get(i + 1) {
                         output = Some(next_arg.to_string());
+                        i += 1; // skip the next argument
                     } else {
                         usage(program, Command::from_str("build").as_ref());
                         fatal(program, "expected output file after `-o` flag");
@@ -171,6 +174,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
             }
             _ => {}
         }
+        i += 1;
     }
 
     if input.is_none() {

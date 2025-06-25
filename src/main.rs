@@ -78,8 +78,9 @@ fn main() {
                                 let target_machine = target
                                     .create_target_machine(&triple, cpu, features, opt_level, reloc, code_model)
                                     .expect("Failed to create target machine");
-
-                                let path = format!("{}.o", output.unwrap_or_else(|| input.clone()));
+                                
+                                let mut path = format!("{}.o", input.clone());
+                                if let Some(o) = output { path = o }
                                 let path = Path::new(&path);
                                 target_machine
                                     .write_to_file(&r#gen.module, target_file_type, &path)
