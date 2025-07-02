@@ -38,6 +38,12 @@ impl Validator {
                     case: TypeErrorCase::InvalidType { what: format!("{:?}", typ.typing) }
                 });
             }
+            ast::Typing::Pointer { typ } => {
+                let inner_typing = self.validate_type(typ)?;
+                return Ok(ir::Typing::Pointer {
+                    typ: Box::new(inner_typing),
+                });
+            }
             x => Err(TypeError {
                 span: Some(typ.span),
                 case: TypeErrorCase::InvalidType { what: format!("{:?}", x) }
