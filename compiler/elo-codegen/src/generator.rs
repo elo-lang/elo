@@ -44,6 +44,7 @@ impl<'a> Generator<'a> {
             // TODO: Make float have the size as the target architecture
             ir::Typing::Primitive(ir::Primitive::Float) => Some(self.context.f64_type().into()),
             ir::Typing::Primitive(ir::Primitive::Str) => Some(self.context.i8_type().ptr_type(AddressSpace::default()).into()),
+            ir::Typing::Pointer { typ } => Some(self.choose_type(*typ).unwrap().ptr_type(AddressSpace::default()).into()),
             ir::Typing::Void => None,
             _ => todo!()
         }
@@ -62,8 +63,16 @@ impl<'a> Generator<'a> {
                 return Some(const_val.into());
             }
             ir::Expression::StringLiteral { value } => {
-                let const_val = self.context.const_string(value.as_bytes(), false);
-                return Some(const_val.into());
+                // TODO: Make this a sized string, for now it's a null-terminated string for compatibility with C
+                //       See elo-validation too for the *u8 typing
+                let const_val = self.context.const_string((value.to_owned() + "\0").as_bytes(), false);
+                let global_const = self.module.add_global(self.context.i8_type().array_type(value.as_bytes().len() as u32), None, "STR");
+                global_const.set_initializer(&const_val);
+                global_const.set_constant(true);
+                
+                // Create a pointer to the string in the global constant
+                let str = self.builder.build_bit_cast(global_const.as_pointer_value(), self.context.i8_type().ptr_type(AddressSpace::default()), "str_ptr").unwrap();
+                return Some(str.into());
             }
             ir::Expression::Bool { value } => {
                 let const_val = self.context.bool_type().const_int(if *value { 1 } else { 0 }, false);
