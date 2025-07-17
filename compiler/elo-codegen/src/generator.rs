@@ -71,7 +71,7 @@ impl<'a> Generator<'a> {
                 global_const.set_constant(true);
                 
                 // Create a pointer to the string in the global constant
-                let str = self.builder.build_bit_cast(global_const.as_pointer_value(), self.context.i8_type().ptr_type(AddressSpace::default()), "str_ptr").unwrap();
+                let str = self.builder.build_bit_cast(global_const.as_pointer_value(), self.context.i8_type().ptr_type(AddressSpace::default()), "").unwrap();
                 return Some(str.into());
             }
             ir::Expression::Bool { value } => {
