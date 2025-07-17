@@ -193,6 +193,14 @@ pub struct FnStatement {
 }
 
 #[derive(Debug)]
+pub struct ExternFnStatement {
+    pub name: String,
+    pub ret: Option<Type>,
+    pub arguments: Vec<TypedField>,
+    pub variadic: bool,
+}
+
+#[derive(Debug)]
 pub struct StructStatement {
     pub name: String,
     pub fields: Vec<TypedField>,
@@ -268,7 +276,7 @@ pub enum Statement {
     VarStatement(VarStatement),
     ConstStatement(ConstStatement),
     FnStatement(FnStatement),
-    ExternFnStatement(FnStatement),
+    ExternFnStatement(ExternFnStatement),
     StructStatement(StructStatement),
     EnumStatement(EnumStatement),
     IfStatement(IfStatement),

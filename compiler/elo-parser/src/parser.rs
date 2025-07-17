@@ -245,6 +245,41 @@ impl<'a> Parser<'a> {
         Ok(fields)
     }
 
+    // Parse function declaration arguments, this is made to include parsing of the ... token for
+    // variadic functions, in compatibility with C FFI.
+    //                                                           ---- This field means if the arguments are variadic or not.
+    fn parse_fn_decl_args(&mut self) -> Result<(Vec<TypedField>, bool), ParseError> {
+        let mut fields = Vec::new();
+        let mut variadic = false;
+        // Consider also the first argument could be ...
+        if let Some(_) = self.test_token(Token::Variadic, true) {
+            variadic = true;
+            return Ok((fields, variadic));
+        }
+        if let Ok(first) = self.parse_typed_field() {
+            fields.push(first);
+        }
+        while let Some(Lexem {
+            token: Token::Delimiter(','),
+            ..
+        }) = self.lexer.peek()
+        {
+            self.next();
+            if let Some(Lexem {
+                token: Token::Variadic,
+                ..
+            }) = self.lexer.peek()
+            {
+                variadic = true;
+                self.next();
+                break;
+            }
+            let f = self.parse_typed_field()?;
+            fields.push(f);
+        }
+        Ok((fields, variadic))
+    }
+
     // identifier: expr[, identifier: expr]*
     fn parse_fields(&mut self) -> Result<Vec<Field>, ParseError> {
         let mut fields = Vec::new();
@@ -661,32 +696,24 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn parse_fn_decl(&mut self) -> Result<Statement, ParseError> {
+    fn parse_extern_fn_stmt(&mut self) -> Result<Statement, ParseError> {
+        self.next(); // consume fn token after extern
+
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('('))?;
-        let arguments = self.parse_typed_fields()?;
+        let (arguments, variadic) = self.parse_fn_decl_args()?;
         self.expect_token(Token::Delimiter(')'))?;
         let mut typ = None;
         if let Some(_) = self.test_token(Token::Delimiter(':'), false) {
             typ = Some(self.parse_type()?);
         }
         self.expect_end()?;
-        Ok(Statement::FnStatement(FnStatement {
+        Ok(Statement::ExternFnStatement(ExternFnStatement {
             name: name,
-            block: Block { content: vec![] },
             ret: typ,
             arguments: arguments,
+            variadic,
         }))
-    }
-
-    fn parse_extern_fn_stmt(&mut self) -> Result<Statement, ParseError> {
-        self.next(); // consume fn
-        let f = self.parse_fn_decl()?;
-        if let Statement::FnStatement(f) = f {
-            return Ok(Statement::ExternFnStatement(f));
-        } else {
-            unreachable!("extern fn statement should be a function statement")
-        }
     }
 
     fn parse_struct_stmt(&mut self) -> Result<Statement, ParseError> {
