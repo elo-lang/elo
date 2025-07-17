@@ -99,7 +99,17 @@ impl Validator {
                         let arguments_to_check: Vec<Typing> = func.arguments.iter().map(|x| x.typing.clone()).collect();
                         let len_args = func.arguments.len();
                         let return_type = func.ret.clone();
-                        if arguments.len() != len_args {
+                        if func.variadic && arguments.len() < len_args {
+                            return Err(TypeError {
+                                span: Some(function.span),
+                                case: TypeErrorCase::UnmatchedArguments {
+                                    name: name.clone(),
+                                    got: arguments.len(),
+                                    expected: len_args
+                                }
+                            });
+                        }
+                        if !func.variadic && arguments.len() != len_args {
                             return Err(TypeError {
                                 span: Some(function.span),
                                 case: TypeErrorCase::UnmatchedArguments {
@@ -303,6 +313,8 @@ impl Validator {
                     block: validated_block,
                     ret: validated_ret_type,
                     arguments: validated_args,
+                    variadic: false, // In this case, variadic is ALWAYS false
+                                     // Because Elo is not meant to support variadic functions at all.
                 };
 
                 // Insert the function into the namespace
@@ -332,6 +344,7 @@ impl Validator {
                     block: ir::Block { content: Vec::new() },
                     ret: validated_ret_type.clone(),
                     arguments: validated_args.clone(),
+                    variadic: stmt.variadic
                 };
                 self.namespace.functions.insert(stmt.name.clone(), validated.clone());
                 return Ok(
@@ -340,6 +353,7 @@ impl Validator {
                             name: stmt.name,
                             ret: validated_ret_type,
                             arguments: validated_args,
+                            variadic: stmt.variadic
                         })
                     }
                 );

@@ -168,6 +168,7 @@ pub struct Function {
     pub block: Block,
     pub ret: Typing,
     pub arguments: Vec<TypedField>,
+    pub variadic: bool
 }
 
 #[derive(Debug, Clone)]
@@ -175,8 +176,8 @@ pub struct FunctionHead {
     pub name: String,
     pub ret: Typing,
     pub arguments: Vec<TypedField>,
+    pub variadic: bool,
 }
-
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Struct {
