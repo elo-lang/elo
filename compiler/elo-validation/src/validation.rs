@@ -120,7 +120,13 @@ impl Validator {
                             });
                         }
                         let mut validated_args = Vec::new();
-                        for (expr, expected_type) in arguments.iter().zip(arguments_to_check) {
+
+                        // having to create these variables below so the rust borrow checker shuts up
+                        // makes you ask why you're using this language a few times
+                        let declared_arguments_len = arguments_to_check.len();
+                        let variadic= func.variadic;
+                        let zip = arguments.iter().zip(arguments_to_check);
+                        for (expr, expected_type) in zip {
                             let span = expr.span;
                             let (validated, got_type) = self.validate_expr(expr)?;
                             if got_type != expected_type {
@@ -133,6 +139,13 @@ impl Validator {
                                 });
                             }
                             validated_args.push(validated);
+                        }
+                        // Also add the remaining variadic values.
+                        if variadic && arguments.len() > declared_arguments_len {
+                            for expr in arguments.iter().skip(declared_arguments_len) {
+                                let (validated, _) = self.validate_expr(expr)?;
+                                validated_args.push(validated);
+                            }
                         }
                         return Ok((
                             ir::Expression::FunctionCall {
