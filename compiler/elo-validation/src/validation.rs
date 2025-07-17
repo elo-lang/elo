@@ -181,11 +181,11 @@ impl Validator {
                 ))
             }
             ast::ExpressionData::FloatLiteral { int, float } => {
-                let integer = u64::from_str_radix(&int.0, int.1).unwrap() as f64;
-                let fractional = u64::from_str_radix(&float.0, float.1).unwrap() as f64;
-                let number = integer + (fractional / 10u32.pow(float.0.chars().count() as u32) as f64);
+                let integer = u64::from_str_radix(&int.0, int.1).unwrap();
+                let fractional = u64::from_str_radix(&float.0, float.1).unwrap();
+                let value = format!("{}.{}", integer, fractional).parse().unwrap();
                 Ok((
-                    ir::Expression::Float { value: number },
+                    ir::Expression::Float { value },
                     ir::Typing::Primitive(ir::Primitive::Float),
                 ))
             }
