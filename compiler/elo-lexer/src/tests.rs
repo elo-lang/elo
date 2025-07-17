@@ -3,7 +3,27 @@ use crate::lexer::Lexer;
 
 #[test]
 fn test_integers() {
-    let source_text = "15 0x16 17";
+    let source_text = "10 14 0x16 17";
+    let lx = Lexer::new(InputFile::new("test", source_text));
+
+    for lexem in lx {
+        let token = lexem.token;
+        let span = lexem.span;
+        println!(
+            "{}:{}:{} \"{}\"",
+            span.line,
+            span.start,
+            span.end,
+            &source_text[span.start..span.end]
+        );
+        println!("{:?}", token);
+    }
+}
+
+
+#[test]
+fn test_variadic() {
+    let source_text = "... . . . .. ..";
     let lx = Lexer::new(InputFile::new("test", source_text));
 
     for lexem in lx {

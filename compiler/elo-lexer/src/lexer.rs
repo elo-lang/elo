@@ -219,8 +219,19 @@ impl<'a> Iterator for Lexer<'a> {
                     Some(Lexem::new(self.span.into_span(), token))
                 }
                 delimiter!() => {
-                    self.advance_span(1);
-                    Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)))
+                    if ch == '.' && self.chars.peek() == Some(&'.') {
+                        self.chars.next(); // Consume the second dot
+                        if self.chars.peek() == Some(&'.') {
+                            self.chars.next(); // Consume the third dot
+                            self.advance_span(3);
+                            return Some(Lexem::new(self.span.into_span(), Token::Variadic));
+                        }
+                        self.advance_span(2);
+                        Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)))
+                    } else {
+                        self.advance_span(1);
+                        Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)))
+                    }
                 }
                 '"' => {
                     let token = self.token_string();
