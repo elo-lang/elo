@@ -59,7 +59,7 @@ impl<'a> Generator<'a> {
                 return Some(const_val.into());
             }
             ir::Expression::Float { value } => {
-                let const_val = self.context.f32_type().const_float(*value);
+                let const_val = self.context.f64_type().const_float(*value);
                 return Some(const_val.into());
             }
             ir::Expression::StringLiteral { value } => {
@@ -201,9 +201,9 @@ impl<'a> Generator<'a> {
                     }
                 }).collect::<Vec<_>>();
                 if let Some(t) = self.choose_type(stmt.ret.clone()) {
-                    fn_type = t.fn_type(args.as_slice(), false);
+                    fn_type = t.fn_type(args.as_slice(), stmt.variadic);
                 } else {
-                    fn_type = self.context.void_type().fn_type(args.as_slice(), false);
+                    fn_type = self.context.void_type().fn_type(args.as_slice(), stmt.variadic);
                 }
                 self.module.add_function(&stmt.name, fn_type, None);
             }
