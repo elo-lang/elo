@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use elo_ir::ir;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Namespace {

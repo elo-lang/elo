@@ -168,7 +168,7 @@ pub struct Function {
     pub block: Block,
     pub ret: Typing,
     pub arguments: Vec<TypedField>,
-    pub variadic: bool
+    pub variadic: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -287,6 +287,12 @@ pub enum Statement {
     ExternFnStatement(FunctionHead),
     StructStatement(Struct),
     EnumStatement(Enum),
+    // TODO: Make all these variants like that (embedded struct in variant)
+    IfStatement {
+        condition: Expression,
+        block_true: Block,
+        block_false: Block,
+    },
     ExpressionStatement(Expression),
     ReturnStatement(ReturnStatement),
 }

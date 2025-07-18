@@ -1,8 +1,8 @@
-use crate::namespace::*;
+use crate::namespace::{self, *};
 use elo_ast::ast::{self, ExpressionData};
-use elo_ir::ir::{self, Typing};
 use elo_error::typeerror::{TypeError, TypeErrorCase};
-use std::collections::HashMap;
+use elo_ir::ir::{self, Typing};
+use std::{collections::HashMap, hash::Hash};
 
 pub struct Validator {
     input: ast::Program,
@@ -20,7 +20,7 @@ impl Validator {
                 constants: HashMap::new(),
                 functions: HashMap::new(),
                 locals: Vec::new(),
-            }
+            },
         }
     }
 
@@ -35,7 +35,9 @@ impl Validator {
                 }
                 return Err(TypeError {
                     span: Some(typ.span),
-                    case: TypeErrorCase::InvalidType { what: format!("{:?}", typ.typing) }
+                    case: TypeErrorCase::InvalidType {
+                        what: format!("{:?}", typ.typing),
+                    },
                 });
             }
             ast::Typing::Pointer { typ } => {
@@ -46,57 +48,125 @@ impl Validator {
             }
             x => Err(TypeError {
                 span: Some(typ.span),
-                case: TypeErrorCase::InvalidType { what: format!("{:?}", x) }
+                case: TypeErrorCase::InvalidType {
+                    what: format!("{:?}", x),
+                },
             }),
         }
     }
 
-    fn validate_expr(&mut self, expr: &ast::Expression) -> Result<(ir::Expression, ir::Typing), TypeError> {
-        match &expr.data {
-            ast::ExpressionData::BinaryOperation { operator, left, right } => {
-                let operator = ir::BinaryOperation::from_ast(operator);
-                let (left, left_type) = self.validate_expr(&left)?;
-                let (right, right_type) = self.validate_expr(&right)?;
-                // TODO: Improve this type-checking PLEASE
-                if left_type != right_type {
-                    return Err(TypeError {
-                        span: Some(expr.span),
-                        case: TypeErrorCase::TypeMismatch {
-                            got: format!("{:?}", right_type),
-                            expected: format!("{:?}", left_type), 
-                        }
-                    });
+    fn validate_binary_operation(
+        &mut self,
+        lhs_type: ir::Typing,
+        rhs_type: ir::Typing,
+        binop: &ast::BinaryOperation,
+        span: elo_lexer::span::Span,
+    ) -> Result<(ir::BinaryOperation, ir::Typing), TypeError> {
+        let ir_binop = ir::BinaryOperation::from_ast(&binop);
+        if rhs_type != lhs_type {
+            return Err(TypeError {
+                span: Some(span),
+                case: TypeErrorCase::TypeMismatch {
+                    got: format!("{:?}", rhs_type),
+                    expected: format!("{:?}", lhs_type)
                 }
+            });
+        }
+        let typing = match ir_binop {
+            ir::BinaryOperation::Add
+            | ir::BinaryOperation::Sub
+            | ir::BinaryOperation::Mul
+            | ir::BinaryOperation::Div
+            | ir::BinaryOperation::Mod
+            | ir::BinaryOperation::BAnd
+            | ir::BinaryOperation::BOr
+            | ir::BinaryOperation::BNot
+            | ir::BinaryOperation::BXor
+            | ir::BinaryOperation::LShift
+            | ir::BinaryOperation::RShift => lhs_type,
+            ir::BinaryOperation::Eq
+            | ir::BinaryOperation::Ne
+            | ir::BinaryOperation::Lt
+            | ir::BinaryOperation::Le
+            | ir::BinaryOperation::Gt
+            | ir::BinaryOperation::Ge
+            | ir::BinaryOperation::And
+            | ir::BinaryOperation::Or => ir::Typing::Primitive(ir::Primitive::Bool),
+            ir::BinaryOperation::Assign
+            | ir::BinaryOperation::AssignAdd
+            | ir::BinaryOperation::AssignSub
+            | ir::BinaryOperation::AssignMul
+            | ir::BinaryOperation::AssignDiv
+            | ir::BinaryOperation::AssignMod
+            | ir::BinaryOperation::AssignBAnd
+            | ir::BinaryOperation::AssignBOr
+            | ir::BinaryOperation::AssignBXor
+            | ir::BinaryOperation::AssignBNot => ir::Typing::Void,
+        };
+        Ok((ir_binop, typing))
+    }
+
+    fn validate_expr(
+        &mut self,
+        expr: &ast::Expression,
+    ) -> Result<(ir::Expression, ir::Typing), TypeError> {
+        match &expr.data {
+            ast::ExpressionData::BinaryOperation {
+                operator,
+                left,
+                right,
+            } => {
+                let (left, left_t) = self.validate_expr(left)?;
+                let (right, right_t) = self.validate_expr(right)?;
+                let (operator, typing) = self.validate_binary_operation(left_t, right_t, operator, expr.span)?;
                 Ok((
-                    ir::Expression::BinaryOperation { operator, left: Box::new(left), right: Box::new(right) },
-                    right_type,
+                    ir::Expression::BinaryOperation {
+                        operator,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    },
+                    typing,
                 ))
             }
             ast::ExpressionData::UnaryOperation { operator, operand } => {
                 let operator = ir::UnaryOperation::from_ast(operator);
                 let (operand, operand_type) = self.validate_expr(&operand)?;
                 Ok((
-                    ir::Expression::UnaryOperation { operator, operand: Box::new(operand) },
+                    ir::Expression::UnaryOperation {
+                        operator,
+                        operand: Box::new(operand),
+                    },
                     operand_type,
                 ))
             }
             ast::ExpressionData::StringLiteral { value } => {
                 return Ok((
-                    ir::Expression::StringLiteral { value: value.clone() },
+                    ir::Expression::StringLiteral {
+                        value: value.clone(),
+                    },
                     // TODO: Change this to `str` type.
-                    ir::Typing::Pointer { typ: Box::new(ir::Typing::Primitive(ir::Primitive::U8)) },
+                    ir::Typing::Pointer {
+                        typ: Box::new(ir::Typing::Primitive(ir::Primitive::U8)),
+                    },
                 ));
             }
             ast::ExpressionData::Tuple { exprs: _exprs } => {
                 todo!();
             }
-            ast::ExpressionData::FieldAccess { origin: _origin, field: _field } => {
+            ast::ExpressionData::FieldAccess {
+                origin: _origin,
+                field: _field,
+            } => {
                 todo!();
             }
-            ast::ExpressionData::FunctionCall { function, arguments } => {
+            ast::ExpressionData::FunctionCall {
+                function,
+                arguments,
+            } => {
                 if let ExpressionData::Identifier { name } = &function.data {
                     if let Some(func) = self.namespace.functions.get(name) {
-                        let arguments_to_check: Vec<Typing> = func.arguments.iter().map(|x| x.typing.clone()).collect();
+                        let arguments_to_check: Vec<Typing> =
+                            func.arguments.iter().map(|x| x.typing.clone()).collect();
                         let len_args = func.arguments.len();
                         let return_type = func.ret.clone();
                         if func.variadic && arguments.len() < len_args {
@@ -105,8 +175,8 @@ impl Validator {
                                 case: TypeErrorCase::UnmatchedArguments {
                                     name: name.clone(),
                                     got: arguments.len(),
-                                    expected: len_args
-                                }
+                                    expected: len_args,
+                                },
                             });
                         }
                         if !func.variadic && arguments.len() != len_args {
@@ -115,8 +185,8 @@ impl Validator {
                                 case: TypeErrorCase::UnmatchedArguments {
                                     name: name.clone(),
                                     got: arguments.len(),
-                                    expected: len_args
-                                }
+                                    expected: len_args,
+                                },
                             });
                         }
                         let mut validated_args = Vec::new();
@@ -124,7 +194,7 @@ impl Validator {
                         // having to create these variables below so the rust borrow checker shuts up
                         // makes you ask why you're using this language a few times
                         let declared_arguments_len = arguments_to_check.len();
-                        let variadic= func.variadic;
+                        let variadic = func.variadic;
                         let zip = arguments.iter().zip(arguments_to_check);
                         for (expr, expected_type) in zip {
                             let span = expr.span;
@@ -135,7 +205,7 @@ impl Validator {
                                     case: TypeErrorCase::TypeMismatch {
                                         got: format!("{:?}", got_type),
                                         expected: format!("{:?}", expected_type),
-                                    }
+                                    },
                                 });
                             }
                             validated_args.push(validated);
@@ -150,33 +220,38 @@ impl Validator {
                         return Ok((
                             ir::Expression::FunctionCall {
                                 function: Box::new(self.validate_expr(function)?.0),
-                                arguments: validated_args
+                                arguments: validated_args,
                             },
-                            return_type.clone()
+                            return_type.clone(),
                         ));
                     } else {
                         return Err(TypeError {
                             span: Some(expr.span),
-                            case: TypeErrorCase::UnresolvedName { name: name.clone() }
-                        })
+                            case: TypeErrorCase::UnresolvedName { name: name.clone() },
+                        });
                     }
                 } else {
                     return Err(TypeError {
                         span: Some(expr.span),
                         case: TypeErrorCase::InvalidExpression {
                             what: format!("{:?}", &function.data),
-                            should: "identifier".to_string()
+                            should: "identifier".to_string(),
                         },
-                    })
+                    });
                 }
             }
-            ast::ExpressionData::StructInit { name: _name, fields: _fields } => {
+            ast::ExpressionData::StructInit {
+                name: _name,
+                fields: _fields,
+            } => {
                 todo!();
             }
             ast::ExpressionData::IntegerLiteral { value } => {
                 let (lit, radix) = value;
                 Ok((
-                    ir::Expression::Integer { value: i128::from_str_radix(lit, *radix).unwrap() },
+                    ir::Expression::Integer {
+                        value: i128::from_str_radix(lit, *radix).unwrap(),
+                    },
                     ir::Typing::Primitive(ir::Primitive::Int),
                 ))
             }
@@ -189,25 +264,35 @@ impl Validator {
                     ir::Typing::Primitive(ir::Primitive::Float),
                 ))
             }
-            ast::ExpressionData::BooleanLiteral { value } => {
-                Ok((
-                    ir::Expression::Bool { value: *value },
-                    ir::Typing::Primitive(ir::Primitive::Bool),
-                ))
-            }
+            ast::ExpressionData::BooleanLiteral { value } => Ok((
+                ir::Expression::Bool { value: *value },
+                ir::Typing::Primitive(ir::Primitive::Bool),
+            )),
             ast::ExpressionData::Identifier { name } => {
                 if let Some(typ) = self.namespace.constants.get(name) {
-                    return Ok((ir::Expression::Identifier { name: name.clone() }, typ.clone()))
+                    return Ok((
+                        ir::Expression::Identifier { name: name.clone() },
+                        typ.clone(),
+                    ));
                 } else if let Some(e) = self.namespace.enums.get(name) {
-                    return Ok((ir::Expression::Identifier { name: name.clone() }, ir::Typing::Enum(e.clone())))
+                    return Ok((
+                        ir::Expression::Identifier { name: name.clone() },
+                        ir::Typing::Enum(e.clone()),
+                    ));
                 } else if let Some(v) = self.namespace.locals.last().unwrap().content.get(name) {
-                    return Ok((ir::Expression::Identifier { name: name.clone() }, v.typing.clone()))
+                    return Ok((
+                        ir::Expression::Identifier { name: name.clone() },
+                        v.typing.clone(),
+                    ));
                 } else if let Some(f) = self.namespace.functions.get(name) {
-                    return Ok((ir::Expression::Identifier { name: name.clone() }, f.ret.clone()))
+                    return Ok((
+                        ir::Expression::Identifier { name: name.clone() },
+                        f.ret.clone(),
+                    ));
                 } else {
                     return Err(TypeError {
                         span: Some(expr.span),
-                        case: TypeErrorCase::UnresolvedName { name: name.clone() }
+                        case: TypeErrorCase::UnresolvedName { name: name.clone() },
                     });
                 }
             }
@@ -220,7 +305,7 @@ impl Validator {
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
                 let (expr, typ) = self.validate_expr(assignment)?;
-                
+
                 // Add the variable to the current scope
                 self.namespace.locals.last_mut().unwrap().content.insert(
                     name.clone(),
@@ -228,7 +313,7 @@ impl Validator {
                         name: name.clone(),
                         mutable: false,
                         typing: typ.clone(),
-                    }
+                    },
                 );
 
                 Ok(ir::ValidatedNode {
@@ -236,7 +321,7 @@ impl Validator {
                         assignment: expr,
                         binding: name.clone(),
                         typing: typ,
-                    })
+                    }),
                 })
             }
             ast::Statement::VarStatement(stmt) => {
@@ -251,7 +336,7 @@ impl Validator {
                         name: name.clone(),
                         mutable: true,
                         typing: typ.clone(),
-                    }
+                    },
                 );
 
                 Ok(ir::ValidatedNode {
@@ -259,7 +344,7 @@ impl Validator {
                         assignment: expr,
                         binding: name.clone(),
                         typing: typ,
-                    })
+                    }),
                 })
             }
             ast::Statement::ConstStatement(stmt) => {
@@ -272,8 +357,8 @@ impl Validator {
                         span: Some(stmt.typing.span),
                         case: TypeErrorCase::TypeMismatch {
                             got: format!("{:?}", typ),
-                            expected: format!("{:?}", annotated), 
-                        }
+                            expected: format!("{:?}", annotated),
+                        },
                     });
                 }
                 self.namespace.constants.insert(name.clone(), typ.clone());
@@ -282,13 +367,16 @@ impl Validator {
                         assignment: expr,
                         binding: name.clone(),
                         typing: typ,
-                    })
+                    }),
                 })
             }
             ast::Statement::ReturnStatement(stmt) => {
                 let (expr, typ) = self.validate_expr(&stmt.expr)?;
                 Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::ReturnStatement(ir::ReturnStatement { value: expr, typing: typ })
+                    stmt: ir::Statement::ReturnStatement(ir::ReturnStatement {
+                        value: expr,
+                        typing: typ,
+                    }),
                 })
             }
             ast::Statement::FnStatement(stmt) => {
@@ -297,7 +385,7 @@ impl Validator {
                 for a in stmt.arguments.iter() {
                     validated_args.push(ir::TypedField {
                         name: a.name.clone(),
-                        typing: self.validate_type(&a.typing)?
+                        typing: self.validate_type(&a.typing)?,
                     });
                 }
 
@@ -305,22 +393,24 @@ impl Validator {
                     Some(ret_type) => self.validate_type(ret_type)?,
                     None => ir::Typing::Void,
                 };
-                let mut validated_block = ir::Block { content: Vec::new() };
+                let mut validated_block = ir::Block {
+                    content: Vec::new(),
+                };
                 let xs = Box::new(stmt.block.content);
-                
+
                 // Create a new scope for the function
                 // TODO: Add the arguments to the scope
                 self.namespace.locals.push(Scope {
                     content: HashMap::new(),
                 });
-                
+
                 for a in xs.into_iter() {
                     validated_block.content.push(self.validate_node(a)?);
                 }
 
                 // Pop the scope
                 self.namespace.locals.pop();
-                
+
                 let validated = ir::Function {
                     name: stmt.name.clone(),
                     block: validated_block,
@@ -331,13 +421,13 @@ impl Validator {
                 };
 
                 // Insert the function into the namespace
-                self.namespace.functions.insert(stmt.name, validated.clone());
-                
-                return Ok(
-                    ir::ValidatedNode {
-                        stmt: ir::Statement::FnStatement(validated)
-                    }
-                );
+                self.namespace
+                    .functions
+                    .insert(stmt.name, validated.clone());
+
+                return Ok(ir::ValidatedNode {
+                    stmt: ir::Statement::FnStatement(validated),
+                });
             }
             ast::Statement::ExternFnStatement(stmt) => {
                 // TODO: Add type-checking
@@ -345,7 +435,7 @@ impl Validator {
                 for a in stmt.arguments.iter() {
                     validated_args.push(ir::TypedField {
                         name: a.name.clone(),
-                        typing: self.validate_type(&a.typing)?
+                        typing: self.validate_type(&a.typing)?,
                     });
                 }
                 let validated_ret_type = match &stmt.ret {
@@ -354,22 +444,24 @@ impl Validator {
                 };
                 let validated = ir::Function {
                     name: stmt.name.clone(),
-                    block: ir::Block { content: Vec::new() },
+                    block: ir::Block {
+                        content: Vec::new(),
+                    },
                     ret: validated_ret_type.clone(),
                     arguments: validated_args.clone(),
-                    variadic: stmt.variadic
+                    variadic: stmt.variadic,
                 };
-                self.namespace.functions.insert(stmt.name.clone(), validated.clone());
-                return Ok(
-                    ir::ValidatedNode {
-                        stmt: ir::Statement::ExternFnStatement(ir::FunctionHead {
-                            name: stmt.name,
-                            ret: validated_ret_type,
-                            arguments: validated_args,
-                            variadic: stmt.variadic
-                        })
-                    }
-                );
+                self.namespace
+                    .functions
+                    .insert(stmt.name.clone(), validated.clone());
+                return Ok(ir::ValidatedNode {
+                    stmt: ir::Statement::ExternFnStatement(ir::FunctionHead {
+                        name: stmt.name,
+                        ret: validated_ret_type,
+                        arguments: validated_args,
+                        variadic: stmt.variadic,
+                    }),
+                });
             }
             ast::Statement::StructStatement(_stmt) => {
                 todo!();
@@ -381,23 +473,53 @@ impl Validator {
                 };
                 self.namespace.enums.insert(e.name.clone(), e.clone());
                 return Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::EnumStatement(e)
-                })
+                    stmt: ir::Statement::EnumStatement(e),
+                });
             }
-            ast::Statement::IfStatement(_stmt) => {
-                // TODO: Remember to push a new scope to the namespace
-                todo!();
+            ast::Statement::IfStatement(stmt) => {
+                self.namespace.locals.push(namespace::Scope {
+                    content: HashMap::new(),
+                });
+                let (condition, typing) = self.validate_expr(&stmt.condition)?;
+                if typing != ir::Typing::Primitive(ir::Primitive::Bool) {
+                    return Err(TypeError {
+                        span: Some(stmt.condition.span),
+                        case: TypeErrorCase::TypeMismatch {
+                            got: format!("{:?}", typing),
+                            expected: format!("{:?}", ir::Typing::Primitive(ir::Primitive::Bool)),
+                        }
+                    });
+                }
+                let mut block_true_content = Vec::new();
+                for a in Box::new(stmt.block_true.content).into_iter() {
+                    block_true_content.push(self.validate_node(a)?);
+                }
+                let mut block_false_content = Vec::new();
+                if let Some(block_false) = stmt.block_false {
+                    for a in Box::new(block_false.content).into_iter() {
+                        block_false_content.push(self.validate_node(a)?);
+                    }
+                }
+                return Ok(ir::ValidatedNode {
+                    stmt: ir::Statement::IfStatement {
+                        condition,
+                        block_true: ir::Block {
+                            content: block_true_content,
+                        },
+                        block_false: ir::Block {
+                            content: block_false_content,
+                        },
+                    },
+                });
             }
             ast::Statement::WhileStatement(_stmt) => {
                 // TODO: Remember to push a new scope to the namespace
                 todo!();
             }
             ast::Statement::ExpressionStatement(stmt) => {
-                return Ok(
-                    ir::ValidatedNode {
-                        stmt: ir::Statement::ExpressionStatement(self.validate_expr(&stmt)?.0)
-                    }
-                )
+                return Ok(ir::ValidatedNode {
+                    stmt: ir::Statement::ExpressionStatement(self.validate_expr(&stmt)?.0),
+                });
             }
         }
     }
