@@ -310,7 +310,7 @@ impl<'a> Parser<'a> {
         }) = self.lexer.peek()
         {
             self.next();
-            if let Some(Lexem { token, ..}) = self.lexer.peek() {
+            if let Some(Lexem { token, .. }) = self.lexer.peek() {
                 if token == &termination {
                     break;
                 }
@@ -509,7 +509,8 @@ impl<'a> Parser<'a> {
                                 arguments: args,
                             },
                         });
-                    } else if let Some(_) = self.test_token(Token::Delimiter('.'), false) { // Field access (e.g. instance.method(), foo.bar)
+                    } else if let Some(_) = self.test_token(Token::Delimiter('.'), false) {
+                        // Field access (e.g. instance.method(), foo.bar)
                         let field = self.expect_identifier()?;
                         return Ok(Expression {
                             span: i.span.merge(self.current_span.unwrap()),
@@ -520,7 +521,7 @@ impl<'a> Parser<'a> {
                         });
                     }
                     return Ok(i);
-                },
+                }
                 Token::Delimiter('(') => {
                     self.next();
                     let init_span = self.current_span.unwrap();
@@ -588,7 +589,7 @@ impl<'a> Parser<'a> {
                             got: format!("{:?}", other),
                             expected: "primary expression".to_string(),
                         },
-                    })
+                    });
                 }
             };
         }
@@ -780,9 +781,7 @@ impl<'a> Parser<'a> {
     fn parse_return_stmt(&mut self) -> Result<Statement, ParseError> {
         let expr = self.parse_expr(1)?;
         self.expect_end()?;
-        Ok(Statement::ReturnStatement(ReturnStatement {
-            expr: expr,
-        }))
+        Ok(Statement::ReturnStatement(ReturnStatement { expr: expr }))
     }
 
     fn parse_stmt(&mut self, inside_block: bool) -> Result<Statement, ParseError> {
@@ -883,7 +882,10 @@ impl<'a> Parser<'a> {
         while let Some(node) = self.parse_node(false)? {
             ast.push(node);
         }
-        let p = Program { filename: self.inputfile.filename.to_string(), nodes: ast };
+        let p = Program {
+            filename: self.inputfile.filename.to_string(),
+            nodes: ast,
+        };
         Ok(p)
     }
 }

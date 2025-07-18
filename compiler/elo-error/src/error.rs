@@ -33,9 +33,7 @@ pub fn error(
     eprintln!("{RED_BOLD}{error}{RESET}: {message}");
     eprintln!(
         "{indent}{CYAN_BOLD}╭─[{BLUE_BOLD}{}{RESET}:{GREEN_BOLD}{}{RESET}:{GREEN_BOLD}{}{CYAN_BOLD}]{RESET}",
-        filespan.input_file.filename,
-        filespan.line,
-        filespan.start
+        filespan.input_file.filename, filespan.line, filespan.start
     );
     eprintln!("{indent}{CYAN_BOLD}│{RESET}");
     eprintln!(" {} {CYAN_BOLD}│{RESET} {line}", filespan.line);

@@ -4,11 +4,25 @@ use crate::error::error;
 
 #[derive(Debug)]
 pub enum TypeErrorCase {
-    TypeMismatch { got: String, expected: String },
-    InvalidType { what: String },
-    InvalidExpression { what: String, should: String },
-    UnresolvedName { name: String },
-    UnmatchedArguments { name: String, got: usize, expected: usize }
+    TypeMismatch {
+        got: String,
+        expected: String,
+    },
+    InvalidType {
+        what: String,
+    },
+    InvalidExpression {
+        what: String,
+        should: String,
+    },
+    UnresolvedName {
+        name: String,
+    },
+    UnmatchedArguments {
+        name: String,
+        got: usize,
+        expected: usize,
+    },
 }
 
 #[derive(Debug)]
@@ -55,10 +69,16 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        TypeErrorCase::UnmatchedArguments { name, got, expected } => {
+        TypeErrorCase::UnmatchedArguments {
+            name,
+            got,
+            expected,
+        } => {
             error(
                 "Type Error",
-                &format!("arguments to function {name}: expected {expected} argument(s) but got {got} argument(s) in the function call."),
+                &format!(
+                    "arguments to function {name}: expected {expected} argument(s) but got {got} argument(s) in the function call."
+                ),
                 filespan,
                 None,
                 None,

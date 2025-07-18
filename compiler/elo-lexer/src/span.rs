@@ -37,7 +37,6 @@ pub struct Span {
 }
 
 impl Span {
-
     // Merges the span with the other.
     // Maintains the same line as self.
     // Example:

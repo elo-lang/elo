@@ -20,7 +20,6 @@ fn test_integers() {
     }
 }
 
-
 #[test]
 fn test_variadic() {
     let source_text = "... . . . .. ..";

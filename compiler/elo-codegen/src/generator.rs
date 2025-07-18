@@ -210,7 +210,12 @@ impl<'a> Generator<'a> {
         }
     }
 
-    pub fn generate_from_node(&mut self, function: Option<inkwell::values::FunctionValue<'_>>, node: &mut ir::ValidatedNode, toplevel: bool) {
+    pub fn generate_from_node(
+        &mut self,
+        function: Option<inkwell::values::FunctionValue<'_>>,
+        node: &mut ir::ValidatedNode,
+        toplevel: bool,
+    ) {
         match &mut node.stmt {
             ir::Statement::ConstStatement(stmt) => match &stmt.assignment {
                 ir::Expression::Integer { value } => {
@@ -311,12 +316,18 @@ impl<'a> Generator<'a> {
                 assert_eq!(expr.get_type(), self.context.i32_type().into());
                 self.builder.build_return(Some(&expr)).unwrap();
             }
-            ir::Statement::IfStatement { condition, block_true, block_false } => {
+            ir::Statement::IfStatement {
+                condition,
+                block_true,
+                block_false,
+            } => {
                 let branch = self.context.append_basic_block(function.unwrap(), "branch");
                 let other = self.context.append_basic_block(function.unwrap(), "other");
                 let escape = self.context.append_basic_block(function.unwrap(), "esc");
                 let comparison = self.generate_expression(&condition).unwrap();
-                self.builder.build_conditional_branch(comparison.into_int_value(), branch, other).unwrap();
+                self.builder
+                    .build_conditional_branch(comparison.into_int_value(), branch, other)
+                    .unwrap();
                 self.builder.position_at_end(branch);
                 for mut i in std::mem::take(&mut block_true.content) {
                     self.generate_from_node(Some(function.unwrap()), &mut i, false);

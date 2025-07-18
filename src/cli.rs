@@ -1,4 +1,3 @@
-
 pub fn fatal(program: &str, msg: &str) {
     eprintln!("{program}: fatal: {msg}");
 }
@@ -15,7 +14,9 @@ pub fn usage(program: &str, command: Option<&Command>) {
     if let Some(cmd) = command {
         match cmd {
             Command::Run { .. } => eprintln!("usage: {program} run <input>"),
-            Command::Build { .. } => eprintln!("usage: {program} build <input> [-o <output>] [-O0|-O1|-O2|-O3]"),
+            Command::Build { .. } => {
+                eprintln!("usage: {program} build <input> [-o <output>] [-O0|-O1|-O2|-O3]")
+            }
             Command::Help { .. } => eprintln!("usage: {program} help [<command>]"),
         }
     } else {
@@ -120,7 +121,7 @@ fn parse_run(program: &str, args: &[String]) -> Result<Command, ()> {
             }
         }
     }
-    
+
     if input.is_none() {
         usage(program, Command::from_str("build").as_ref());
         fatal(program, "expected positional argument: <input>");
@@ -149,7 +150,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
             "-O2" => optimization = O::Medium,
             "-O3" => optimization = O::Aggressive,
             _ if arg.starts_with("-o") => {
-                let rest= arg[2..].to_string();
+                let rest = arg[2..].to_string();
                 if rest.is_empty() {
                     // get the next argument instead
                     if let Some(next_arg) = args.get(i + 1) {
@@ -187,7 +188,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
         output,
         optimization,
     })
-} 
+}
 
 fn parse_help(args: &[String]) -> Result<Command, ()> {
     Ok(Command::Help {
@@ -213,13 +214,16 @@ pub fn parse_args(args: &[String]) -> Result<Command, ()> {
     if args[1..].is_empty() {
         usage(&args[0], None);
         fatal(&args[0], "expected command");
-        information(&args[0], "run with `help` command to see available commands");
+        information(
+            &args[0],
+            "run with `help` command to see available commands",
+        );
         return Err(());
     }
 
     let program = &args[0];
     match parse_command(program, args) {
         Ok(action) => Ok(action),
-        Err(..) => { Err(()) }
+        Err(..) => Err(()),
     }
 }

@@ -68,8 +68,8 @@ impl Validator {
                 span: Some(span),
                 case: TypeErrorCase::TypeMismatch {
                     got: format!("{:?}", rhs_type),
-                    expected: format!("{:?}", lhs_type)
-                }
+                    expected: format!("{:?}", lhs_type),
+                },
             });
         }
         let typing = match ir_binop {
@@ -118,7 +118,8 @@ impl Validator {
             } => {
                 let (left, left_t) = self.validate_expr(left)?;
                 let (right, right_t) = self.validate_expr(right)?;
-                let (operator, typing) = self.validate_binary_operation(left_t, right_t, operator, expr.span)?;
+                let (operator, typing) =
+                    self.validate_binary_operation(left_t, right_t, operator, expr.span)?;
                 Ok((
                     ir::Expression::BinaryOperation {
                         operator,
@@ -487,7 +488,7 @@ impl Validator {
                         case: TypeErrorCase::TypeMismatch {
                             got: format!("{:?}", typing),
                             expected: format!("{:?}", ir::Typing::Primitive(ir::Primitive::Bool)),
-                        }
+                        },
                     });
                 }
                 let mut block_true_content = Vec::new();

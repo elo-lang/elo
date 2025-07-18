@@ -9,7 +9,9 @@ fn test_error() {
             filename: "test.txt",
             content: "let x = 6 + 6.7;",
         },
-        line: 1, start: 8, end: 15
+        line: 1,
+        start: 8,
+        end: 15,
     };
     error(
         "Type Error",
