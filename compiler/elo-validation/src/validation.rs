@@ -280,22 +280,30 @@ impl Validator {
                         ir::Expression::Identifier { name: name.clone() },
                         ir::Typing::Enum(e.clone()),
                     ));
-                } else if let Some(v) = self.namespace.locals.last().unwrap().content.get(name) {
-                    return Ok((
-                        ir::Expression::Identifier { name: name.clone() },
-                        v.typing.clone(),
-                    ));
                 } else if let Some(f) = self.namespace.functions.get(name) {
                     return Ok((
                         ir::Expression::Identifier { name: name.clone() },
                         f.ret.clone(),
                     ));
                 } else {
+                    // Iterate the local namespace in reverse (from the most recent scope to the oldest)
+                    // to find the variable.
+                    // This is because the most recent scope should take precedence.
+                    // If the variable is not found, return an error.
+                    for i in self.namespace.locals.iter().rev() {
+                        if let Some(var) = i.content.get(name) {
+                            return Ok((
+                                ir::Expression::Identifier { name: name.clone() },
+                                var.typing.clone(),
+                            ));
+                        }
+                    }
                     return Err(TypeError {
                         span: Some(expr.span),
                         case: TypeErrorCase::UnresolvedName { name: name.clone() },
                     });
                 }
+
             }
         }
     }
@@ -495,12 +503,17 @@ impl Validator {
                 for a in Box::new(stmt.block_true.content).into_iter() {
                     block_true_content.push(self.validate_node(a)?);
                 }
+                self.namespace.locals.pop(); // Pop the true block scope
+                self.namespace.locals.push(namespace::Scope { // Push a new scope for the false block
+                    content: HashMap::new(),
+                });
                 let mut block_false_content = Vec::new();
                 if let Some(block_false) = stmt.block_false {
                     for a in Box::new(block_false.content).into_iter() {
                         block_false_content.push(self.validate_node(a)?);
                     }
                 }
+                self.namespace.locals.pop(); // Pop the false block scope
                 return Ok(ir::ValidatedNode {
                     stmt: ir::Statement::IfStatement {
                         condition,
