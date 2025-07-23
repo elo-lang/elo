@@ -217,7 +217,7 @@ impl<'a> Generator<'a> {
         toplevel: bool,
     ) {
         match &mut node.stmt {
-            ir::Statement::ConstStatement(stmt) => match &stmt.assignment {
+            ir::Statement::Constant { value, binding, typing } => match value {
                 ir::Expression::Integer { value } => {
                     let const_val = self
                         .context
@@ -225,7 +225,7 @@ impl<'a> Generator<'a> {
                         .const_int((*value).try_into().unwrap(), false);
                     let global_const =
                         self.module
-                            .add_global(self.context.i32_type(), None, &stmt.binding);
+                            .add_global(self.context.i32_type(), None, binding);
                     global_const.set_initializer(&const_val);
                     global_const.set_constant(true);
                 }
@@ -233,7 +233,7 @@ impl<'a> Generator<'a> {
                     let const_val = self.context.f32_type().const_float(*value);
                     let global_const =
                         self.module
-                            .add_global(self.context.f32_type(), None, &stmt.binding);
+                            .add_global(self.context.f32_type(), None, binding);
                     global_const.set_initializer(&const_val);
                     global_const.set_constant(true);
                 }
@@ -244,7 +244,7 @@ impl<'a> Generator<'a> {
                             .i8_type()
                             .array_type(value.as_bytes().len() as u32),
                         None,
-                        &stmt.binding,
+                        binding,
                     );
                     global_const.set_initializer(&const_val);
                     global_const.set_constant(true);
@@ -294,25 +294,18 @@ impl<'a> Generator<'a> {
             ir::Statement::EnumStatement(_stmt) => {
                 todo!();
             }
-            ir::Statement::LetStatement(stmt) if !toplevel => {
-                let t = self.choose_type(stmt.typing.clone()).unwrap();
-                let local = self.builder.build_alloca(t, &stmt.binding).unwrap();
-                let expr = self.generate_expression(&stmt.assignment);
+            ir::Statement::Variable { binding, assignment, typing, mutable } if !toplevel => {
+                let t = self.choose_type(typing.clone()).unwrap();
+                let local = self.builder.build_alloca(t, binding).unwrap();
+                let expr = self.generate_expression(assignment);
                 self.builder.build_store(local, expr.unwrap()).unwrap();
-                self.namespace.locals.insert(stmt.binding.clone(), local);
-            }
-            ir::Statement::VarStatement(stmt) if !toplevel => {
-                let t = self.choose_type(stmt.typing.clone()).unwrap();
-                let local = self.builder.build_alloca(t, &stmt.binding).unwrap();
-                let expr = self.generate_expression(&stmt.assignment);
-                self.builder.build_store(local, expr.unwrap()).unwrap();
-                self.namespace.locals.insert(stmt.binding.clone(), local);
+                self.namespace.locals.insert(binding.clone(), local);
             }
             ir::Statement::ExpressionStatement(expr) => {
                 self.generate_expression(expr);
             }
-            ir::Statement::ReturnStatement(stmt) => {
-                let expr = self.generate_expression(&stmt.value).unwrap();
+            ir::Statement::ReturnStatement { value, typing } if !toplevel => {
+                let expr = self.generate_expression(value).unwrap();
                 assert_eq!(expr.get_type(), self.context.i32_type().into());
                 self.builder.build_return(Some(&expr)).unwrap();
             }

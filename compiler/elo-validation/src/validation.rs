@@ -324,13 +324,13 @@ impl Validator {
                         typing: typ.clone(),
                     },
                 );
-
                 Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::LetStatement(ir::LetStatement {
+                    stmt: ir::Statement::Variable {
                         assignment: expr,
                         binding: name.clone(),
                         typing: typ,
-                    }),
+                        mutable: false,
+                    },
                 })
             }
             ast::Statement::VarStatement(stmt) => {
@@ -347,13 +347,13 @@ impl Validator {
                         typing: typ.clone(),
                     },
                 );
-
                 Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::VarStatement(ir::VarStatement {
+                    stmt: ir::Statement::Variable {
                         assignment: expr,
                         binding: name.clone(),
                         typing: typ,
-                    }),
+                        mutable: true,
+                    },
                 })
             }
             ast::Statement::ConstStatement(stmt) => {
@@ -372,20 +372,20 @@ impl Validator {
                 }
                 self.namespace.constants.insert(name.clone(), typ.clone());
                 Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::ConstStatement(ir::ConstStatement {
-                        assignment: expr,
+                    stmt: ir::Statement::Constant {
+                        value: expr,
                         binding: name.clone(),
                         typing: typ,
-                    }),
+                    },
                 })
             }
             ast::Statement::ReturnStatement(stmt) => {
                 let (expr, typ) = self.validate_expr(&stmt.expr)?;
                 Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::ReturnStatement(ir::ReturnStatement {
+                    stmt: ir::Statement::ReturnStatement {
                         value: expr,
                         typing: typ,
-                    }),
+                    },
                 })
             }
             ast::Statement::FnStatement(stmt) => {

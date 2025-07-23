@@ -126,22 +126,9 @@ pub enum Expression {
     },
 }
 
-#[derive(Debug, Clone)]
-pub struct LetStatement {
-    pub binding: String,
-    pub assignment: Expression,
-    pub typing: Typing,
-}
 
 #[derive(Debug, Clone)]
 pub struct VarStatement {
-    pub binding: String,
-    pub assignment: Expression,
-    pub typing: Typing,
-}
-
-#[derive(Debug, Clone)]
-pub struct ConstStatement {
     pub binding: String,
     pub assignment: Expression,
     pub typing: Typing,
@@ -280,19 +267,29 @@ pub struct ReturnStatement {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    LetStatement(LetStatement),
-    VarStatement(VarStatement),
-    ConstStatement(ConstStatement),
-    FnStatement(Function),
-    ExternFnStatement(FunctionHead),
-    StructStatement(Struct),
-    EnumStatement(Enum),
-    // TODO: Make all these variants like that (embedded struct in variant)
+    Variable {
+        binding: String,
+        assignment: Expression,
+        typing: Typing,
+        mutable: bool,
+    },
+    Constant {
+        binding: String,
+        value: Expression,
+        typing: Typing,
+    },
+    ReturnStatement {
+        value: Expression,
+        typing: Typing,
+    },
     IfStatement {
         condition: Expression,
         block_true: Block,
         block_false: Block,
     },
+    FnStatement(Function),
+    ExternFnStatement(FunctionHead),
+    StructStatement(Struct),
+    EnumStatement(Enum),
     ExpressionStatement(Expression),
-    ReturnStatement(ReturnStatement),
 }
