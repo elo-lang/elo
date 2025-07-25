@@ -548,6 +548,20 @@ impl<'a> Parser<'a> {
                         data: ExpressionData::StringLiteral { value: s },
                     });
                 }
+                Token::Keyword(Keyword::True) => {
+                    self.next();
+                    return Ok(Expression {
+                        span: self.current_span.unwrap(),
+                        data: ExpressionData::BooleanLiteral { value: true },
+                    });
+                }
+                Token::Keyword(Keyword::False) => {
+                    self.next();
+                    return Ok(Expression {
+                        span: self.current_span.unwrap(),
+                        data: ExpressionData::BooleanLiteral { value: false },
+                    });
+                }
                 Token::Keyword(Keyword::Struct) => {
                     self.next();
                     let span = self.current_span.unwrap();
@@ -839,6 +853,8 @@ impl<'a> Parser<'a> {
                         },
                     });
                 }
+                Keyword::True => unreachable!("asked to parse true keyword in statement"),
+                Keyword::False => unreachable!("asked to parse false keyword in statement"),
             }
         } else {
             unreachable!("asked to parse statement without keyword")
@@ -867,7 +883,12 @@ impl<'a> Parser<'a> {
                 Token::Delimiter('}') if inside_block => {
                     return Ok(None);
                 }
-                Token::Keyword(..) => Node {
+                //                         I HATE THIS PART OF THE CODE, HELP ME PLEASE
+                //                         Just to explain: This part checks if the keyword is not true and not false
+                //                         so the parse_stmt function does not think that true or false is a statement keyword,
+                //                         so if this condition fails, it falls through to the next case (_) which parses it as an
+                //                         expression, the correct way to threat true and false. 
+                Token::Keyword(k) if k != Keyword::True && k != Keyword::False => Node {
                     span: lexem.span,
                     stmt: self.parse_stmt(inside_block)?,
                 },

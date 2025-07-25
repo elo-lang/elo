@@ -11,6 +11,8 @@ pub enum Keyword {
     While,
     Return,
     Extern,
+    True,
+    False,
 }
 
 impl Keyword {
@@ -28,6 +30,8 @@ impl Keyword {
             "return" => Some(Keyword::Return),
             "ret" => Some(Keyword::Return),
             "extern" => Some(Keyword::Extern),
+            "true" => Some(Keyword::True),
+            "false" => Some(Keyword::False),
             _ => None,
         }
     }
