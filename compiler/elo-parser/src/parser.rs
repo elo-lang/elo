@@ -698,7 +698,27 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_extern_fn_stmt(&mut self) -> Result<Statement, ParseError> {
-        self.next(); // consume fn token after extern
+        let x = self.next(); // consume fn token after extern
+        let expected = Token::Keyword(Keyword::Fn);
+        if let Some(lexem) = x {
+            if lexem.token != expected {
+                return Err(ParseError {
+                    span: Some(lexem.span),
+                    case: ParseErrorCase::UnexpectedToken {
+                        got: format!("{:?}", lexem.token),
+                        expected: format!("{:?}", expected),
+                    },
+                });
+            }
+        } else {
+            return Err(ParseError {
+                span: None,
+                case: ParseErrorCase::UnexpectedToken {
+                    got: EOF.to_string(),
+                    expected: format!("{:?}", expected),
+                },
+            });
+        }
 
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('('))?;
