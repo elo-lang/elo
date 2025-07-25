@@ -35,7 +35,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
     match pe {
         TypeErrorCase::TypeMismatch { got, expected } => {
             error(
-                "Type Error",
+                "Type Check Error",
                 &format!("type mismatch: expected {expected} but got {got}"),
                 filespan,
                 None,
@@ -44,7 +44,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
         }
         TypeErrorCase::InvalidType { what } => {
             error(
-                "Type Error",
+                "Type Check Error",
                 &format!("invalid type: {what}"),
                 filespan,
                 None,
@@ -53,7 +53,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
         }
         TypeErrorCase::InvalidExpression { what, should } => {
             error(
-                "Type Error",
+                "Type Check Error",
                 &format!("invalid expression: expression {what}. Expected to be {should}."),
                 filespan,
                 None,
@@ -62,7 +62,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
         }
         TypeErrorCase::UnresolvedName { name } => {
             error(
-                "Type Error",
+                "Type Check Error",
                 &format!("unresolved name: could not find {name} in the current scope."),
                 filespan,
                 None,
@@ -75,7 +75,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
             expected,
         } => {
             error(
-                "Type Error",
+                "Type Check Error",
                 &format!(
                     "arguments to function {name}: expected {expected} argument(s) but got {got} argument(s) in the function call."
                 ),
