@@ -408,11 +408,22 @@ impl Validator {
                 let xs = Box::new(stmt.block.content);
 
                 // Create a new scope for the function
-                // TODO: Add the arguments to the scope
                 self.namespace.locals.push(Scope {
                     content: HashMap::new(),
                 });
-
+                
+                // Add the arguments to the scope
+                for arg in validated_args.iter() {
+                    self.namespace.locals.last_mut().unwrap().content.insert(
+                        arg.name.clone(),
+                        Variable {
+                            name: arg.name.clone(),
+                            mutable: false,
+                            typing: arg.typing.clone(),
+                        },
+                    );
+                }
+                
                 for a in xs.into_iter() {
                     validated_block.content.push(self.validate_node(a)?);
                 }

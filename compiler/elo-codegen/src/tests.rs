@@ -28,8 +28,7 @@ fn test_file() {
         module: module,
         builder: context.create_builder(),
         namespace: Namespace {
-            locals: HashMap::new(),
-            constants: HashMap::new(),
+            variables: HashMap::new(),
         },
     };
     r#gen.generate();

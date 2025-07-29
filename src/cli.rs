@@ -81,12 +81,12 @@ pub enum Command {
 impl Command {
     pub fn from_str(command: &str) -> Option<Self> {
         match command {
-            "build" => Some(Command::Build {
+            "build" | "b" => Some(Command::Build {
                 input: String::new(),
                 output: None,
                 optimization: O::Normal,
             }),
-            "run" => Some(Command::Run {
+            "run" | "r" => Some(Command::Run {
                 input: String::new(),
             }),
             "help" => Some(Command::Help { command: None }),

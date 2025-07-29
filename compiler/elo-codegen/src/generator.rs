@@ -10,8 +10,7 @@ use inkwell::values::{BasicMetadataValueEnum, BasicValueEnum};
 
 #[derive(Debug)]
 pub struct Namespace<'a> {
-    pub locals: HashMap<String, inkwell::values::PointerValue<'a>>,
-    pub constants: HashMap<String, inkwell::values::PointerValue<'a>>,
+    pub variables: HashMap<String, inkwell::values::PointerValue<'a>>,
 }
 
 pub struct Generator<'a> {
@@ -197,7 +196,7 @@ impl<'a> Generator<'a> {
                 }
             }
             ir::Expression::Identifier { name } => {
-                if let Some(var) = self.namespace.locals.get(name) {
+                if let Some(var) = self.namespace.variables.get(name) {
                     return Some(self.builder.build_load(*var, name).unwrap().into());
                 }
                 // TODO: In case of a function name, it should return the function pointer
@@ -253,14 +252,31 @@ impl<'a> Generator<'a> {
             },
             ir::Statement::FnStatement(stmt) => {
                 let fn_type;
+                let mut parameters = vec!{};
+                for arg in &stmt.arguments {
+                    if let Some(t) = self.choose_type(arg.typing.clone()) {
+                        parameters.push(t.into());
+                        continue;
+                    }
+                    unreachable!();
+                }
                 if let Some(t) = self.choose_type(stmt.ret.clone()) {
-                    fn_type = t.fn_type(&[], false);
+                    fn_type = t.fn_type(parameters.as_slice(), false);
                 } else {
-                    fn_type = self.context.void_type().fn_type(&[], false);
+                    fn_type = self.context.void_type().fn_type(parameters.as_slice(), false);
                 }
                 let function = self.module.add_function(&stmt.name, fn_type, None);
                 let entry_block = self.context.append_basic_block(function, "entry");
                 self.builder.position_at_end(entry_block);
+                for (i, arg) in function.get_params().iter().enumerate() {
+                    let name = &stmt.arguments[i].name;
+                    let argument = self.builder.build_alloca(arg.get_type(), &name).unwrap();
+                    self.builder.build_store(argument, *arg).unwrap();
+                    self.namespace.variables.insert(
+                        name.clone(),
+                        argument,
+                    );
+                }
                 for mut i in std::mem::take(&mut stmt.block.content) {
                     self.generate_from_node(Some(function), &mut i, false);
                 }
@@ -299,7 +315,7 @@ impl<'a> Generator<'a> {
                 let local = self.builder.build_alloca(t, binding).unwrap();
                 let expr = self.generate_expression(assignment);
                 self.builder.build_store(local, expr.unwrap()).unwrap();
-                self.namespace.locals.insert(binding.clone(), local);
+                self.namespace.variables.insert(binding.clone(), local);
             }
             ir::Statement::ExpressionStatement(expr) => {
                 self.generate_expression(expr);
