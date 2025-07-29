@@ -227,7 +227,7 @@ pub struct WhileStatement {
 
 #[derive(Debug)]
 pub struct ReturnStatement {
-    pub expr: Expression,
+    pub expr: Option<Expression>,
 }
 
 #[derive(Debug, Eq, PartialEq)]

@@ -380,11 +380,19 @@ impl Validator {
                 })
             }
             ast::Statement::ReturnStatement(stmt) => {
-                let (expr, typ) = self.validate_expr(&stmt.expr)?;
+                if let Some(expr) = &stmt.expr {
+                    let (expr, typ) = self.validate_expr(expr)?;
+                    return Ok(ir::ValidatedNode {
+                        stmt: ir::Statement::ReturnStatement {
+                            value: Some(expr),
+                            typing: typ,
+                        },
+                    });
+                }
                 Ok(ir::ValidatedNode {
                     stmt: ir::Statement::ReturnStatement {
-                        value: expr,
-                        typing: typ,
+                        value: None,
+                        typing: ir::Typing::Void,
                     },
                 })
             }
@@ -423,9 +431,17 @@ impl Validator {
                         },
                     );
                 }
-                
                 for a in xs.into_iter() {
                     validated_block.content.push(self.validate_node(a)?);
+                }
+                // Add extra return to the end in case of a function that returns void, or it will segfault
+                if validated_ret_type == ir::Typing::Void {
+                    validated_block.content.push(ir::ValidatedNode {
+                        stmt: ir::Statement::ReturnStatement {
+                            value: None,
+                            typing: ir::Typing::Void,
+                        },
+                    });
                 }
 
                 // Pop the scope

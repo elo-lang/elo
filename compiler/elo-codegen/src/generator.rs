@@ -321,9 +321,12 @@ impl<'a> Generator<'a> {
                 self.generate_expression(expr);
             }
             ir::Statement::ReturnStatement { value, typing } if !toplevel => {
-                let expr = self.generate_expression(value).unwrap();
-                assert_eq!(expr.get_type(), self.context.i32_type().into());
-                self.builder.build_return(Some(&expr)).unwrap();
+                if let Some(value) = value {
+                    let expr = self.generate_expression(value).unwrap();
+                    self.builder.build_return(Some(&expr)).unwrap();
+                } else {
+                    self.builder.build_return(None).unwrap();
+                }
             }
             ir::Statement::IfStatement {
                 condition,

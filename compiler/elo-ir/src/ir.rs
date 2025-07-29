@@ -279,7 +279,7 @@ pub enum Statement {
         typing: Typing,
     },
     ReturnStatement {
-        value: Expression,
+        value: Option<Expression>,
         typing: Typing,
     },
     IfStatement {

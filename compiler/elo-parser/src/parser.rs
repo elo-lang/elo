@@ -487,6 +487,21 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn test_end(&mut self) -> bool {
+        match self.lexer.peek() {
+            Some(Lexem {
+                token: Token::Newline | Token::Delimiter(';'),
+                ..
+            }) => true,
+            Some(Lexem {
+                token: Token::Delimiter('}'),
+                ..
+            }) => true,
+            Some(Lexem { token: _, .. }) => false,
+            None => true,
+        }
+    }
+
     fn parse_primary(&mut self) -> Result<Expression, ParseError> {
         if let Some(lexem) = self.lexer.peek() {
             match &lexem.token {
@@ -813,9 +828,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_return_stmt(&mut self) -> Result<Statement, ParseError> {
+        if self.test_end() {
+            self.expect_end()?;
+            return Ok(Statement::ReturnStatement(ReturnStatement { expr: None }));
+        }
         let expr = self.parse_expr(1)?;
         self.expect_end()?;
-        Ok(Statement::ReturnStatement(ReturnStatement { expr: expr }))
+        Ok(Statement::ReturnStatement(ReturnStatement { expr: Some(expr) }))
     }
 
     fn parse_stmt(&mut self, inside_block: bool) -> Result<Statement, ParseError> {
