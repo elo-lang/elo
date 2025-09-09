@@ -114,19 +114,21 @@ impl<'a> Lexer<'a> {
         self.span.end = 0;
     }
 
-    pub fn consume_while(&mut self, start: Option<&char>, matches: fn(char) -> bool) -> String {
+    pub fn consume_while(&mut self, start: Option<&char>, matches: fn(char) -> bool) -> (String, Option<char>) {
         let mut buffer = String::new();
         if let Some(start) = start {
             buffer.push(*start);
         }
+        let mut last_char = None;
         while let Some(&c) = self.chars.peek() {
             if !matches(c) {
                 break;
             }
+            last_char = Some(c);
             buffer.push(c);
             self.chars.next();
         }
-        buffer
+        (buffer, last_char)
     }
 
     fn token_numeric(&mut self, ch: &char) -> Token {
@@ -137,21 +139,21 @@ impl<'a> Lexer<'a> {
                     'b' => {
                         self.chars.next();
                         self.advance_span(2);
-                        let number = self.consume_while(None, |c| matches!(c, numeric_binary!()));
+                        let (number, _) = self.consume_while(None, |c| matches!(c, numeric_binary!()));
                         self.span.end += number.len();
                         return Token::Numeric(number, 2);
                     }
                     'o' => {
                         self.chars.next();
                         self.advance_span(2);
-                        let number = self.consume_while(None, |c| matches!(c, numeric_octal!()));
+                        let (number, _) = self.consume_while(None, |c| matches!(c, numeric_octal!()));
                         self.span.end += number.len();
                         return Token::Numeric(number, 8);
                     }
                     'x' => {
                         self.chars.next();
                         self.advance_span(2);
-                        let number = self.consume_while(None, |c| matches!(c, numeric_hex!()));
+                        let (number, _) = self.consume_while(None, |c| matches!(c, numeric_hex!()));
                         self.span.end += number.len();
                         return Token::Numeric(number, 16);
                     }
@@ -161,13 +163,13 @@ impl<'a> Lexer<'a> {
             self.advance_span(1);
             return Token::Numeric(String::from("0"), 10);
         }
-        let number = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
+        let (number, _) = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
         self.advance_span(number.len());
         return Token::Numeric(number, 10);
     }
 
     fn token_word(&mut self, ch: &char) -> Token {
-        let s = self.consume_while(Some(&ch), |c| matches!(c, identifier!()));
+        let (s, _) = self.consume_while(Some(&ch), |c| matches!(c, identifier!()));
         self.advance_span(s.len());
 
         if let Some(kw) = Keyword::from_str(s.as_str()) {
@@ -191,11 +193,26 @@ impl<'a> Lexer<'a> {
         };
     }
 
+    //                                       ----- How many lines this string literal has
+    fn consume_string(&mut self) -> (String, usize) {
+        let mut buffer = String::new();
+        let mut lines = 0;
+        while let Some(&c) = self.chars.peek() {
+            if c == '\n' { lines += 1; }
+            if c == '"'  { break; }
+            buffer.push(c);
+            self.chars.next();
+        }
+        (buffer, lines)
+    }
+
     fn token_string(&mut self) -> Token {
-        let s = self.consume_while(None, |c| c != '"' && c != '\n');
+        let (s, lines) = self.consume_string();
+        
         self.chars.next(); // Compensate for the last "
         self.advance_span(s.len());
         self.span.end += 2; // Compensate span to get the last "
+        self.span.line += lines;
         return Token::StringLiteral(s);
     }
 }
