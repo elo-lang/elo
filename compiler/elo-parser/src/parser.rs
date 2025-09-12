@@ -220,7 +220,7 @@ impl<'a> Parser<'a> {
     fn parse_field(&mut self) -> Result<Field, ParseError> {
         let ident = self.expect_identifier()?;
         self.expect_token(Token::Delimiter(':'))?;
-        let value = self.parse_expr(1)?;
+        let value = self.parse_expr(1, true)?;
         return Ok(Field {
             name: ident,
             value: value,
@@ -301,7 +301,7 @@ impl<'a> Parser<'a> {
     // expr[, expr]*[,]?
     fn parse_expression_list(&mut self, termination: Token) -> Result<Vec<Expression>, ParseError> {
         let mut fields = Vec::new();
-        if let Ok(first) = self.parse_expr(1) {
+        if let Ok(first) = self.parse_expr(1, true) {
             fields.push(first);
         }
         while let Some(Lexem {
@@ -315,7 +315,7 @@ impl<'a> Parser<'a> {
                     break;
                 }
             }
-            let expr = self.parse_expr(1)?;
+            let expr = self.parse_expr(1, true)?;
             fields.push(expr);
         }
         Ok(fields)
@@ -502,12 +502,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_primary(&mut self) -> Result<Expression, ParseError> {
+    fn parse_primary(&mut self, struct_allowed: bool) -> Result<Expression, ParseError> {
         if let Some(lexem) = self.lexer.peek() {
             match &lexem.token {
                 Token::Newline => {
                     self.next();
-                    return self.parse_primary();
+                    return self.parse_primary(struct_allowed);
                 }
                 Token::Numeric(..) => return Ok(self.parse_number()?),
                 Token::Identifier(_) => {
@@ -535,12 +535,31 @@ impl<'a> Parser<'a> {
                             },
                         });
                     }
+                    
+                    if let Some(Lexem { token: Token::Delimiter('{'), .. }) = self.lexer.peek() {
+                        // Rust programmers be like:
+                        if let true = struct_allowed {
+                            // In case of not allowed, it will just not parse it at all
+                            self.next();
+                            let span = i.span.merge(self.current_span.unwrap());
+                            let fields = self.parse_fields()?;
+                            self.expect_token(Token::Delimiter('}'))?;
+                            if let ExpressionData::Identifier { name } = i.data {
+                                return Ok(Expression {
+                                    span: span,
+                                    data: ExpressionData::StructInit { name: name, fields },
+                                });
+                            } else {
+                                unreachable!()
+                            }
+                        }
+                    }
                     return Ok(i);
                 }
                 Token::Delimiter('(') => {
                     self.next();
                     let init_span = self.current_span.unwrap();
-                    let expr = self.parse_expr(1)?;
+                    let expr = self.parse_expr(1, true)?;
                     if let Some(_) = self.test_token(Token::Delimiter(','), false) {
                         let tail = self.parse_expression_list(Token::Delimiter(')'))?;
                         self.expect_token(Token::Delimiter(')'))?;
@@ -577,19 +596,6 @@ impl<'a> Parser<'a> {
                         data: ExpressionData::BooleanLiteral { value: false },
                     });
                 }
-                Token::Keyword(Keyword::Struct) => {
-                    self.next();
-                    let span = self.current_span.unwrap();
-                    let i = self.expect_identifier()?;
-                    self.expect_token(Token::Delimiter('{'))?;
-                    let fields = self.parse_fields()?;
-                    self.expect_token(Token::Delimiter('}'))?;
-                    let span = span.merge(self.current_span.unwrap());
-                    return Ok(Expression {
-                        span: span,
-                        data: ExpressionData::StructInit { name: i, fields },
-                    });
-                }
                 token @ Token::Op(a, b) => {
                     let op = UnaryOperation::from_op(*a, b.as_ref().copied());
                     if let Some(unop) = op {
@@ -599,7 +605,7 @@ impl<'a> Parser<'a> {
                             span: self.current_span.unwrap(),
                             data: ExpressionData::UnaryOperation {
                                 operator: unop,
-                                operand: Box::new(self.parse_expr(prec)?),
+                                operand: Box::new(self.parse_expr(prec, true)?),
                             },
                         });
                     }
@@ -631,8 +637,8 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_expr(&mut self, limit: Precedence) -> Result<Expression, ParseError> {
-        let mut left = self.parse_primary()?;
+    fn parse_expr(&mut self, limit: Precedence, struct_allowed: bool) -> Result<Expression, ParseError> {
+        let mut left = self.parse_primary(struct_allowed)?;
         while let Some(op) = self.lexer.peek() {
             let next_limit = binop_precedence(&op.token);
             if limit > next_limit {
@@ -644,7 +650,7 @@ impl<'a> Parser<'a> {
             }) = self.next()
             {
                 let binop = BinaryOperation::from_op(a, b);
-                let right = self.parse_expr(next_limit)?;
+                let right = self.parse_expr(next_limit, true)?;
                 left = Expression {
                     span: left.span.merge(self.current_span.unwrap()),
                     data: ExpressionData::BinaryOperation {
@@ -661,7 +667,7 @@ impl<'a> Parser<'a> {
     fn parse_assignment(&mut self) -> Result<(String, Expression), ParseError> {
         let ident = self.expect_identifier()?;
         let _ = self.expect_token(Token::Op('=', None))?;
-        let expr = self.parse_expr(1)?;
+        let expr = self.parse_expr(1, true)?;
         Ok((ident, expr))
     }
 
@@ -679,7 +685,7 @@ impl<'a> Parser<'a> {
         let _ = self.expect_token(Token::Delimiter(':'))?;
         let typing = self.parse_type()?;
         let _ = self.expect_token(Token::Op('=', None))?;
-        let expr = self.parse_expr(1)?;
+        let expr = self.parse_expr(1, true)?;
         self.expect_end()?;
         Ok(Statement::ConstStatement(ConstStatement {
             binding: ident,
@@ -789,7 +795,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_if_stmt(&mut self) -> Result<Statement, ParseError> {
-        let expr = self.parse_expr(1)?;
+        let expr = self.parse_expr(1, false)?;
         self.expect_token(Token::Delimiter('{'))?;
         let block_true = self.parse_block()?;
         self.expect_token(Token::Delimiter('}'))?;
@@ -817,7 +823,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_while_stmt(&mut self) -> Result<Statement, ParseError> {
-        let condition = self.parse_expr(1)?;
+        let condition = self.parse_expr(1, false)?;
         self.expect_token(Token::Delimiter('{'))?;
         let block = self.parse_block()?;
         self.expect_token(Token::Delimiter('}'))?;
@@ -832,7 +838,7 @@ impl<'a> Parser<'a> {
             self.expect_end()?;
             return Ok(Statement::ReturnStatement(ReturnStatement { expr: None }));
         }
-        let expr = self.parse_expr(1)?;
+        let expr = self.parse_expr(1, true)?;
         self.expect_end()?;
         Ok(Statement::ReturnStatement(ReturnStatement { expr: Some(expr) }))
     }
@@ -915,7 +921,7 @@ impl<'a> Parser<'a> {
                     let span = lexem.span;
                     let token = lexem.token.clone();
                     // Ensure that the next token is an token valid for an expression. Otherwise, stop parsing.
-                    if let Ok(expr) = self.parse_expr(1) {
+                    if let Ok(expr) = self.parse_expr(1, true) {
                         let node = Node {
                             span,
                             stmt: Statement::ExpressionStatement(expr),
