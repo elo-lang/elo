@@ -114,11 +114,13 @@
 
 > **_UnaryOperation_** : _UnaryOperator_ _Expression_  
 
-> **_StructInitialization_** : `"struct"` _Ident_ `"{"` [_Fields_] `"}"`  
+> **_StructInitialization_** : _Ident_ `"{"` [_Fields_] `"}"`  
 
 > **_FieldAccess_** : _Expression_ `"."` _Ident_  
 
 > **_NamespaceAccess_** : _Ident_ `"::"` _Ident_  
+
+> **_ModuleAccess_**: _Ident_ `"\"` _Ident_  
 
 ## Other
 
