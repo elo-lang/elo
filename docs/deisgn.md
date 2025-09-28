@@ -35,12 +35,18 @@ struct Color {
     r, g, b, a: float
 }
 
-fn my_function_using(using Color) {
-    # Inside this block of code, r, g, b, and a are valid variables
+fn my_function_using(using c: Color) {
+    # Inside this block of code, c, r, g, b, and a are valid variables
     # with their respective values
+    # c: Color
+    # r: float
+    # g: float
+    # b: float
+    # a: float
 }
 
-let c = struct Color { r: 0, g: 0, b: 0, a: 1 }
+# Instantiate structures using this syntax:
+let c = Color { r: 0, g: 0, b: 0, a: 1 }
 my_function_using(c)
 ```
 
@@ -68,11 +74,6 @@ struct Vector2 {
 }
 ```
 
-Structs can also be ordered structs, with names replaced by numbers and defined in order:
-```
-struct Vector2(int, int)
-```
-
 You may use the same syntax of function arguments to compress fields that have the same type:
 ```
 struct Vector2 {
@@ -96,21 +97,6 @@ enum Week {
 }
 ```
 
-Each variant can store it's own Struct, being it a named struct or an ordered struct:
-```
-enum Figure {
-    Square(usize),
-    Rectangle {
-        width: usize,
-        height: usize
-    },
-    Triangle {
-        base: usize,
-        height: usize
-    }
-}
-```
-
 ## Variables and constants
 Variable is a named binding to a value in runtime.
 
@@ -130,15 +116,15 @@ var y = 20
 
 Define constants using the keyword `const`:
 ```
-const PI = 3.1415
+const PI: float = 3.1415
 ```
 
-### Memory management
-Elo uses manual memory management **with assistance**.
+## Memory management (not guaranteed to be something final)
+Elo (may) use manual memory management **with assistance**.
 
 Cases:
 
-#### Memory not freed
+### Memory not freed
 ```
 fn main() {
   let a = allocate(10) # Allocate 10 bytes
@@ -155,7 +141,7 @@ error: dynamic memory not freed
              help: add `defer free(a)` after this line
 ```
 
-#### Memory freed twice
+### Memory freed twice
 ```
 fn main() {
   let a = allocate(10) # Allocate 10 bytes
@@ -174,7 +160,7 @@ error: dynamic memory freed twice
             help: remove this line
 ```
 
-#### Memory used after free:
+### Memory used after free:
 ```
 fn main() {
   let a = allocate(10) # Allocate 10 bytes
@@ -193,4 +179,23 @@ error: dynamic memory freed twice
                   help: use `free(a)` after it's used
 ```
 
+## Code examples
+These are some code snippets we think should be valid
+in the final version of Elo. (these don't work right now)
 
+### Hello World
+```
+fn main() {
+    print("Hello World")
+}
+```
+
+### Truth machine
+```
+fn main() -> int? {
+    let i = input();
+    while i.int()! == 1 {
+        print(1)
+    }
+}
+```
