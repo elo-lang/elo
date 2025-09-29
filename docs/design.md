@@ -97,6 +97,32 @@ enum Week {
 }
 ```
 
+## Typing
+Elo has 2 different kinds of types that can be used arbitrarily by the user:
+1. Static types (stack-allocated)
+1. Dynamic types (head-allocated)
+
+The list of all static types is the following:
+- Signed integers: `int`, `i8`, `i16`, `i32`, `i64`
+- Unsigned integers: `uint`, `u8`, `u16`, `u32`, `u64`
+- Boolean: `bool` 
+- Function-pointer: `R fn(A, ...)`
+- Floating-point: `float`, `f32`, `f64`
+- Character: `char`
+- Sequences: `(T, ...)`, `str`, `{T, N}`
+- Pointer and slice: `*T`, `*{T}`
+
+The list of all dynamic types is the following:
+- Dynamic array: `[T]`
+- Growable and mutable string: `string`
+- Hashmap: `[K:V]`
+- _We plan to add more types to this list, but for now this is what
+  we see as the most needed ones_.
+
+Static types may also be called "primitive types", since they
+do not need special memory management or advanced checking by
+the Elo's compiler.
+
 ## Variables and constants
 Variable is a named binding to a value in runtime.
 
@@ -114,7 +140,7 @@ var x = 10
 var y = 20
 ```
 
-Define constants using the keyword `const`:
+Define global constants using the keyword `const`:
 ```
 const PI: float = 3.1415
 ```
@@ -127,7 +153,7 @@ Cases:
 ### Memory not freed
 ```
 fn main() {
-  let a = allocate(10) # Allocate 10 bytes
+  let a = [1, 2, 3] # Allocate simple dynamic array
 }
 ```
 
@@ -135,48 +161,48 @@ This code does not compile because the memory is never freed.
 Error:
 ```
 error: dynamic memory not freed 
-2 |  let a = allocate(10) # Allocate 10 bytes
+2 |  let a = [1, 2, 3] # Allocate simple dynamic array
              ^-----------
              dynamic memory allocation here
-             help: add `defer free(a)` after this line
+             help: add `defer { drop a }` after this line
 ```
 
 ### Memory freed twice
 ```
 fn main() {
-  let a = allocate(10) # Allocate 10 bytes
-  defer free(a)
-  defer free(a)
+  let a = "Hello world" # dynamic string
+  drop a
+  drop a
 }
 ```
 
-This code does not compile because the memory is never freed.
+This code does not compile because the memory is freed twice.
 Error:
 ```
 error: dynamic memory freed twice 
-4 |   defer free(a)
-            ^------
-            dynamic memory freed here
-            help: remove this line
+4 |   drop a
+      ^-----
+      dynamic memory freed here
+      help: remove this statement
 ```
 
 ### Memory used after free:
 ```
 fn main() {
-  let a = allocate(10) # Allocate 10 bytes
-  free(a)
-  print("{}", a)
+  let ages = ["john": 21, "mary": 19] # Simple hashmap
+  drop ages
+  print('{a}')
 }
 ```
 
-This code does not compile because the memory is never freed.
+This code does not compile because the memory is used after it's been freed.
 Error:
 ```
-error: dynamic memory freed twice 
-4 |   print("{}", a)
-                  ^
-                  dynamic memory used here
-                  help: use `free(a)` after it's used
+error: dynamic memory used after deallocation 
+4 |   print('{a}')
+              ^
+              dynamic memory used here
+              help: use `drop` only after all uses
 ```
 
 ## Code examples
@@ -186,13 +212,13 @@ in the final version of Elo. (these don't work right now)
 ### Hello World
 ```
 fn main() {
-    print("Hello World")
+    print('Hello World')
 }
 ```
 
 ### Truth machine
 ```
-fn main() -> int? {
+fn main() {
     let i = input();
     while i.int()! == 1 {
         print(1)
