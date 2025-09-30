@@ -206,6 +206,16 @@ impl<'a> Lexer<'a> {
         (buffer, lines)
     }
 
+    fn consume_char(&mut self) -> String {
+        let mut buffer = String::new();
+        while let Some(&c) = self.chars.peek() {
+            if c == '`'  { break; }
+            buffer.push(c);
+            self.chars.next();
+        }
+        buffer
+    }
+
     fn token_str(&mut self) -> Token {
         let (s, lines) = self.consume_str();
         
@@ -214,6 +224,14 @@ impl<'a> Lexer<'a> {
         self.span.end += 2; // Compensate span to get the last "
         self.span.line += lines;
         return Token::StrLiteral(s);
+    }
+    
+    fn token_char(&mut self) -> Token {
+        let ch = self.consume_char();
+        self.chars.next(); // Compensate for the last `
+        self.advance_span(ch.len());
+        self.span.end += 2; // Compensate span to get the last `
+        return Token::CharLiteral(ch);
     }
 }
 
@@ -266,6 +284,10 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 '\'' => {
                     let token = self.token_str();
+                    Some(Lexem::new(self.span.into_span(), token))
+                }
+                '`' => {
+                    let token = self.token_char();
                     Some(Lexem::new(self.span.into_span(), token))
                 }
                 _ => {

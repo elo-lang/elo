@@ -11,6 +11,7 @@ pub enum Token {
     Op(char, Option<char>), // +, -, *, /, ==, etc
     Delimiter(char),        // (, ), [, ], {, }, ., , etc
     StrLiteral(String),     // 'foo', 'bar', 'hello'
+    CharLiteral(String),      // `a`, `b`, `\n`
     // StringLiteral(String),  // 'foo', 'bar', 'hello'
     Variadic,               // ...: Special token for variadic functions for C FFI
     Unknown(char),          // Any other character
