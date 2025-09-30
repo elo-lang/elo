@@ -109,7 +109,7 @@ The list of all static types is the following:
 - Function-pointer: `R fn(A, ...)`
 - Floating-point: `float`, `f32`, `f64`
 - Character: `char`
-- Sequences: `(T, ...)`, `str`, `{T, N}`
+- Sequences: `(T, ...)`, `str`, `{T; N}`
 - Pointer and slice: `*T`, `*{T}`
 
 The list of all dynamic types is the following:

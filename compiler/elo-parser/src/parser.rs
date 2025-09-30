@@ -140,13 +140,13 @@ impl<'a> Parser<'a> {
                         typing: Typing::Pointer { typ: Box::new(typ) },
                     });
                 }
-                Token::Delimiter('[') => {
+                Token::Delimiter('{') => {
                     let typ = self.parse_type()?;
-                    self.expect_token(Token::Delimiter(','))?;
+                    self.expect_token(Token::Delimiter(';'))?;
                     match self.parse_number()?.data {
                         ExpressionData::IntegerLiteral { value: x } => {
                             let x = toint(&x.0, x.1) as usize;
-                            self.expect_token(Token::Delimiter(']'))?;
+                            self.expect_token(Token::Delimiter('}'))?;
                             return Ok(Type {
                                 span: lexem.span.merge(self.current_span.unwrap()),
                                 typing: Typing::Array {
