@@ -574,7 +574,7 @@ impl<'a> Parser<'a> {
                     self.expect_token(Token::Delimiter(')'))?;
                     return Ok(expr);
                 }
-                Token::StringLiteral(s) => {
+                Token::StrLiteral(s) => {
                     let s = s.clone();
                     self.next();
                     return Ok(Expression {

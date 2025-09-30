@@ -194,26 +194,26 @@ impl<'a> Lexer<'a> {
     }
 
     //                                       ----- How many lines this string literal has
-    fn consume_string(&mut self) -> (String, usize) {
+    fn consume_str(&mut self) -> (String, usize) {
         let mut buffer = String::new();
         let mut lines = 0;
         while let Some(&c) = self.chars.peek() {
             if c == '\n' { lines += 1; }
-            if c == '"'  { break; }
+            if c == '\''  { break; }
             buffer.push(c);
             self.chars.next();
         }
         (buffer, lines)
     }
 
-    fn token_string(&mut self) -> Token {
-        let (s, lines) = self.consume_string();
+    fn token_str(&mut self) -> Token {
+        let (s, lines) = self.consume_str();
         
         self.chars.next(); // Compensate for the last "
         self.advance_span(s.len());
         self.span.end += 2; // Compensate span to get the last "
         self.span.line += lines;
-        return Token::StringLiteral(s);
+        return Token::StrLiteral(s);
     }
 }
 
@@ -264,8 +264,8 @@ impl<'a> Iterator for Lexer<'a> {
                         Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)))
                     }
                 }
-                '"' => {
-                    let token = self.token_string();
+                '\'' => {
+                    let token = self.token_str();
                     Some(Lexem::new(self.span.into_span(), token))
                 }
                 _ => {

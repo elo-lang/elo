@@ -10,7 +10,8 @@ pub enum Token {
     // e.g. Token::Op('=', Some('=')) is "=="
     Op(char, Option<char>), // +, -, *, /, ==, etc
     Delimiter(char),        // (, ), [, ], {, }, ., , etc
-    StringLiteral(String),  // "foo", "bar", "hello"
+    StrLiteral(String),     // 'foo', 'bar', 'hello'
+    // StringLiteral(String),  // 'foo', 'bar', 'hello'
     Variadic,               // ...: Special token for variadic functions for C FFI
     Unknown(char),          // Any other character
 }
