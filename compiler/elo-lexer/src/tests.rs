@@ -3,19 +3,19 @@ use crate::lexer::Lexer;
 
 #[test]
 fn test_integers() {
-    let source_text = "10 14 0x16 17";
+    let source_text = "fn main () { print(\"Hello\") }";
     let lx = Lexer::new(InputFile::new("test", source_text));
 
     for lexem in lx {
         let token = lexem.token;
         let span = lexem.span;
-        println!(
-            "{}:{}:{} \"{}\"",
-            span.line,
-            span.start,
-            span.end,
-            &source_text[span.start..span.end]
-        );
+        // println!(
+        //     "{}:{}:{} \"{}\"",
+        //     span.line,
+        //     span.start,
+        //     span.end,
+        //     &source_text[span.start..span.end]
+        // );
         println!("{:?}", token);
     }
 }
