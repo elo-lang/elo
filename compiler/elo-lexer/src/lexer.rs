@@ -193,13 +193,26 @@ impl<'a> Lexer<'a> {
         };
     }
 
-    //                                       ----- How many lines this string literal has
+    //                                       ----- How many lines this str literal has
     fn consume_str(&mut self) -> (String, usize) {
         let mut buffer = String::new();
         let mut lines = 0;
         while let Some(&c) = self.chars.peek() {
             if c == '\n' { lines += 1; }
             if c == '\''  { break; }
+            buffer.push(c);
+            self.chars.next();
+        }
+        (buffer, lines)
+    }
+    
+    //                                       ----- How many lines this string literal has
+    fn consume_string(&mut self) -> (String, usize) {
+        let mut buffer = String::new();
+        let mut lines = 0;
+        while let Some(&c) = self.chars.peek() {
+            if c == '\n' { lines += 1; }
+            if c == '\"'  { break; }
             buffer.push(c);
             self.chars.next();
         }
@@ -219,11 +232,20 @@ impl<'a> Lexer<'a> {
     fn token_str(&mut self) -> Token {
         let (s, lines) = self.consume_str();
         
+        self.chars.next(); // Compensate for the last '
+        self.advance_span(s.len());
+        self.span.end += 2; // Compensate span to get the last '
+        self.span.line += lines;
+        return Token::StrLiteral(s);
+    }
+    
+    fn token_string(&mut self) -> Token {
+        let (s, lines) = self.consume_string();
         self.chars.next(); // Compensate for the last "
         self.advance_span(s.len());
         self.span.end += 2; // Compensate span to get the last "
         self.span.line += lines;
-        return Token::StrLiteral(s);
+        return Token::StringLiteral(s);
     }
     
     fn token_char(&mut self) -> Token {
@@ -288,6 +310,10 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 '`' => {
                     let token = self.token_char();
+                    Some(Lexem::new(self.span.into_span(), token))
+                }
+                '"' => {
+                    let token = self.token_string();
                     Some(Lexem::new(self.span.into_span(), token))
                 }
                 _ => {
