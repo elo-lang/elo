@@ -140,6 +140,7 @@ impl Validator {
                     operand_type,
                 ))
             }
+            ast::ExpressionData::CharacterLiteral { value } => todo!(),
             ast::ExpressionData::StringLiteral { value } => {
                 return Ok((
                     ir::Expression::StringLiteral {

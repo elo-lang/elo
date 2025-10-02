@@ -5,6 +5,7 @@ use crate::error::error;
 #[derive(Debug)]
 pub enum ParseErrorCase {
     UnexpectedToken { got: String, expected: String },
+    InvalidCharacterLiteral,
 }
 
 #[derive(Debug)]
@@ -22,6 +23,15 @@ pub fn parse_error(pe: ParseErrorCase, filespan: &FileSpan) {
                 filespan,
                 None,
                 None,
+            );
+        }
+        ParseErrorCase::InvalidCharacterLiteral => {
+            error(
+                "Parse Error",
+                &format!("invalid token found while parsing"),
+                filespan,
+                Some("if you meant to use str/string, use ' or \" instead of `"),
+                Some("invalid character literal"),
             );
         }
     }

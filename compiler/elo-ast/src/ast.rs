@@ -124,6 +124,9 @@ pub enum ExpressionData {
     StringLiteral {
         value: String,
     },
+    CharacterLiteral {
+        value: char,
+    },
     FieldAccess {
         origin: Box<Expression>,
         field: String,

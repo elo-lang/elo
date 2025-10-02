@@ -301,9 +301,11 @@ impl<'a> Parser<'a> {
     // expr[, expr]*[,]?
     fn parse_expression_list(&mut self, termination: Token) -> Result<Vec<Expression>, ParseError> {
         let mut fields = Vec::new();
-        if let Ok(first) = self.parse_expr(1, true) {
-            fields.push(first);
+        if let Some(Lexem { token: Token::Delimiter(')'), .. }) = self.lexer.peek() {
+            return Ok(fields);
         }
+        let first = self.parse_expr(1, true)?;
+        fields.push(first);
         while let Some(Lexem {
             token: Token::Delimiter(','),
             ..
@@ -573,6 +575,21 @@ impl<'a> Parser<'a> {
                     }
                     self.expect_token(Token::Delimiter(')'))?;
                     return Ok(expr);
+                }
+                Token::CharLiteral(c) => {
+                    let len = c.len();
+                    if (len != 1) {
+                        return Err(ParseError {
+                            span: Some(lexem.span),
+                            case: ParseErrorCase::InvalidCharacterLiteral
+                        })
+                    }
+                    let c = c.chars().nth(0).unwrap();
+                    self.next();
+                    return Ok(Expression {
+                        span: self.current_span.unwrap(),
+                        data: ExpressionData::CharacterLiteral { value: c }
+                    });
                 }
                 Token::StrLiteral(s) => {
                     let s = s.clone();
