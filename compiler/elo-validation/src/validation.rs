@@ -141,7 +141,7 @@ impl Validator {
                 ))
             }
             ast::ExpressionData::CharacterLiteral { value } => todo!(),
-            ast::ExpressionData::StringLiteral { value } => {
+            ast::ExpressionData::StrLiteral { value } => {
                 return Ok((
                     ir::Expression::StringLiteral {
                         value: value.clone(),

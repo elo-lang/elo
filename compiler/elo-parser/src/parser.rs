@@ -596,7 +596,16 @@ impl<'a> Parser<'a> {
                     self.next();
                     return Ok(Expression {
                         span: self.current_span.unwrap(),
-                        data: ExpressionData::StringLiteral { value: s },
+                        data: ExpressionData::StrLiteral { value: s },
+                    });
+                }
+                Token::StringLiteral(s) => {
+                    let s = s.clone();
+                    self.next();
+                    return Ok(Expression {
+                        span: self.current_span.unwrap(),
+                        data: ExpressionData::StrLiteral { value: s },
+                        // FIXME: This will be StringLiteral when we use proper dynamic memory
                     });
                 }
                 Token::Keyword(Keyword::True) => {
