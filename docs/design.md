@@ -216,7 +216,7 @@ syntax we're willing to implement in Elo.
 | Optional type        | `?T`      | `optional<T>`      | `Option<T>`    | `T?`  |
 | success/fail wrapper | `E!O` **  | `throws(E) -> O`   | `Result<O, E>` | `O!E` |
 
-> *  Helper types is a name we came up with to
+> \* 'Helper type' is a name we came up with to
 > describe this specific set of types to "help"
 > the user design their data architecture more
 > clearly and efficiently, such as using success/error
