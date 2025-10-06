@@ -205,6 +205,26 @@ error: dynamic memory used after deallocation
               help: use `drop` only after all uses
 ```
 
+## Helper Types *
+
+Here's a simple table comparing the **helper types** \*
+syntax between different programming languages and the
+syntax we're willing to implement in Elo.
+
+| Description          | Zig       | Swift              | Rust           | Elo   |
+|----------------------|-----------|--------------------|----------------|-------|
+| Optional type        | `?T`      | `optional<T>`      | `Option<T>`    | `T?`  |
+| success/fail wrapper | `E!O` **  | `throws(E) -> O`   | `Result<O, E>` | `O!E` |
+
+> *  Helper types is a name we came up with to
+> describe this specific set of types to "help"
+> the user design their data architecture more
+> clearly and efficiently, such as using success/error
+> wrappers or optional types. They are often part of a
+> group called [Container Types](https://en.wikipedia.org/wiki/Container_(abstract_data_type))
+
+> ** In Zig you can't put types that are different from `anyerror`, which is inherently different from the concept in other languages including Elo.
+
 ## Code examples
 These are some code snippets we think should be valid
 in the final version of Elo. (these don't work right now)
