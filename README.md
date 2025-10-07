@@ -1,5 +1,11 @@
-# Elo
-Building software intuitively.
+<h1 align="center">Elo</h1>
+
+<p align=center><strong><em>Building software intuitively.</em></strong></p>
+
+> **Elo** is a systems compiled programming language 
+> designed to allow developers enjoy software development 
+> through a **simple syntax**, **debloated standard library** 
+> and an **intuitive experience** in general. 
 
 ## Development
 Elo is in its early stages of development, we are still brainstorming a lot.
