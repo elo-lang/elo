@@ -9,13 +9,9 @@ use elo_validation::validation::*;
 mod cli;
 use crate::cli::*;
 
-use inkwell::OptimizationLevel;
-use inkwell::targets::{
-    CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine,
-};
-
 use std::collections::HashMap;
 use std::env::args;
+use std::io::{Read, Write};
 use std::path::Path;
 
 fn parse_program(p: InputFile) -> Result<ast::Program, parseerror::ParseError> {
@@ -49,50 +45,14 @@ fn main() {
                 match parse_program(input_file) {
                     Ok(program) => match validate_program(program) {
                         Ok(validated_program) => {
-                            let context = inkwell::context::Context::create();
-                            let module = context.create_module(&input);
-                            let mut r#gen = Generator {
-                                input: validated_program,
-                                context: &context,
-                                module: module,
-                                builder: context.create_builder(),
-                                namespace: Namespace {
-                                    variables: HashMap::new(),
-                                },
-                            };
+                            let mut r#gen = elo_codegen::generator::Generator::new(validated_program);
                             r#gen.generate();
-
-                            Target::initialize_native(&InitializationConfig::default())
-                                .expect("Failed to initialize native target");
-
-                            let triple = TargetMachine::get_default_triple();
-                            let target = Target::from_triple(&triple).unwrap();
-                            let cpu = "generic";
-                            let features = "";
-                            let opt_level = match optimization {
-                                cli::O::None => OptimizationLevel::None,
-                                cli::O::Normal => OptimizationLevel::Less,
-                                cli::O::Medium => OptimizationLevel::Default,
-                                cli::O::Aggressive => OptimizationLevel::Aggressive,
-                            };
-                            let reloc = RelocMode::PIC;
-                            let code_model = CodeModel::Default;
-                            let target_file_type = FileType::Object;
-
-                            let target_machine = target
-                                .create_target_machine(
-                                    &triple, cpu, features, opt_level, reloc, code_model,
-                                )
-                                .expect("Failed to create target machine");
-
-                            let mut path = format!("{}.o", input.clone());
-                            if let Some(o) = output {
-                                path = o
+                            let output = output.unwrap_or(format!("{input}.out.c"));
+                            if let Ok(mut f) = std::fs::File::create(&output) {
+                                f.write(r#gen.output.as_bytes()).unwrap();
+                            } else {
+                                fatal(&args[0], &format!("could not write output file {output}"));
                             }
-                            let path = Path::new(&path);
-                            target_machine
-                                .write_to_file(&r#gen.module, target_file_type, &path)
-                                .expect("Failed to write object file");
                         }
                         Err(e) => {
                             typeerror::type_error(
