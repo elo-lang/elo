@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use crate::generator::Namespace;
 use elo_lexer::inputfile::InputFile;
 use elo_lexer::lexer::Lexer;
 use elo_parser::parser::Parser;
