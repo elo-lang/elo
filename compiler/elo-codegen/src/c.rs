@@ -68,12 +68,12 @@ pub fn build_statement_list(statements: &[String]) -> String {
     s
 }
 
-pub fn build_function_declaration(r#return: String, name: String, arguments: String) -> String {
-    return format!("{return} {name}({arguments})");
+pub fn build_function_declaration(r#return: String, name: String, arguments: String, varargs: bool) -> String {
+    return format!("{return} {name}({arguments}{})", if varargs { ",..." } else { "" });
 }
 
-pub fn build_function_definition(r#return: String, name: String, arguments: String, body: String) -> String {
-    return format!("{return} {name}({arguments}){{\n{body}}}");
+pub fn build_function_definition(r#return: String, name: String, arguments: String, varargs: bool, body: String) -> String {
+    return format!("{return} {name}({arguments}{}){{\n{body}}}", if varargs { ",..." } else { "" });
 }
 
 pub fn build_if(condition: String, r#true: String, r#false: Option<String>) -> String {

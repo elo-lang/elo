@@ -132,7 +132,7 @@ impl Generator {
                                                           .map(|x| self.generate_from_node(x, false))
                                                           .collect::<Vec<String>>();
                 let body = c::build_statement_list(body.as_slice());
-                output.push_str(&c::build_function_definition(r#return, name, arguments, body));
+                output.push_str(&c::build_function_definition(r#return, name, arguments, stmt.variadic, body));
             }
             ir::Statement::ExternFnStatement(stmt) => {
                 let r#return = self.choose_type(stmt.ret.clone());
@@ -144,7 +144,7 @@ impl Generator {
                     arguments.push(c::build_typed_field(t, n));
                 }
                 let arguments = c::build_comma_list(arguments.as_slice());
-                output.push_str(&c::build_function_declaration(r#return, name, arguments))
+                output.push_str(&c::build_function_declaration(r#return, name, arguments, stmt.variadic))
             }
             ir::Statement::StructStatement(_stmt) => {
                 todo!();
@@ -196,7 +196,7 @@ impl Generator {
         for mut node in std::mem::take(&mut self.input.nodes) {
             let node = self.generate_from_node(&mut node, true);
             self.output.push_str(&node);
-            self.output.push('\n');
+            self.output.push_str(";\n");
         }
     }
 }
