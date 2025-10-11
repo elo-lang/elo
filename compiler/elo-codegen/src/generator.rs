@@ -83,32 +83,30 @@ impl Generator {
             ir::Expression::FunctionCall {
                 function,
                 arguments,
-            } => {
-                match function.as_ref() {
-                    ir::Expression::Identifier { name } => {
-                        let arguments: Vec<String> = arguments
-                                                      .iter()
-                                                      .map(|x| self.generate_expression(x))
-                                                      .collect();
-                        let arguments = c::build_comma_list(arguments.as_slice());
-                        return c::build_function_call(name.clone(), arguments);
-                    }
-                    _ => todo!(),
+            } => match function.as_ref() {
+                ir::Expression::Identifier { name } => {
+                    let arguments: Vec<String> = arguments
+                        .iter()
+                        .map(|x| self.generate_expression(x))
+                        .collect();
+                    let arguments = c::build_comma_list(arguments.as_slice());
+                    return c::build_function_call(name.clone(), arguments);
                 }
-            }
+                _ => todo!(),
+            },
             ir::Expression::Identifier { name } => name.clone(),
             _ => todo!(),
         }
     }
 
-    pub fn generate_from_node(
-        &mut self,
-        node: &mut ir::ValidatedNode,
-        toplevel: bool,
-    ) -> String {
+    pub fn generate_from_node(&mut self, node: &mut ir::ValidatedNode, toplevel: bool) -> String {
         let mut output = String::new();
         match &mut node.stmt {
-            ir::Statement::Constant { value, binding, typing } => {
+            ir::Statement::Constant {
+                value,
+                binding,
+                typing,
+            } => {
                 output.push_str("static ");
                 output.push_str(self.choose_type(typing.clone()).as_str());
                 output.push_str(binding);
@@ -116,7 +114,7 @@ impl Generator {
                 let expr = self.generate_expression(value);
                 output.push_str(&expr);
                 output.push(';');
-            },
+            }
             ir::Statement::FnStatement(stmt) => {
                 let r#return = self.choose_type(stmt.ret.clone());
                 let name = stmt.name.clone();
@@ -127,12 +125,20 @@ impl Generator {
                     arguments.push(c::build_typed_field(t, n));
                 }
                 let arguments = c::build_comma_list(arguments.as_slice());
-                let body = stmt.block.content
-                                                          .iter_mut()
-                                                          .map(|x| self.generate_from_node(x, false))
-                                                          .collect::<Vec<String>>();
+                let body = stmt
+                    .block
+                    .content
+                    .iter_mut()
+                    .map(|x| self.generate_from_node(x, false))
+                    .collect::<Vec<String>>();
                 let body = c::build_statement_list(body.as_slice());
-                output.push_str(&c::build_function_definition(r#return, name, arguments, stmt.variadic, body));
+                output.push_str(&c::build_function_definition(
+                    r#return,
+                    name,
+                    arguments,
+                    stmt.variadic,
+                    body,
+                ));
             }
             ir::Statement::ExternFnStatement(stmt) => {
                 let r#return = self.choose_type(stmt.ret.clone());
@@ -144,7 +150,12 @@ impl Generator {
                     arguments.push(c::build_typed_field(t, n));
                 }
                 let arguments = c::build_comma_list(arguments.as_slice());
-                output.push_str(&c::build_function_declaration(r#return, name, arguments, stmt.variadic))
+                output.push_str(&c::build_function_declaration(
+                    r#return,
+                    name,
+                    arguments,
+                    stmt.variadic,
+                ))
             }
             ir::Statement::StructStatement(_stmt) => {
                 todo!();
@@ -152,7 +163,12 @@ impl Generator {
             ir::Statement::EnumStatement(_stmt) => {
                 todo!();
             }
-            ir::Statement::Variable { binding, assignment, typing, mutable } if !toplevel => {
+            ir::Statement::Variable {
+                binding,
+                assignment,
+                typing,
+                mutable,
+            } if !toplevel => {
                 let typ = self.choose_type(typing.clone());
                 let expr = self.generate_expression(assignment);
                 output.push_str(&c::build_variable_definition(typ, binding.clone(), expr));
@@ -171,18 +187,20 @@ impl Generator {
                 block_false,
             } => {
                 let comparison = self.generate_expression(&condition);
-                let r#true = block_true.content
-                                                          .iter_mut()
-                                                          .map(|x| self.generate_from_node(x, false))
-                                                          .collect::<Vec<String>>();
+                let r#true = block_true
+                    .content
+                    .iter_mut()
+                    .map(|x| self.generate_from_node(x, false))
+                    .collect::<Vec<String>>();
                 let r#true = c::build_statement_list(r#true.as_slice());
 
                 let mut r#false = None;
                 if !block_false.content.is_empty() {
-                    let f = block_false.content
-                                          .iter_mut()
-                                          .map(|x| self.generate_from_node(x, false))
-                                          .collect::<Vec<String>>();
+                    let f = block_false
+                        .content
+                        .iter_mut()
+                        .map(|x| self.generate_from_node(x, false))
+                        .collect::<Vec<String>>();
                     r#false = Some(c::build_statement_list(f.as_slice()));
                 }
                 output.push_str(&c::build_if(comparison, r#true, r#false));

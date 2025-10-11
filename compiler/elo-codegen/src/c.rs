@@ -1,5 +1,8 @@
 pub enum Binop {
-    Add, Sub, Mul, Div, 
+    Add,
+    Sub,
+    Mul,
+    Div,
 }
 
 impl std::fmt::Display for Binop {
@@ -14,7 +17,10 @@ impl std::fmt::Display for Binop {
 }
 
 pub enum Unop {
-    Neg, BNot, Not, Addr
+    Neg,
+    BNot,
+    Not,
+    Addr,
 }
 
 impl std::fmt::Display for Unop {
@@ -45,11 +51,12 @@ pub fn build_comma_list(arguments: &[String]) -> String {
     let l = arguments.len();
     for (i, x) in arguments.into_iter().enumerate() {
         s.push_str(x);
-        if (i+1 < l) { s.push(','); }
+        if (i + 1 < l) {
+            s.push(',');
+        }
     }
     s
 }
-
 
 pub fn build_function_call(name: String, arguments: String) -> String {
     return format!("{name}({arguments})");
@@ -68,12 +75,29 @@ pub fn build_statement_list(statements: &[String]) -> String {
     s
 }
 
-pub fn build_function_declaration(r#return: String, name: String, arguments: String, varargs: bool) -> String {
-    return format!("{return} {name}({arguments}{})", if varargs { ",..." } else { "" });
+pub fn build_function_declaration(
+    r#return: String,
+    name: String,
+    arguments: String,
+    varargs: bool,
+) -> String {
+    return format!(
+        "{return} {name}({arguments}{})",
+        if varargs { ",..." } else { "" }
+    );
 }
 
-pub fn build_function_definition(r#return: String, name: String, arguments: String, varargs: bool, body: String) -> String {
-    return format!("{return} {name}({arguments}{}){{\n{body}}}", if varargs { ",..." } else { "" });
+pub fn build_function_definition(
+    r#return: String,
+    name: String,
+    arguments: String,
+    varargs: bool,
+    body: String,
+) -> String {
+    return format!(
+        "{return} {name}({arguments}{}){{\n{body}}}",
+        if varargs { ",..." } else { "" }
+    );
 }
 
 pub fn build_if(condition: String, r#true: String, r#false: Option<String>) -> String {
@@ -101,4 +125,3 @@ pub fn build_return(value: Option<String>) -> String {
         }
     );
 }
-

@@ -304,7 +304,6 @@ impl Validator {
                         case: TypeErrorCase::UnresolvedName { name: name.clone() },
                     });
                 }
-
             }
         }
     }
@@ -420,7 +419,7 @@ impl Validator {
                 self.namespace.locals.push(Scope {
                     content: HashMap::new(),
                 });
-                
+
                 // Add the arguments to the scope
                 for arg in validated_args.iter() {
                     self.namespace.locals.last_mut().unwrap().content.insert(
@@ -532,7 +531,8 @@ impl Validator {
                     block_true_content.push(self.validate_node(a)?);
                 }
                 self.namespace.locals.pop(); // Pop the true block scope
-                self.namespace.locals.push(namespace::Scope { // Push a new scope for the false block
+                self.namespace.locals.push(namespace::Scope {
+                    // Push a new scope for the false block
                     content: HashMap::new(),
                 });
                 let mut block_false_content = Vec::new();

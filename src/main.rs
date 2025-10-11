@@ -45,7 +45,8 @@ fn main() {
                 match parse_program(input_file) {
                     Ok(program) => match validate_program(program) {
                         Ok(validated_program) => {
-                            let mut r#gen = elo_codegen::generator::Generator::new(validated_program);
+                            let mut r#gen =
+                                elo_codegen::generator::Generator::new(validated_program);
                             r#gen.generate();
                             let output = output.unwrap_or(format!("{input}.out.c"));
                             if let Ok(mut f) = std::fs::File::create(&output) {

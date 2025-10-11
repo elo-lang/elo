@@ -299,9 +299,16 @@ impl<'a> Parser<'a> {
     }
 
     // expr[, expr]*[,]?
-    fn parse_function_arguments(&mut self, termination: Token) -> Result<Vec<Expression>, ParseError> {
+    fn parse_function_arguments(
+        &mut self,
+        termination: Token,
+    ) -> Result<Vec<Expression>, ParseError> {
         let mut fields = Vec::new();
-        if let Some(Lexem { token: Token::Delimiter(')'), .. }) = self.lexer.peek() {
+        if let Some(Lexem {
+            token: Token::Delimiter(')'),
+            ..
+        }) = self.lexer.peek()
+        {
             return Ok(fields);
         }
         let first = self.parse_expr(1, true)?;
@@ -537,8 +544,12 @@ impl<'a> Parser<'a> {
                             },
                         });
                     }
-                    
-                    if let Some(Lexem { token: Token::Delimiter('{'), .. }) = self.lexer.peek() {
+
+                    if let Some(Lexem {
+                        token: Token::Delimiter('{'),
+                        ..
+                    }) = self.lexer.peek()
+                    {
                         // Rust programmers be like:
                         if let true = struct_allowed {
                             // In case of not allowed, it will just not parse it at all
@@ -581,14 +592,14 @@ impl<'a> Parser<'a> {
                     if (len != 1) {
                         return Err(ParseError {
                             span: Some(lexem.span),
-                            case: ParseErrorCase::InvalidCharacterLiteral
-                        })
+                            case: ParseErrorCase::InvalidCharacterLiteral,
+                        });
                     }
                     let c = c.chars().nth(0).unwrap();
                     self.next();
                     return Ok(Expression {
                         span: self.current_span.unwrap(),
-                        data: ExpressionData::CharacterLiteral { value: c }
+                        data: ExpressionData::CharacterLiteral { value: c },
                     });
                 }
                 Token::StrLiteral(s) => {
@@ -663,7 +674,11 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_expr(&mut self, limit: Precedence, struct_allowed: bool) -> Result<Expression, ParseError> {
+    fn parse_expr(
+        &mut self,
+        limit: Precedence,
+        struct_allowed: bool,
+    ) -> Result<Expression, ParseError> {
         let mut left = self.parse_primary(struct_allowed)?;
         while let Some(op) = self.lexer.peek() {
             let next_limit = binop_precedence(&op.token);
@@ -866,7 +881,9 @@ impl<'a> Parser<'a> {
         }
         let expr = self.parse_expr(1, true)?;
         self.expect_end()?;
-        Ok(Statement::ReturnStatement(ReturnStatement { expr: Some(expr) }))
+        Ok(Statement::ReturnStatement(ReturnStatement {
+            expr: Some(expr),
+        }))
     }
 
     fn parse_stmt(&mut self, inside_block: bool) -> Result<Statement, ParseError> {
@@ -938,7 +955,7 @@ impl<'a> Parser<'a> {
                 //                         Just to explain: This part checks if the keyword is not true and not false
                 //                         so the parse_stmt function does not think that true or false is a statement keyword,
                 //                         so if this condition fails, it falls through to the next case (_) which parses it as an
-                //                         expression, the correct way to threat true and false. 
+                //                         expression, the correct way to threat true and false.
                 Token::Keyword(k) if k != Keyword::True && k != Keyword::False => Node {
                     span: lexem.span,
                     stmt: self.parse_stmt(inside_block)?,

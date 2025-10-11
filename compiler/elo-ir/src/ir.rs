@@ -126,7 +126,6 @@ pub enum Expression {
     },
 }
 
-
 #[derive(Debug, Clone)]
 pub struct VarStatement {
     pub binding: String,
