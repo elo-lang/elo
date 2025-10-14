@@ -7,6 +7,7 @@ edition = "2024"
 
 [package]
 name = "elo"
+build = "build.rs"
 version.workspace = true
 edition.workspace = true
 

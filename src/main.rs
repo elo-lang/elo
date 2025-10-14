@@ -1,18 +1,17 @@
-use elo_ast::ast;
-use elo_codegen::generator::*;
-use elo_error::{parseerror, typeerror};
+mod cli;
+mod tcc;
+
 use elo_ir::ir;
+use elo_ast::ast;
+use elo_error::{parseerror, typeerror};
+
 use elo_lexer::{inputfile::InputFile, lexer::Lexer};
 use elo_parser::parser::*;
 use elo_validation::validation::*;
+use elo_codegen::generator::*;
 
-mod cli;
 use crate::cli::*;
-
-use std::collections::HashMap;
 use std::env::args;
-use std::io::{Read, Write};
-use std::path::Path;
 
 fn parse_program(p: InputFile) -> Result<ast::Program, parseerror::ParseError> {
     let lexer = Lexer::new(p);
@@ -23,6 +22,14 @@ fn parse_program(p: InputFile) -> Result<ast::Program, parseerror::ParseError> {
 fn validate_program(prog: ast::Program) -> Result<ir::ValidatedProgram, typeerror::TypeError> {
     let validator = Validator::new(prog);
     validator.validate()
+}
+
+fn strip_extension(path: String) -> String {
+    if let Some(i) = path.find(".") {
+        return path.as_str()[..i].to_string();
+    } else {
+        return path;
+    }
 }
 
 fn main() {
@@ -45,15 +52,13 @@ fn main() {
                 match parse_program(input_file) {
                     Ok(program) => match validate_program(program) {
                         Ok(validated_program) => {
-                            let mut r#gen =
-                                elo_codegen::generator::Generator::new(validated_program);
+                            let mut r#gen = Generator::new(validated_program);
                             r#gen.generate();
-                            let output = output.unwrap_or(format!("{input}.out.c"));
-                            if let Ok(mut f) = std::fs::File::create(&output) {
-                                f.write(r#gen.output.as_bytes()).unwrap();
-                            } else {
-                                fatal(&args[0], &format!("could not write output file {output}"));
-                            }
+                            let output = output.unwrap_or(format!("{}.out", strip_extension(input)));
+                            let mut s = tcc::TCCState::new();
+                            s.set_output_type(tcc::OutputType::Executable);
+                            s.compile_string(&r#gen.output).unwrap();
+                            s.output_file(&output);
                         }
                         Err(e) => {
                             typeerror::type_error(
