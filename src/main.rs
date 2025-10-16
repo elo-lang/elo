@@ -42,7 +42,6 @@ fn main() {
         Command::Build {
             input,
             output,
-            optimization,
         } => {
             if let Some(content) = std::fs::read_to_string(&input).ok() {
                 let input_file = InputFile {

@@ -49,26 +49,14 @@ pub fn help(program: &str, command: Option<&Command>) {
             eprintln!("    <input>          Source code input file to build");
             eprintln!("flags:");
             eprintln!("    -o <output>      Specify output file");
-            eprintln!("    -O0              Set optimization level to 0");
-            eprintln!("    -O1              Set optimization level to 1 (default)");
-            eprintln!("    -O2              Set optimization level to 2");
-            eprintln!("    -O3              Set optimization level to 3");
         }
     }
-}
-
-pub enum O {
-    None,       // -O0
-    Normal,     // -O1
-    Medium,     // -O2
-    Aggressive, // -O3
 }
 
 pub enum Command {
     Build {
         input: String,
         output: Option<String>,
-        optimization: O,
     },
     Run {
         input: String,
@@ -84,7 +72,6 @@ impl Command {
             "build" | "b" => Some(Command::Build {
                 input: String::new(),
                 output: None,
-                optimization: O::Normal,
             }),
             "run" | "r" => Some(Command::Run {
                 input: String::new(),
@@ -139,16 +126,11 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
 
     let mut input = None;
     let mut output = None;
-    let mut optimization = O::Normal;
 
     let mut i = 2; // Start after the command and program name
     while i < args.len() {
         let arg = &args[i];
         match arg.as_str() {
-            "-O0" => optimization = O::None,
-            "-O1" => optimization = O::Normal,
-            "-O2" => optimization = O::Medium,
-            "-O3" => optimization = O::Aggressive,
             _ if arg.starts_with("-o") => {
                 let rest = arg[2..].to_string();
                 if rest.is_empty() {
@@ -186,7 +168,6 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
     Ok(Command::Build {
         input: input.unwrap(),
         output,
-        optimization,
     })
 }
 
