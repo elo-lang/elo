@@ -43,6 +43,7 @@ fn main() {
     let comm = parse_args(&args).unwrap_or_else(|_| {
         cli::error(&args[0], "could not parse command line arguments");
     });
+    let args_program = &args[0];
     let mut tcc = tcc::TCCState::new();
     
     match comm {
@@ -89,7 +90,7 @@ fn main() {
         }
         Command::Run {
             input,
-            args,
+            args: arguments,
         } => {
             if let Some(content) = std::fs::read_to_string(&input).ok() {
                 let input_file = InputFile {
@@ -102,7 +103,8 @@ fn main() {
                             tcc.set_output_type(tcc::OutputType::Memory);
                             let g = generate_program(validated_program);
                             tcc.compile_string(&g).unwrap();
-                            tcc.run(&args.iter().map(|x| x.as_str()).collect::<Vec<&str>>())
+                            let arguments = arguments.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
+                            tcc.run(&arguments)
                         }
                         Err(e) => {
                             typeerror::type_error(

@@ -13,7 +13,7 @@ pub fn information(program: &str, msg: &str) {
 pub fn usage(program: &str, command: Option<&Command>) {
     if let Some(cmd) = command {
         match cmd {
-            Command::Run { .. } => eprintln!("usage: {program} run <input>"),
+            Command::Run { .. } => eprintln!("usage: {program} run <input> [...<args>]"),
             Command::Build { .. } => {
                 eprintln!("usage: {program} build <input> [-o <output>] [-O0|-O1|-O2|-O3]")
             }
@@ -95,6 +95,7 @@ fn parse_run(program: &str, args: &[String]) -> Result<Command, ()> {
     for arg in args.iter().skip(2) {
         match arg.as_str() {
             _ if input.is_none() => {
+                arguments.push(String::from(arg));
                 input = Some(String::from(arg));
             }
             arg => {
