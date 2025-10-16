@@ -60,6 +60,7 @@ pub enum Command {
     },
     Run {
         input: String,
+        args: Vec<String>
     },
     Help {
         command: Option<String>,
@@ -75,6 +76,7 @@ impl Command {
             }),
             "run" | "r" => Some(Command::Run {
                 input: String::new(),
+                args: Vec::new(),
             }),
             "help" => Some(Command::Help { command: None }),
             _ => None,
@@ -87,36 +89,28 @@ fn parse_run(program: &str, args: &[String]) -> Result<Command, ()> {
         return Err(());
     }
 
-    let input = None;
+    let mut input = None;
+    let mut arguments: Vec<String> = Vec::new();
 
-    for arg in args.iter().skip(1) {
+    for arg in args.iter().skip(2) {
         match arg.as_str() {
             _ if input.is_none() => {
-                return Ok(Command::Run {
-                    input: arg.to_string(),
-                });
+                input = Some(String::from(arg));
             }
-            _ if input.is_some() => {
-                usage(program, Command::from_str("run").as_ref());
-                fatal(program, &format!("unexpected positional argument `{arg}`"));
-                return Err(());
-            }
-            _ => {
-                usage(program, Command::from_str("run").as_ref());
-                fatal(program, "expected positional argument: <input>");
-                return Err(());
+            arg => {
+                arguments.push(String::from(arg));
             }
         }
     }
-
     if input.is_none() {
         usage(program, Command::from_str("build").as_ref());
         fatal(program, "expected positional argument: <input>");
         return Err(());
     }
-    Ok(Command::Run {
+    return Ok(Command::Run {
         input: input.unwrap(),
-    })
+        args: arguments
+    });
 }
 
 fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {

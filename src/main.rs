@@ -24,6 +24,12 @@ fn validate_program(prog: ast::Program) -> Result<ir::ValidatedProgram, typeerro
     validator.validate()
 }
 
+fn generate_program(prog: ir::ValidatedProgram) -> String {
+    let mut r#gen = Generator::new(prog);
+    r#gen.generate();
+    return r#gen.output;
+}
+
 fn strip_extension(path: String) -> String {
     if let Some(i) = path.find(".") {
         return path.as_str()[..i].to_string();
@@ -37,7 +43,8 @@ fn main() {
     let comm = parse_args(&args).unwrap_or_else(|_| {
         cli::error(&args[0], "could not parse command line arguments");
     });
-
+    let mut tcc = tcc::TCCState::new();
+    
     match comm {
         Command::Build {
             input,
@@ -51,13 +58,12 @@ fn main() {
                 match parse_program(input_file) {
                     Ok(program) => match validate_program(program) {
                         Ok(validated_program) => {
+                            tcc.set_output_type(tcc::OutputType::Executable);
                             let mut r#gen = Generator::new(validated_program);
                             r#gen.generate();
                             let output = output.unwrap_or(format!("{}.out", strip_extension(input)));
-                            let mut s = tcc::TCCState::new();
-                            s.set_output_type(tcc::OutputType::Executable);
-                            s.compile_string(&r#gen.output).unwrap();
-                            s.output_file(&output);
+                            tcc.compile_string(&r#gen.output).unwrap();
+                            tcc.output_file(&output);
                         }
                         Err(e) => {
                             typeerror::type_error(
@@ -81,6 +87,37 @@ fn main() {
                 help(&args[0], None);
             }
         }
-        _ => {}
+        Command::Run {
+            input,
+            args,
+        } => {
+            if let Some(content) = std::fs::read_to_string(&input).ok() {
+                let input_file = InputFile {
+                    filename: input.as_str(),
+                    content: content.as_str(),
+                };
+                match parse_program(input_file) {
+                    Ok(program) => match validate_program(program) {
+                        Ok(validated_program) => {
+                            tcc.set_output_type(tcc::OutputType::Memory);
+                            let g = generate_program(validated_program);
+                            tcc.compile_string(&g).unwrap();
+                            tcc.run(&args.iter().map(|x| x.as_str()).collect::<Vec<&str>>())
+                        }
+                        Err(e) => {
+                            typeerror::type_error(
+                                e.case,
+                                &e.span.unwrap().into_filespan(input_file),
+                            );
+                        }
+                    },
+                    Err(e) => {
+                        parseerror::parse_error(e.case, &e.span.unwrap().into_filespan(input_file));
+                    }
+                }
+            } else {
+                cli::error(&args[0], &format!("could not read input file {}", input));
+            }
+        }
     }
 }

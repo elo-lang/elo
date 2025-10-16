@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CString, c_char};
 
 mod ffi {
     use std::ffi::{c_int, c_char};
@@ -16,6 +16,7 @@ mod ffi {
         pub fn tcc_set_lib_path(s: *mut TCCState, path: *const c_char);
         pub fn tcc_add_file(s: *mut TCCState, filename: *const c_char) -> c_int;
         pub fn tcc_set_output_type(s: *mut TCCState, output_type: c_int) -> c_int;
+        pub fn tcc_run(s: *mut TCCState, argc: c_int, argv: *const *const c_char) -> c_int;
     }
 }
 
@@ -106,6 +107,25 @@ impl TCCState {
             return Ok(())
         }
         Err(())
+    }
+
+    pub fn run(&self, args: &[&str]) {
+        let argc = args.len() as i32;
+        
+        let argv: Vec<CString> = args.iter()
+            .map(|arg| CString::new(*arg).unwrap())
+            .collect();
+
+        let argv: Vec<*const c_char> = argv
+            .iter()
+            .map(|s| s.as_ptr())
+            .collect();
+
+        let argv = argv.as_ptr();
+
+        unsafe {
+            ffi::tcc_run(self.state, argc, argv);
+        }
     }
 }
 
