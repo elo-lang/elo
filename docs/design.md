@@ -36,13 +36,13 @@ struct Color {
 }
 
 fn my_function_using(using c: Color) {
-    # Inside this block of code, c, r, g, b, and a are valid variables
-    # with their respective values
-    # c: Color
-    # r: float
-    # g: float
-    # b: float
-    # a: float
+    // Inside this block of code, c, r, g, b, and a are valid variables
+    // with their respective values
+    // c: Color
+    // r: float
+    // g: float
+    // b: float
+    // a: float
 }
 
 # Instantiate structures using this syntax:
@@ -145,65 +145,134 @@ Define global constants using the keyword `const`:
 const PI: float = 3.1415
 ```
 
-## Memory management (not guaranteed to be something final)
-Elo (may) use manual memory management **with assistance**.
+## Memory management
 
-Cases:
+Elo provides **manual memory management** with **compiler-assisted safety**.
+The goal is to give programmers full control over dynamic memory while
+preventing common mistakes like leaks, double-frees, and
+use-after-free — all without introducing ownership complexity
+or implicit drops.
 
-### Memory not freed
+### Core Principles
+
+In Elo, you never directly allocate memory. You create data.
+Memory is a consequence.
+
+Elo treats heap values as constructed, not allocated — every heap
+value begins life fully formed, and ends only when the programmer says so.
+
+- **Manual allocation and deallocation**:
+  All dynamic memory must be explicitly freed by the programmer.
+
+- **Heap is constructed, not allocated**: 
+  Heap memory is created automatically when a value of a dynamic
+  type is instantiated. There is no alloc() or pointer arithmetic.
+  
+- **No implicit deallocations**:
+  The compiler never inserts automatic deallocation. Every drop is explicit.
+
+- **Safety enforcement**:
+  The compiler tracks heap allocations and their aliases,
+  issuing errors if misuse is detected.
+
+### Heap construction
+Dynamic types are automatically placed on the heap when instantiated. Examples:
+
 ```
+let s = "hello"       // dynamic string
+let arr = [1, 2, 3]   // dynamic array
+let map = ["a": 1]    // dynamic hashmap
+```
+* The heap is not exposed; you cannot manually allocate memory.
+
+Composite types containing dynamic fields are themselves heap-allocated.
+
+```
+struct Person { name: string, age: int }
+...
+let p = Person { name: "John", age: 30 }  // heap allocation
+```
+
+### Aliasing and Shallow Copies
+* Copying a heap variable creates a shallow alias; all copies refer to the same underlying allocation.
+* Dropping any alias invalidates all others.
+
+Example:
+```
+let a = "foo"
+let b = a
+drop a       // invalidates both a and b
+print(b)     // compile-time error: use after drop
+```
+
+* The compiler tracks alias sets to enforce this rule.
+
+### Function Parameters and Drop Permission (`!` operator)
+Elo introduces a function-level syntax for granting **drop permission**:
+* `!` before a parameter name marks it as dropped after the function.
+* Only parameters marked with `!` can be dropped by the callee.
+* After the call, the caller’s variable and all its aliases are invalidated.
+
+Example:
+```
+fn consume(!s: string) {
+    drop s   // allowed because ! grants permission
+}
+
 fn main() {
-  let a = [1, 2, 3] # Allocate simple dynamic array
+    let x = "hello"
+    consume(x)    // x invalid after call
+    print(x)      // error: invalid after permission transfer
 }
 ```
 
-This code does not compile because the memory is never freed.
-Error:
-```
-error: dynamic memory not freed 
-2 |  let a = [1, 2, 3] # Allocate simple dynamic array
-             ^-----------
-             dynamic memory allocation here
-             help: add `defer { drop a }` after this line
-```
+#### Rules
+1. **Explicit drop required**: Every path through a function must either `drop`
+   or forward the `!` parameter to another `!` parameter.
+2. **Compiler error if unused**:
+   If a `!` parameter reaches the end of a function without
+   being dropped, the compiler emits an error.
+3. Multiple consumable parameters are supported:
+   ```
+   fn consume(!a: string, !b: [int]) {
+       drop a
+       drop b
+   }
+   ```
+4. The return value of any function **always** escapes
+   the permission to the caller, unless the value is a `!` parameter.
 
-### Memory freed twice
+### Return Values and Escaping
+* Any non-`!` dynamic type returned from a function automatically transfers drop permission to the caller.
+
+Example:
 ```
+fn make_string(): string {
+    let s = "hello"
+    ret s       # permission escapes to caller
+}
+
 fn main() {
-  let a = "Hello world" # dynamic string
-  drop a
-  drop a
+    let x = make_string()
+    drop x      # caller now responsible
 }
 ```
 
-This code does not compile because the memory is freed twice.
-Error:
-```
-error: dynamic memory freed twice 
-4 |   drop a
-      ^-----
-      dynamic memory freed here
-      help: remove this statement
-```
+### Flow and Lifecycle
+Heap variables exist in one of these states:
+* Valid: Can be read, copied, or dropped.
+* Dropped: Deallocated; any use is an error.
+* Escaped: Returned or passed to another ! parameter; caller becomes responsible for dropping.
 
-### Memory used after free:
-```
-fn main() {
-  let ages = ["john": 21, "mary": 19] # Simple hashmap
-  drop ages
-  print('{a}')
-}
-```
+### Summary
+In Elo, dynamic memory is constructed, not allocated.
+Programmers are fully responsible for freeing memory.
+Aliases are automatically invalidated on drop,
+and consumable parameters (`!`) make explicit
+which values a function may deallocate.
 
-This code does not compile because the memory is used after it's been freed.
-Error:
-```
-error: dynamic memory used after deallocation 
-4 |   print('{a}')
-              ^
-              dynamic memory used here
-              help: use `drop` only after all uses
-```
+The system combines manual control with compiler-assisted safety,
+preserving predictability, stack-like usage, and minimal syntax complexity.
 
 ## Helper Types *
 
