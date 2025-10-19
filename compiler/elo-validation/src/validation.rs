@@ -2,7 +2,7 @@ use crate::namespace::{self, *};
 use elo_ast::ast::{self, ExpressionData};
 use elo_error::typeerror::{TypeError, TypeErrorCase};
 use elo_ir::ir::{self, Typing};
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 pub struct Validator {
     input: ast::Program,
@@ -308,7 +308,7 @@ impl Validator {
         }
     }
 
-    fn validate_node(&mut self, node: ast::Node) -> Result<ir::ValidatedNode, TypeError> {
+    fn validate_node(&mut self, node: ast::Node) -> Result<ir::Statement, TypeError> {
         match node.stmt {
             ast::Statement::LetStatement(stmt) => {
                 let assignment = &stmt.assignment;
@@ -324,13 +324,10 @@ impl Validator {
                         typing: typ.clone(),
                     },
                 );
-                Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::Variable {
-                        assignment: expr,
-                        binding: name.clone(),
-                        typing: typ,
-                        mutable: false,
-                    },
+                Ok(ir::Statement::Variable {
+                    assignment: expr,
+                    binding: name.clone(),
+                    typing: typ,
                 })
             }
             ast::Statement::VarStatement(stmt) => {
@@ -347,13 +344,10 @@ impl Validator {
                         typing: typ.clone(),
                     },
                 );
-                Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::Variable {
-                        assignment: expr,
-                        binding: name.clone(),
-                        typing: typ,
-                        mutable: true,
-                    },
+                Ok(ir::Statement::Variable {
+                    assignment: expr,
+                    binding: name.clone(),
+                    typing: typ,
                 })
             }
             ast::Statement::ConstStatement(stmt) => {
@@ -371,29 +365,23 @@ impl Validator {
                     });
                 }
                 self.namespace.constants.insert(name.clone(), typ.clone());
-                Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::Constant {
-                        value: expr,
-                        binding: name.clone(),
-                        typing: typ,
-                    },
+                Ok(ir::Statement::Constant {
+                    value: expr,
+                    binding: name.clone(),
+                    typing: typ,
                 })
             }
             ast::Statement::ReturnStatement(stmt) => {
                 if let Some(expr) = &stmt.expr {
                     let (expr, typ) = self.validate_expr(expr)?;
-                    return Ok(ir::ValidatedNode {
-                        stmt: ir::Statement::ReturnStatement {
-                            value: Some(expr),
-                            typing: typ,
-                        },
+                    return Ok(ir::Statement::ReturnStatement {
+                        value: Some(expr),
+                        typing: typ,
                     });
                 }
-                Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::ReturnStatement {
-                        value: None,
-                        typing: ir::Typing::Void,
-                    },
+                Ok(ir::Statement::ReturnStatement {
+                    value: None,
+                    typing: ir::Typing::Void,
                 })
             }
             ast::Statement::FnStatement(stmt) => {
@@ -436,12 +424,12 @@ impl Validator {
                 }
                 // Add extra return to the end in case of a function that returns void, or it will segfault
                 if validated_ret_type == ir::Typing::Void {
-                    validated_block.content.push(ir::ValidatedNode {
-                        stmt: ir::Statement::ReturnStatement {
+                    validated_block
+                        .content
+                        .push(ir::Statement::ReturnStatement {
                             value: None,
                             typing: ir::Typing::Void,
-                        },
-                    });
+                        });
                 }
 
                 // Pop the scope
@@ -461,9 +449,7 @@ impl Validator {
                     .functions
                     .insert(stmt.name, validated.clone());
 
-                return Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::FnStatement(validated),
-                });
+                return Ok(ir::Statement::FnStatement(validated));
             }
             ast::Statement::ExternFnStatement(stmt) => {
                 // TODO: Add type-checking
@@ -490,14 +476,12 @@ impl Validator {
                 self.namespace
                     .functions
                     .insert(stmt.name.clone(), validated.clone());
-                return Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::ExternFnStatement(ir::FunctionHead {
-                        name: stmt.name,
-                        ret: validated_ret_type,
-                        arguments: validated_args,
-                        variadic: stmt.variadic,
-                    }),
-                });
+                return Ok(ir::Statement::ExternFnStatement(ir::FunctionHead {
+                    name: stmt.name,
+                    ret: validated_ret_type,
+                    arguments: validated_args,
+                    variadic: stmt.variadic,
+                }));
             }
             ast::Statement::StructStatement(_stmt) => {
                 todo!();
@@ -508,9 +492,7 @@ impl Validator {
                     variants: stmt.variants,
                 };
                 self.namespace.enums.insert(e.name.clone(), e.clone());
-                return Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::EnumStatement(e),
-                });
+                return Ok(ir::Statement::EnumStatement(e));
             }
             ast::Statement::IfStatement(stmt) => {
                 self.namespace.locals.push(namespace::Scope {
@@ -542,15 +524,13 @@ impl Validator {
                     }
                 }
                 self.namespace.locals.pop(); // Pop the false block scope
-                return Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::IfStatement {
-                        condition,
-                        block_true: ir::Block {
-                            content: block_true_content,
-                        },
-                        block_false: ir::Block {
-                            content: block_false_content,
-                        },
+                return Ok(ir::Statement::IfStatement {
+                    condition,
+                    block_true: ir::Block {
+                        content: block_true_content,
+                    },
+                    block_false: ir::Block {
+                        content: block_false_content,
                     },
                 });
             }
@@ -559,20 +539,20 @@ impl Validator {
                 todo!();
             }
             ast::Statement::ExpressionStatement(stmt) => {
-                return Ok(ir::ValidatedNode {
-                    stmt: ir::Statement::ExpressionStatement(self.validate_expr(&stmt)?.0),
-                });
+                return Ok(ir::Statement::ExpressionStatement(
+                    self.validate_expr(&stmt)?.0,
+                ));
             }
         }
     }
 
     // Type-check and transform the AST into the IR of Elo code
-    pub fn validate(mut self) -> Result<ir::ValidatedProgram, TypeError> {
+    pub fn validate(mut self) -> Result<ir::Program, TypeError> {
         // This is why i'm making a language
         let mut nodes = Vec::new();
         for node in std::mem::take(&mut self.input.nodes) {
             nodes.push(self.validate_node(node)?);
         }
-        Ok(ir::ValidatedProgram { nodes })
+        Ok(ir::Program { nodes })
     }
 }

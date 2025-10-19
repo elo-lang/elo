@@ -135,17 +135,12 @@ pub struct VarStatement {
 
 #[derive(Debug, Clone)]
 pub struct Block {
-    pub content: Vec<ValidatedNode>,
+    pub content: Vec<Statement>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ValidatedProgram {
-    pub nodes: Vec<ValidatedNode>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ValidatedNode {
-    pub stmt: Statement,
+pub struct Program {
+    pub nodes: Vec<Statement>,
 }
 
 #[derive(Debug, Clone)]
@@ -270,7 +265,6 @@ pub enum Statement {
         binding: String,
         assignment: Expression,
         typing: Typing,
-        mutable: bool,
     },
     Constant {
         binding: String,
