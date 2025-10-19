@@ -1,13 +1,13 @@
 use crate::c;
-use elo_ir::ir::{self, ValidatedProgram};
+use elo_ir::ir::{self, Program};
 
 pub struct Generator {
-    pub input: ValidatedProgram,
+    pub input: Program,
     pub output: String,
 }
 
 impl Generator {
-    pub fn new(input: ValidatedProgram) -> Self {
+    pub fn new(input: Program) -> Self {
         Self {
             input: input,
             output: String::from(HEAD),
@@ -99,9 +99,9 @@ impl Generator {
         }
     }
 
-    pub fn generate_from_node(&mut self, node: &mut ir::ValidatedNode, toplevel: bool) -> String {
+    pub fn generate_statement(&mut self, stmt: &mut ir::Statement) -> String {
         let mut output = String::new();
-        match &mut node.stmt {
+        match stmt {
             ir::Statement::Constant {
                 value,
                 binding,
@@ -109,9 +109,9 @@ impl Generator {
             } => {
                 output.push_str("static ");
                 output.push_str(self.choose_type(typing.clone()).as_str());
-                output.push_str(binding);
+                output.push_str(&binding);
                 output.push('=');
-                let expr = self.generate_expression(value);
+                let expr = self.generate_expression(&value);
                 output.push_str(&expr);
                 output.push(';');
             }
@@ -129,7 +129,7 @@ impl Generator {
                     .block
                     .content
                     .iter_mut()
-                    .map(|x| self.generate_from_node(x, false))
+                    .map(|x| self.generate_statement(x))
                     .collect::<Vec<String>>();
                 let body = c::build_statement_list(body.as_slice());
                 output.push_str(&c::build_function_definition(
@@ -167,17 +167,16 @@ impl Generator {
                 binding,
                 assignment,
                 typing,
-                mutable,
-            } if !toplevel => {
+            } => {
                 let typ = self.choose_type(typing.clone());
-                let expr = self.generate_expression(assignment);
+                let expr = self.generate_expression(&assignment);
                 output.push_str(&c::build_variable_definition(typ, binding.clone(), expr));
             }
             ir::Statement::ExpressionStatement(expr) => {
-                let e = self.generate_expression(expr);
+                let e = self.generate_expression(&expr);
                 output.push_str(&e);
             }
-            ir::Statement::ReturnStatement { value, typing: _ } if !toplevel => {
+            ir::Statement::ReturnStatement { value, typing: _ } => {
                 let e = value.as_ref().map(|x| self.generate_expression(x));
                 output.push_str(&c::build_return(e));
             }
@@ -190,7 +189,7 @@ impl Generator {
                 let r#true = block_true
                     .content
                     .iter_mut()
-                    .map(|x| self.generate_from_node(x, false))
+                    .map(|x| self.generate_statement(x))
                     .collect::<Vec<String>>();
                 let r#true = c::build_statement_list(r#true.as_slice());
 
@@ -199,7 +198,7 @@ impl Generator {
                     let f = block_false
                         .content
                         .iter_mut()
-                        .map(|x| self.generate_from_node(x, false))
+                        .map(|x| self.generate_statement(x))
                         .collect::<Vec<String>>();
                     r#false = Some(c::build_statement_list(f.as_slice()));
                 }
@@ -212,7 +211,7 @@ impl Generator {
 
     pub fn generate(&mut self) {
         for mut node in std::mem::take(&mut self.input.nodes) {
-            let node = self.generate_from_node(&mut node, true);
+            let node = self.generate_statement(&mut node);
             self.output.push_str(&node);
             self.output.push_str(";\n");
         }

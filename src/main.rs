@@ -1,14 +1,14 @@
 mod cli;
 mod tcc;
 
-use elo_ir::ir;
 use elo_ast::ast;
 use elo_error::{parseerror, typeerror};
+use elo_ir::ir;
 
+use elo_codegen::generator::*;
 use elo_lexer::{inputfile::InputFile, lexer::Lexer};
 use elo_parser::parser::*;
 use elo_validation::validation::*;
-use elo_codegen::generator::*;
 
 use crate::cli::*;
 use std::env::args;
@@ -19,12 +19,12 @@ fn parse_program(p: InputFile) -> Result<ast::Program, parseerror::ParseError> {
     parser.parse()
 }
 
-fn validate_program(prog: ast::Program) -> Result<ir::ValidatedProgram, typeerror::TypeError> {
+fn validate_program(prog: ast::Program) -> Result<ir::Program, typeerror::TypeError> {
     let validator = Validator::new(prog);
     validator.validate()
 }
 
-fn generate_program(prog: ir::ValidatedProgram) -> String {
+fn generate_program(prog: ir::Program) -> String {
     let mut r#gen = Generator::new(prog);
     r#gen.generate();
     return r#gen.output;
@@ -45,12 +45,9 @@ fn main() {
     });
     let args_program = &args[0];
     let mut tcc = tcc::TCCState::new();
-    
+
     match comm {
-        Command::Build {
-            input,
-            output,
-        } => {
+        Command::Build { input, output } => {
             if let Some(content) = std::fs::read_to_string(&input).ok() {
                 let input_file = InputFile {
                     filename: input.as_str(),
@@ -62,7 +59,8 @@ fn main() {
                             tcc.set_output_type(tcc::OutputType::Executable);
                             let mut r#gen = Generator::new(validated_program);
                             r#gen.generate();
-                            let output = output.unwrap_or(format!("{}.out", strip_extension(input)));
+                            let output =
+                                output.unwrap_or(format!("{}.out", strip_extension(input)));
                             tcc.compile_string(&r#gen.output).unwrap();
                             tcc.output_file(&output);
                         }
@@ -103,7 +101,8 @@ fn main() {
                             tcc.set_output_type(tcc::OutputType::Memory);
                             let g = generate_program(validated_program);
                             tcc.compile_string(&g).unwrap();
-                            let arguments = arguments.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
+                            let arguments =
+                                arguments.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
                             tcc.run(&arguments)
                         }
                         Err(e) => {
