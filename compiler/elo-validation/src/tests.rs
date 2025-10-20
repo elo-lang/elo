@@ -12,12 +12,12 @@ fn test_file() {
 
     let prog = Parser::new(lx).parse().unwrap();
     let val = Validator::new(prog);
-    match val.validate() {
+    match val.go() {
         Ok(ast) => {
             println!("{:#?}", ast);
         }
-        Err(e) => {
-            println!("{e:?}");
+        Err(_) => {
+            panic!();
         }
     }
 }

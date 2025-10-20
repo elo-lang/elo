@@ -1,3 +1,3 @@
-pub mod namespace;
 pub mod tests;
+pub mod typecheck;
 pub mod validation;
