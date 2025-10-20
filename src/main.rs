@@ -8,7 +8,7 @@ use elo_ir::ir;
 use elo_codegen::generator::*;
 use elo_lexer::{inputfile::InputFile, lexer::Lexer};
 use elo_parser::parser::*;
-use elo_validation::validation::*;
+use elo_validation::validation::{self, *};
 
 use crate::cli::*;
 use std::env::args;
@@ -19,9 +19,9 @@ fn parse_program(p: InputFile) -> Result<ast::Program, parseerror::ParseError> {
     parser.parse()
 }
 
-fn validate_program(prog: ast::Program) -> Result<ir::Program, typeerror::TypeError> {
+fn validate_program(prog: ast::Program) -> Result<ir::Program, validation::ValidationError> {
     let validator = Validator::new(prog);
-    validator.validate()
+    validator.go()
 }
 
 fn generate_program(prog: ir::Program) -> String {
@@ -64,12 +64,14 @@ fn main() {
                             tcc.compile_string(&r#gen.output).unwrap();
                             tcc.output_file(&output);
                         }
-                        Err(e) => {
-                            typeerror::type_error(
-                                e.case,
-                                &e.span.unwrap().into_filespan(input_file),
-                            );
-                        }
+                        Err(e) => match e {
+                            ValidationError::TypeChecking(e) => {
+                                typeerror::type_error(
+                                    e.case,
+                                    &e.span.unwrap().into_filespan(input_file),
+                                );
+                            }
+                        },
                     },
                     Err(e) => {
                         parseerror::parse_error(e.case, &e.span.unwrap().into_filespan(input_file));
@@ -105,12 +107,14 @@ fn main() {
                                 arguments.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
                             tcc.run(&arguments)
                         }
-                        Err(e) => {
-                            typeerror::type_error(
-                                e.case,
-                                &e.span.unwrap().into_filespan(input_file),
-                            );
-                        }
+                        Err(e) => match e {
+                            ValidationError::TypeChecking(e) => {
+                                typeerror::type_error(
+                                    e.case,
+                                    &e.span.unwrap().into_filespan(input_file),
+                                );
+                            }
+                        },
                     },
                     Err(e) => {
                         parseerror::parse_error(e.case, &e.span.unwrap().into_filespan(input_file));
