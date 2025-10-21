@@ -49,6 +49,7 @@ pub fn help(program: &str, command: Option<&Command>) {
             eprintln!("    <input>          Source code input file to build");
             eprintln!("flags:");
             eprintln!("    -o <output>      Specify output file");
+            eprintln!("    -c               Output C transpilation result instead of executable");
         }
     }
 }
@@ -57,10 +58,11 @@ pub enum Command {
     Build {
         input: String,
         output: Option<String>,
+        c: bool,
     },
     Run {
         input: String,
-        args: Vec<String>
+        args: Vec<String>,
     },
     Help {
         command: Option<String>,
@@ -73,6 +75,7 @@ impl Command {
             "build" | "b" => Some(Command::Build {
                 input: String::new(),
                 output: None,
+                c: false,
             }),
             "run" | "r" => Some(Command::Run {
                 input: String::new(),
@@ -110,7 +113,7 @@ fn parse_run(program: &str, args: &[String]) -> Result<Command, ()> {
     }
     return Ok(Command::Run {
         input: input.unwrap(),
-        args: arguments
+        args: arguments,
     });
 }
 
@@ -121,11 +124,15 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
 
     let mut input = None;
     let mut output = None;
+    let mut c = false;
 
     let mut i = 2; // Start after the command and program name
     while i < args.len() {
         let arg = &args[i];
         match arg.as_str() {
+            "-c" => {
+                c = true;
+            }
             _ if arg.starts_with("-o") => {
                 let rest = arg[2..].to_string();
                 if rest.is_empty() {
@@ -163,6 +170,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
     Ok(Command::Build {
         input: input.unwrap(),
         output,
+        c: c,
     })
 }
 

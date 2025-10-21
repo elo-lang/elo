@@ -191,6 +191,7 @@ pub enum Primitive {
     UInt,
     Float,
     Str,
+    Char,
 }
 
 impl Primitive {
@@ -214,6 +215,7 @@ impl Primitive {
             "u128" => Some(Primitive::U128),
             "bool" => Some(Primitive::Bool),
             "str" => Some(Primitive::Str),
+            "char" => Some(Primitive::Char),
             _ => None,
         }
     }

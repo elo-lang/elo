@@ -161,7 +161,14 @@ impl TypeChecker {
                     operand_type,
                 ))
             }
-            ast::ExpressionData::CharacterLiteral { value } => todo!(),
+            ast::ExpressionData::CharacterLiteral { value } => {
+                return Ok((
+                    ir::Expression::StringLiteral {
+                        value: String::from(*value),
+                    },
+                    ir::Typing::Primitive(ir::Primitive::Char),
+                ));
+            }
             ast::ExpressionData::StrLiteral { value } => {
                 return Ok((
                     ir::Expression::StringLiteral {

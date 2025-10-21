@@ -35,10 +35,11 @@ impl Generator {
             ir::Typing::Primitive(ir::Primitive::F64) => "double".to_string(),
             // TODO: Make these int and uint to have the same size as the target architecture
             ir::Typing::Primitive(ir::Primitive::Int) => "intptr_t".to_string(),
-            ir::Typing::Primitive(ir::Primitive::UInt) => "unsigned int".to_string(),
+            ir::Typing::Primitive(ir::Primitive::UInt) => "uintptr_t".to_string(),
             // TODO: Make float have the size as the target architecture
             ir::Typing::Primitive(ir::Primitive::Float) => "float".to_string(),
             ir::Typing::Primitive(ir::Primitive::Str) => "char*".to_string(),
+            ir::Typing::Primitive(ir::Primitive::Char) => "uint32_t".to_string(),
             ir::Typing::Pointer { typ } => self.choose_type(*typ) + "*",
             ir::Typing::Void => "void".to_string(),
             _ => todo!(),

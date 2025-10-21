@@ -47,7 +47,7 @@ fn main() {
     let mut tcc = tcc::TCCState::new();
 
     match comm {
-        Command::Build { input, output } => {
+        Command::Build { input, output, c } => {
             if let Some(content) = std::fs::read_to_string(&input).ok() {
                 let input_file = InputFile {
                     filename: input.as_str(),
@@ -59,10 +59,15 @@ fn main() {
                             tcc.set_output_type(tcc::OutputType::Executable);
                             let mut r#gen = Generator::new(validated_program);
                             r#gen.go();
+
                             let output =
                                 output.unwrap_or(format!("{}.out", strip_extension(input)));
-                            tcc.compile_string(&r#gen.output).unwrap();
-                            tcc.output_file(&output);
+                            if (!c) {
+                                tcc.compile_string(&r#gen.output).unwrap();
+                                tcc.output_file(&output);
+                            } else {
+                                std::fs::write(&output, &r#gen.output).unwrap();
+                            }
                         }
                         Err(e) => match e {
                             ValidationError::TypeChecking(e) => {

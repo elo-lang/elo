@@ -588,7 +588,7 @@ impl<'a> Parser<'a> {
                     return Ok(expr);
                 }
                 Token::CharLiteral(c) => {
-                    let len = c.len();
+                    let len = c.chars().count();
                     if (len != 1) {
                         return Err(ParseError {
                             span: Some(lexem.span),
