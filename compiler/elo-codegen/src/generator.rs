@@ -209,7 +209,7 @@ impl Generator {
         return output;
     }
 
-    pub fn generate(&mut self) {
+    pub fn go(&mut self) {
         for mut node in std::mem::take(&mut self.input.nodes) {
             let node = self.generate_statement(&mut node);
             self.output.push_str(&node);

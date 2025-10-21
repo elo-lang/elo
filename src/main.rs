@@ -26,7 +26,7 @@ fn validate_program(prog: ast::Program) -> Result<ir::Program, validation::Valid
 
 fn generate_program(prog: ir::Program) -> String {
     let mut r#gen = Generator::new(prog);
-    r#gen.generate();
+    r#gen.go();
     return r#gen.output;
 }
 
@@ -58,7 +58,7 @@ fn main() {
                         Ok(validated_program) => {
                             tcc.set_output_type(tcc::OutputType::Executable);
                             let mut r#gen = Generator::new(validated_program);
-                            r#gen.generate();
+                            r#gen.go();
                             let output =
                                 output.unwrap_or(format!("{}.out", strip_extension(input)));
                             tcc.compile_string(&r#gen.output).unwrap();

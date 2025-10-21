@@ -12,6 +12,6 @@ fn test_file() {
     let prog = Parser::new(lx).parse().unwrap();
     let val = Validator::new(prog).go().unwrap();
     let mut r#gen = crate::generator::Generator::new(val);
-    r#gen.generate();
+    r#gen.go();
     println!("{}", r#gen.output);
 }
