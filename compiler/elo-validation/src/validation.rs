@@ -3,6 +3,7 @@ use elo_ast::ast;
 use elo_error::typeerror::*;
 use elo_ir::ir;
 
+#[derive(Debug)]
 pub enum ValidationError {
     TypeChecking(TypeError),
 }
