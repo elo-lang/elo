@@ -161,8 +161,9 @@ impl Generator {
             ir::Statement::StructStatement(_stmt) => {
                 todo!();
             }
-            ir::Statement::EnumStatement(_stmt) => {
-                todo!();
+            ir::Statement::EnumStatement(stmt) => {
+                let doby = c::build_comma_list(&stmt.variants);
+                output.push_str(&c::build_enum_definition(stmt.name.clone(), doby));
             }
             ir::Statement::Variable {
                 binding,

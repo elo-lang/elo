@@ -125,3 +125,7 @@ pub fn build_return(value: Option<String>) -> String {
         }
     );
 }
+
+pub fn build_enum_definition(name: String, body: String) -> String {
+    return format!("typedef enum {{ {body} }} {name}");
+}
