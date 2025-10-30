@@ -3,6 +3,13 @@ pub enum Binop {
     Sub,
     Mul,
     Div,
+    Lt,
+    Gt,
+    Le,
+    Ge,
+    Ne,
+    Eq,
+    Assign,
 }
 
 impl std::fmt::Display for Binop {
@@ -12,6 +19,13 @@ impl std::fmt::Display for Binop {
             Binop::Sub => write!(f, "-"),
             Binop::Mul => write!(f, "*"),
             Binop::Div => write!(f, "/"),
+            Binop::Lt => write!(f, "<"),
+            Binop::Gt => write!(f, ">"),
+            Binop::Le => write!(f, "<="),
+            Binop::Ge => write!(f, ">="),
+            Binop::Ne => write!(f, "!="),
+            Binop::Eq => write!(f, "=="),
+            Binop::Assign => write!(f, "="),
         }
     }
 }
@@ -109,6 +123,10 @@ pub fn build_if(condition: String, r#true: String, r#false: Option<String>) -> S
             String::new()
         }
     );
+}
+
+pub fn build_while(condition: String, block: String) -> String {
+    return format!("while({condition})\n{{{block}}}");
 }
 
 pub fn build_variable_definition(r#type: String, name: String, value: String) -> String {
