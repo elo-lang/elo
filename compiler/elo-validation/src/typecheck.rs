@@ -426,9 +426,7 @@ impl TypeChecker {
                     Some(ret_type) => self.check_type(ret_type)?,
                     None => ir::Typing::Void,
                 };
-                let mut validated_block = ir::Block {
-                    content: Vec::new(),
-                };
+                let mut validated_block = Vec::new();
                 let xs = Box::new(stmt.block.content);
 
                 // Create a new scope for the function
@@ -448,16 +446,14 @@ impl TypeChecker {
                     );
                 }
                 for a in xs.into_iter() {
-                    validated_block.content.push(self.typecheck_node(a)?);
+                    validated_block.push(self.typecheck_node(a)?);
                 }
                 // Add extra return to the end in case of a function that returns void, or it will segfault
                 if validated_ret_type == ir::Typing::Void {
-                    validated_block
-                        .content
-                        .push(ir::Statement::ReturnStatement {
-                            value: None,
-                            typing: ir::Typing::Void,
-                        });
+                    validated_block.push(ir::Statement::ReturnStatement {
+                        value: None,
+                        typing: ir::Typing::Void,
+                    });
                 }
 
                 // Pop the scope
@@ -494,9 +490,7 @@ impl TypeChecker {
                 };
                 let validated = ir::Function {
                     name: stmt.name.clone(),
-                    block: ir::Block {
-                        content: Vec::new(),
-                    },
+                    block: Vec::new(),
                     ret: validated_ret_type.clone(),
                     arguments: validated_args.clone(),
                     variadic: stmt.variadic,
@@ -523,9 +517,6 @@ impl TypeChecker {
                 return Ok(ir::Statement::EnumStatement(e));
             }
             ast::Statement::IfStatement(stmt) => {
-                self.namespace.locals.push(Scope {
-                    content: HashMap::new(),
-                });
                 let (condition, typing) = self.typecheck_expr(&stmt.condition)?;
                 if typing != ir::Typing::Primitive(ir::Primitive::Bool) {
                     return Err(TypeError {
@@ -536,6 +527,9 @@ impl TypeChecker {
                         },
                     });
                 }
+                self.namespace.locals.push(Scope {
+                    content: HashMap::new(),
+                });
                 let mut block_true_content = Vec::new();
                 for a in Box::new(stmt.block_true.content).into_iter() {
                     block_true_content.push(self.typecheck_node(a)?);
@@ -554,17 +548,31 @@ impl TypeChecker {
                 self.namespace.locals.pop(); // Pop the false block scope
                 return Ok(ir::Statement::IfStatement {
                     condition,
-                    block_true: ir::Block {
-                        content: block_true_content,
-                    },
-                    block_false: ir::Block {
-                        content: block_false_content,
-                    },
+                    block_true: block_true_content,
+                    block_false: block_false_content,
                 });
             }
-            ast::Statement::WhileStatement(_stmt) => {
+            ast::Statement::WhileStatement(stmt) => {
                 // TODO: Remember to push a new scope to the namespace
-                todo!();
+                let (condition, typing) = self.typecheck_expr(&stmt.condition)?;
+                if typing != ir::Typing::Primitive(ir::Primitive::Bool) {
+                    return Err(TypeError {
+                        span: Some(stmt.condition.span),
+                        case: TypeErrorCase::TypeMismatch {
+                            got: format!("{:?}", typing),
+                            expected: format!("{:?}", ir::Typing::Primitive(ir::Primitive::Bool)),
+                        },
+                    });
+                }
+                self.namespace.locals.push(Scope {
+                    content: HashMap::new(),
+                });
+                let mut block = Vec::new();
+                for a in Box::new(stmt.block.content).into_iter() {
+                    block.push(self.typecheck_node(a)?);
+                }
+                self.namespace.locals.pop();
+                return Ok(ir::Statement::WhileStatement { condition, block });
             }
             ast::Statement::ExpressionStatement(stmt) => {
                 return Ok(ir::Statement::ExpressionStatement(
