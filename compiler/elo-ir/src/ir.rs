@@ -133,10 +133,7 @@ pub struct VarStatement {
     pub typing: Typing,
 }
 
-#[derive(Debug, Clone)]
-pub struct Block {
-    pub content: Vec<Statement>,
-}
+pub type Block = Vec<Statement>;
 
 #[derive(Debug, Clone)]
 pub struct Program {
@@ -282,6 +279,10 @@ pub enum Statement {
         condition: Expression,
         block_true: Block,
         block_false: Block,
+    },
+    WhileStatement {
+        condition: Expression,
+        block: Block,
     },
     FnStatement(Function),
     ExternFnStatement(FunctionHead),
