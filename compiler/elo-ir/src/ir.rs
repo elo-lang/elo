@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum BinaryOperation {
     Add,
@@ -160,7 +162,7 @@ pub struct FunctionHead {
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Struct {
     pub name: String,
-    pub fields: Vec<TypedField>,
+    pub fields: HashMap<String, Typing>,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -240,17 +242,8 @@ pub enum Typing {
     },
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub struct TypedField {
-    pub name: String,
-    pub typing: Typing,
-}
-
-#[derive(Debug, Clone)]
-pub struct Field {
-    pub name: String,
-    pub value: Expression,
-}
+pub type TypedField = (String, Typing);
+pub type Field = (String, Expression);
 
 #[derive(Debug, Clone)]
 pub struct ReturnStatement {
