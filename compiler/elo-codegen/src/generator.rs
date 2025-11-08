@@ -150,9 +150,9 @@ impl Generator {
                 let r#return = self.choose_type(stmt.ret.clone());
                 let name = stmt.name.clone();
                 let mut arguments = Vec::new();
-                for i in &stmt.arguments {
-                    let t = self.choose_type(i.typing.clone());
-                    let n = i.name.clone();
+                for (name, typing) in &stmt.arguments {
+                    let t = self.choose_type(typing.clone());
+                    let n = name.clone();
                     arguments.push(c::build_typed_field(t, n));
                 }
                 let arguments = c::build_comma_list(arguments.as_slice());
@@ -174,9 +174,9 @@ impl Generator {
                 let r#return = self.choose_type(stmt.ret.clone());
                 let name = stmt.name.clone();
                 let mut arguments = Vec::new();
-                for i in &stmt.arguments {
-                    let t = self.choose_type(i.typing.clone());
-                    let n = i.name.clone();
+                for (name, typing) in &stmt.arguments {
+                    let t = self.choose_type(typing.clone());
+                    let n = name.clone();
                     arguments.push(c::build_typed_field(t, n));
                 }
                 let arguments = c::build_comma_list(arguments.as_slice());
