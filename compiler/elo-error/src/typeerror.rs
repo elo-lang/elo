@@ -23,6 +23,10 @@ pub enum TypeErrorCase {
         got: usize,
         expected: usize,
     },
+    UnresolvedMember {
+        name: String,
+        from: String,
+    },
 }
 
 #[derive(Debug)]
@@ -79,6 +83,15 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 &format!(
                     "arguments to function {name}: expected {expected} argument(s) but got {got} argument(s) in the function call."
                 ),
+                filespan,
+                None,
+                None,
+            );
+        }
+        TypeErrorCase::UnresolvedMember { name, from } => {
+            error(
+                "Type Check Error",
+                &format!("unresolved member: member {name} from {from} does not exist."),
                 filespan,
                 None,
                 None,
