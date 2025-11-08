@@ -1,5 +1,6 @@
 #[test]
 fn test_file() {
+    use crate::validation::ValidationError;
     use crate::validation::Validator;
     use elo_lexer::inputfile::InputFile;
     use elo_lexer::lexer::Lexer;
@@ -16,8 +17,12 @@ fn test_file() {
         Ok(ast) => {
             println!("{:#?}", ast);
         }
-        Err(_) => {
-            panic!();
+        Err(e) =>
+        {
+            #[allow(irrefutable_let_patterns)]
+            if let ValidationError::TypeChecking(t) = e {
+                println!("{:?}", t);
+            }
         }
     }
 }

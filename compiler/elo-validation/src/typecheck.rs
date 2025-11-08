@@ -1,4 +1,4 @@
-use elo_ast::ast;
+use elo_ast::ast::{self, TypedField};
 use elo_error::typeerror::*;
 use elo_ir::ir;
 use std::collections::HashMap;
@@ -195,8 +195,11 @@ impl TypeChecker {
             } => {
                 if let ast::ExpressionData::Identifier { name } = &function.data {
                     if let Some(func) = self.namespace.functions.get(name) {
-                        let arguments_to_check: Vec<ir::Typing> =
-                            func.arguments.iter().map(|x| x.typing.clone()).collect();
+                        let arguments_to_check: Vec<ir::Typing> = func
+                            .arguments
+                            .iter()
+                            .map(|(_, typing)| typing.clone())
+                            .collect();
                         let len_args = func.arguments.len();
                         let return_type = func.ret.clone();
                         if func.variadic && arguments.len() < len_args {
@@ -270,11 +273,47 @@ impl TypeChecker {
                     });
                 }
             }
-            ast::ExpressionData::StructInit {
-                name: _name,
-                fields: _fields,
-            } => {
-                todo!();
+            ast::ExpressionData::StructInit { name, fields } => {
+                let span = expr.span;
+                let strukt = self
+                    .namespace
+                    .structs
+                    .get(name)
+                    .ok_or_else(|| TypeError {
+                        span: Some(span),
+                        case: TypeErrorCase::UnresolvedName {
+                            name: format!("{}", &name),
+                        },
+                    })?
+                    .clone();
+                let mut checked_fields = Vec::new();
+                for field in fields {
+                    let expected_typing =
+                        strukt.fields.get(&field.name).ok_or_else(|| TypeError {
+                            span: Some(span),
+                            case: TypeErrorCase::UnresolvedMember {
+                                name: format!("{}", &field.name),
+                                from: format!("struct {}", &strukt.name),
+                            },
+                        })?;
+                    let field_value_span = field.value.span;
+                    let (expr, typing) = self.typecheck_expr(&field.value)?;
+                    if &typing != expected_typing {
+                        return Err(TypeError {
+                            span: Some(field_value_span),
+                            case: TypeErrorCase::TypeMismatch {
+                                got: format!("{:?}", typing),
+                                expected: format!("{:?}", expected_typing),
+                            },
+                        });
+                    }
+                    checked_fields.push((field.name.clone(), expr));
+                }
+                let thing = ir::Expression::StructInit {
+                    origin: strukt.clone(),
+                    fields: checked_fields,
+                };
+                Ok((thing, ir::Typing::Struct(strukt)))
             }
             ast::ExpressionData::IntegerLiteral { value } => {
                 let (lit, radix) = value;
@@ -312,7 +351,7 @@ impl TypeChecker {
                 } else if let Some(f) = self.namespace.functions.get(name) {
                     return Ok((
                         ir::Expression::Identifier { name: name.clone() },
-                        f.ret.clone(),
+                        f.ret.clone(), // FIXME: This should be the function pointer type
                     ));
                 } else {
                     // Iterate the local namespace in reverse (from the most recent scope to the oldest)
@@ -416,10 +455,7 @@ impl TypeChecker {
                 // TODO: Add type-checking
                 let mut validated_args = Vec::new();
                 for a in stmt.arguments.iter() {
-                    validated_args.push(ir::TypedField {
-                        name: a.name.clone(),
-                        typing: self.check_type(&a.typing)?,
-                    });
+                    validated_args.push((a.name.clone(), self.check_type(&a.typing)?));
                 }
 
                 let validated_ret_type = match &stmt.ret {
@@ -436,12 +472,13 @@ impl TypeChecker {
 
                 // Add the arguments to the scope
                 for arg in validated_args.iter() {
+                    let (name, typing) = arg;
                     self.namespace.locals.last_mut().unwrap().content.insert(
-                        arg.name.clone(),
+                        name.clone(),
                         Variable {
-                            name: arg.name.clone(),
+                            name: name.clone(),
                             mutable: false,
-                            typing: arg.typing.clone(),
+                            typing: typing.clone(),
                         },
                     );
                 }
@@ -479,10 +516,7 @@ impl TypeChecker {
                 // TODO: Add type-checking
                 let mut validated_args = Vec::new();
                 for a in stmt.arguments.iter() {
-                    validated_args.push(ir::TypedField {
-                        name: a.name.clone(),
-                        typing: self.check_type(&a.typing)?,
-                    });
+                    validated_args.push((a.name.clone(), self.check_type(&a.typing)?));
                 }
                 let validated_ret_type = match &stmt.ret {
                     Some(ret_type) => self.check_type(ret_type)?,
@@ -505,8 +539,18 @@ impl TypeChecker {
                     variadic: stmt.variadic,
                 }));
             }
-            ast::Statement::StructStatement(_stmt) => {
-                todo!();
+            ast::Statement::StructStatement(stmt) => {
+                let mut fields = HashMap::new();
+                for TypedField { name, typing } in &stmt.fields {
+                    let checked_type = self.check_type(typing)?;
+                    fields.insert(name.clone(), checked_type);
+                }
+                let e = ir::Struct {
+                    name: stmt.name,
+                    fields,
+                };
+                self.namespace.structs.insert(e.name.clone(), e.clone());
+                return Ok(ir::Statement::StructStatement(e));
             }
             ast::Statement::EnumStatement(stmt) => {
                 let e = ir::Enum {
