@@ -6,8 +6,11 @@ This file is not meant to be any kind of documentation or reference. This is the
 characteristics and systems.
 
 ## Table of contents
-- `philosophy.md`: Explains what Elo really aims to be as an useful tool for developers.
-- `basic.md`: Describes the basic features of the language (fns, structs, enums, control flow, etc.)
+If you are interested in knowing about what this language **really** is, please read these
+markdown documents in order.
+
+- [`philosophy.md`](./philosophy.md): Explains what Elo really aims to be as an useful tool for developers.
+- [`basic.md`](./basic.md): Describes the basic features of the language (fns, structs, enums, control flow, etc.)
               and its differences from other programming languages.
-- `typing.md`: Description about the use of the primitive and other types available to the user and how Elo handles them.
-- `amm.md`: Specifies the memory management system we named **AMM** (stands for Assisted Memory Management) that will be implemented in this language.
+- [`typing.md`](./typing.md): Description about the use of the primitive and other types available to the user and how Elo handles them.
+- [`amm.md`](./amm.md): Specifies the memory management system we named **AMM** (stands for Assisted Memory Management) that will be implemented in this language.
