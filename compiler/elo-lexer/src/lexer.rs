@@ -49,6 +49,7 @@ macro_rules! two_char_op {
             | "||"
             | ">>"
             | "<<"
+            | "=>"
     };
 }
 
