@@ -8,7 +8,6 @@ fn test_integers() {
 
     for lexem in lx {
         let token = lexem.token;
-        let span = lexem.span;
         // println!(
         //     "{}:{}:{} \"{}\"",
         //     span.line,

@@ -589,7 +589,7 @@ impl<'a> Parser<'a> {
                 }
                 Token::CharLiteral(c) => {
                     let len = c.chars().count();
-                    if (len != 1) {
+                    if len != 1 {
                         return Err(ParseError {
                             span: Some(lexem.span),
                             case: ParseErrorCase::InvalidCharacterLiteral,
@@ -731,7 +731,7 @@ impl<'a> Parser<'a> {
         Ok(Statement::ConstStatement(ConstStatement {
             binding: ident,
             assignment: expr,
-            typing: typing,
+            typing,
         }))
     }
 
@@ -785,10 +785,10 @@ impl<'a> Parser<'a> {
         let block = self.parse_stmts()?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::FnStatement(FnStatement {
-            name: name,
-            block: block,
+            name,
+            block,
             ret: typ,
-            arguments: arguments,
+            arguments,
         }))
     }
 
@@ -825,9 +825,9 @@ impl<'a> Parser<'a> {
         }
         self.expect_end()?;
         Ok(Statement::ExternFnStatement(ExternFnStatement {
-            name: name,
+            name,
             ret: typ,
-            arguments: arguments,
+            arguments,
             variadic,
         }))
     }
@@ -882,9 +882,7 @@ impl<'a> Parser<'a> {
 
     fn parse_while_stmt(&mut self) -> Result<Statement, ParseError> {
         let condition = self.parse_expr(1, false)?;
-        self.expect_token(Token::Delimiter('{'))?;
-        let block = self.parse_stmts()?;
-        self.expect_token(Token::Delimiter('}'))?;
+        let block = self.parse_block(true, true)?;
         Ok(Statement::WhileStatement(WhileStatement {
             condition,
             block,

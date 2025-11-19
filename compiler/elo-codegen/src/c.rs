@@ -65,7 +65,7 @@ pub fn build_comma_list(arguments: &[String]) -> String {
     let l = arguments.len();
     for (i, x) in arguments.into_iter().enumerate() {
         s.push_str(x);
-        if (i + 1 < l) {
+        if i + 1 < l {
             s.push(',');
         }
     }
