@@ -127,3 +127,72 @@ Constant is a named binding to a constant value, known at compile time.
 ```
 const PI: float = 3.1415
 ```
+
+## Control flow
+Control how your program executes based on choices of the code.
+
+### If statements
+- Use `if` statements the following way:
+```
+let condition = 10 > 3;
+if condition {
+    print('ok');
+}
+```
+- If you want a single-liner, use the `=>` syntax:
+```
+if condition => print('ok');
+```
+- For otherwise and else-if conditions, do the following:
+```
+if condition {
+    print('ok')
+} else if condition {
+    print('ok 2')
+} else {
+    print('fail')
+}
+```
+- You can also use `=>` syntax in any other kind of block that uses `{}`:
+```
+if condition      => print('ok')
+else if condition => print('ok 2')
+else              => print('fail')
+```
+
+### Loops
+
+#### `while` statement
+- Use `while` statements the following way:
+```
+var c = 0;
+while c <= 100 {
+    print('ok');
+    c += 1
+}
+```
+- If you want a single-liner, use the `=>` syntax:
+```
+while c <= 100 => c += 1;
+```
+
+#### `for` statement
+- Use `for` statements to iterate sequences the following way:
+```
+let arr = [1, 2, 3, 4, 5]
+for i in arr {
+    print(i)
+}
+```
+
+- use `for` statements to iterate counters (c-style for loop) the following way:
+```
+for i = 0; i <= 10; i += 1 {
+    print(i)
+}
+```
+
+- If you want a single-liner, use the `=>` syntax:
+```
+for i in arr => print(i);
+```
