@@ -69,7 +69,7 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     pub fn new(lexer: Lexer<'a>) -> Parser<'a> {
-        let inputfile = lexer.span.input_file.clone();
+        let inputfile = lexer.span.input_file;
         Parser {
             lexer: lexer.peekable(),
             inputfile,
@@ -744,13 +744,32 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn parse_block(&mut self) -> Result<Block, ParseError> {
+    fn parse_stmts(&mut self) -> Result<Block, ParseError> {
         let mut ast = vec![];
         while let Some(node) = self.parse_node(true)? {
             ast.push(node);
         }
         let p = Block { content: ast };
         Ok(p)
+    }
+
+    fn parse_block(&mut self, lazy: bool, inside_block: bool) -> Result<Block, ParseError> {
+        let block: Block;
+        if let Some(Lexem { span, .. }) = self.test_token(Token::Op('=', Some('>')), lazy) {
+            if let Some(x) = self.parse_node(inside_block)? {
+                block = Block { content: vec![x] }
+            } else {
+                return Err(ParseError {
+                    span: Some(span),
+                    case: ParseErrorCase::ExpectedStatement,
+                });
+            }
+        } else {
+            self.expect_token(Token::Delimiter('{'))?;
+            block = self.parse_stmts()?;
+            self.expect_token(Token::Delimiter('}'))?;
+        }
+        Ok(block)
     }
 
     fn parse_fn_stmt(&mut self) -> Result<Statement, ParseError> {
@@ -763,7 +782,7 @@ impl<'a> Parser<'a> {
             typ = Some(self.parse_type()?);
         }
         self.expect_token(Token::Delimiter('{'))?;
-        let block = self.parse_block()?;
+        let block = self.parse_stmts()?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::FnStatement(FnStatement {
             name: name,
@@ -837,9 +856,7 @@ impl<'a> Parser<'a> {
 
     fn parse_if_stmt(&mut self) -> Result<Statement, ParseError> {
         let expr = self.parse_expr(1, false)?;
-        self.expect_token(Token::Delimiter('{'))?;
-        let block_true = self.parse_block()?;
-        self.expect_token(Token::Delimiter('}'))?;
+        let block_true = self.parse_block(true, true)?;
         let mut block_false: Option<Block> = None;
         if let Some(_) = self.test_token(Token::Keyword(Keyword::Else), true) {
             if let Some(elseif) = self.test_token(Token::Keyword(Keyword::If), true) {
@@ -852,7 +869,7 @@ impl<'a> Parser<'a> {
                 });
             } else {
                 self.expect_token(Token::Delimiter('{'))?;
-                block_false = Some(self.parse_block()?);
+                block_false = Some(self.parse_stmts()?);
                 self.expect_token(Token::Delimiter('}'))?;
             }
         }
@@ -866,7 +883,7 @@ impl<'a> Parser<'a> {
     fn parse_while_stmt(&mut self) -> Result<Statement, ParseError> {
         let condition = self.parse_expr(1, false)?;
         self.expect_token(Token::Delimiter('{'))?;
-        let block = self.parse_block()?;
+        let block = self.parse_stmts()?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::WhileStatement(WhileStatement {
             condition,

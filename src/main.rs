@@ -43,7 +43,6 @@ fn main() {
     let comm = parse_args(&args).unwrap_or_else(|_| {
         cli::error(&args[0], "could not parse command line arguments");
     });
-    let args_program = &args[0];
     let mut tcc = tcc::TCCState::new();
 
     match comm {
@@ -62,7 +61,7 @@ fn main() {
 
                             let output =
                                 output.unwrap_or(format!("{}.out", strip_extension(input)));
-                            if (!c) {
+                            if !c {
                                 tcc.compile_string(&r#gen.output).unwrap();
                                 tcc.output_file(&output);
                             } else {

@@ -2,6 +2,7 @@ pub fn fatal(program: &str, msg: &str) {
     eprintln!("{program}: fatal: {msg}");
 }
 
+#[allow(dead_code)]
 pub fn warning(program: &str, msg: &str) {
     eprintln!("{program}: warning: {msg}");
 }

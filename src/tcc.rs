@@ -1,10 +1,12 @@
 use std::ffi::{CString, c_char};
 
 mod ffi {
-    use std::ffi::{c_int, c_char};
+    use std::ffi::{c_char, c_int};
     #[repr(C)]
+    #[allow(improper_ctypes)]
     pub struct TCCState;
-    
+
+    #[allow(improper_ctypes)]
     unsafe extern "C" {
         // Functions you want to call from libtcc
         pub fn tcc_new() -> *mut TCCState;
@@ -20,11 +22,11 @@ mod ffi {
     }
 }
 
-
 pub struct TCCState {
-    state: *mut ffi::TCCState
+    state: *mut ffi::TCCState,
 }
 
+#[allow(dead_code)]
 pub enum OutputType {
     // #define TCC_OUTPUT_MEMORY     1 /* output will be run in memory (default) */
     // #define TCC_OUTPUT_EXE        2 /* executable file */
@@ -104,22 +106,17 @@ impl TCCState {
 
         let ret = unsafe { ffi::tcc_compile_string(self.state, c_code.as_ptr()) };
         if ret == 0 {
-            return Ok(())
+            return Ok(());
         }
         Err(())
     }
 
     pub fn run(&self, args: &[&str]) {
         let argc = args.len() as i32;
-        
-        let argv: Vec<CString> = args.iter()
-            .map(|arg| CString::new(*arg).unwrap())
-            .collect();
 
-        let argv: Vec<*const c_char> = argv
-            .iter()
-            .map(|s| s.as_ptr())
-            .collect();
+        let argv: Vec<CString> = args.iter().map(|arg| CString::new(*arg).unwrap()).collect();
+
+        let argv: Vec<*const c_char> = argv.iter().map(|s| s.as_ptr()).collect();
 
         let argv = argv.as_ptr();
 
