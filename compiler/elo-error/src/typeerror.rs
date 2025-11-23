@@ -22,6 +22,7 @@ pub enum TypeErrorCase {
         name: String,
         got: usize,
         expected: usize,
+        too_much: bool,
     },
     UnresolvedMember {
         name: String,
@@ -77,16 +78,29 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
             name,
             got,
             expected,
+            too_much,
         } => {
-            error(
-                "Type Check Error",
-                &format!(
-                    "arguments to function {name}: expected {expected} argument(s) but got {got} argument(s) in the function call."
-                ),
-                filespan,
-                None,
-                None,
-            );
+            if too_much {
+                error(
+                    "Type Check Error",
+                    &format!(
+                        "too much arguments to function {name}: expected {expected} argument(s) but got {got} argument(s) in the function call."
+                    ),
+                    filespan,
+                    Some(&format!("remove the extra {} arguments", got - expected)),
+                    None,
+                );
+            } else {
+                error(
+                    "Type Check Error",
+                    &format!(
+                        "too few arguments to function {name}: expected {expected} argument(s) but got {got} argument(s) in the function call."
+                    ),
+                    filespan,
+                    Some(&format!("there are {} arguments left", expected - got)),
+                    None,
+                );
+            }
         }
         TypeErrorCase::UnresolvedMember { name, from } => {
             error(
