@@ -6,7 +6,7 @@
 
 Elo is a systems compiled programming language. Designed so developers create amazing things in a reliable and enjoyable way: readable syntax, a deliberately small standard library, and predictable behavior. It aims to remove ceremony and friction so you can focus on expressing intent rather than wrestling toolchain complexity.
 
-The word _Elo_ means "chain link" in Portuguese. We chose the name to reflect the language's design goals: simple, well-crafted pieces that connect together into robust systems. Elo aims to be a small link in your toolchain — clear, composable, and intentional.
+The word _Elo_ [means "chain link" in Portuguese](https://translate.google.com/?sl=pt&tl=en&text=Elo&op=translate). We chose the name to reflect the language's design goals: simple, well-crafted pieces that connect together into robust systems. Elo aims to be a small link in your toolchain — clear, composable, and intentional.
 
 ## Minimalism that respects interoperability and clarity
 The language favors a debloated core and a straightforward compilation process, producing clear, low-level output and enabling interoperability when needed. Elo is made to be predictable: a tool that prioritizes developer clarity and robust systems programming over feature bloat.
