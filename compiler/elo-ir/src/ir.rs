@@ -144,11 +144,8 @@ pub struct Program {
 
 #[derive(Debug, Clone)]
 pub struct Function {
-    pub name: String,
+    pub head: FunctionHead,
     pub block: Block,
-    pub ret: Typing,
-    pub arguments: Vec<TypedField>,
-    pub variadic: bool,
 }
 
 #[derive(Debug, Clone)]
