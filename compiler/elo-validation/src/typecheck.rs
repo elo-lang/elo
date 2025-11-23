@@ -1,6 +1,7 @@
-use elo_ast::ast::{self, TypedField};
+use elo_ast::ast::{self, Expression, TypedField};
 use elo_error::typeerror::*;
 use elo_ir::ir;
+use elo_lexer::span::Span;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -9,7 +10,7 @@ pub struct Namespace {
     pub constants: HashMap<String, ir::Typing>,
     pub structs: HashMap<String, ir::Struct>,
     pub enums: HashMap<String, ir::Enum>,
-    pub functions: HashMap<String, ir::Function>,
+    pub functions: HashMap<String, ir::FunctionHead>,
     pub locals: Vec<Scope>,
 }
 
@@ -76,6 +77,8 @@ impl TypeChecker {
         }
     }
 
+    fn first_pass(&mut self) {}
+
     fn typecheck_binop(
         &mut self,
         lhs_type: ir::Typing,
@@ -125,6 +128,76 @@ impl TypeChecker {
             | ir::BinaryOperation::AssignBNot => ir::Typing::Void,
         };
         Ok((ir_binop, typing))
+    }
+
+    fn typecheck_function_call(
+        &mut self,
+        name: &str,
+        arguments: &Vec<Expression>,
+        span: Span,
+    ) -> Result<(ir::Expression, ir::Typing), TypeError> {
+        let function = self.namespace.functions.get(name).ok_or(TypeError {
+            span: Some(span),
+            case: TypeErrorCase::UnresolvedName {
+                name: name.to_string(),
+            },
+        })?;
+        let return_type = function.ret.clone();
+        let passed_length = arguments.len();
+        let expected_len = function.arguments.len();
+        if passed_length < expected_len {
+            return Err(TypeError {
+                span: Some(span),
+                case: TypeErrorCase::UnmatchedArguments {
+                    name: name.to_string(),
+                    got: passed_length,
+                    expected: expected_len,
+                    too_much: false,
+                },
+            });
+        } else if (passed_length > expected_len) && !function.variadic {
+            return Err(TypeError {
+                span: Some(span),
+                case: TypeErrorCase::UnmatchedArguments {
+                    name: name.to_string(),
+                    got: passed_length,
+                    expected: expected_len,
+                    too_much: true,
+                },
+            });
+        }
+        let mut checked_arguments = Vec::new();
+        let iter = arguments.iter().zip(function.arguments.clone());
+        for (expression, (_, expected_type)) in iter {
+            let (checked, got_type) = self.typecheck_expr(expression)?;
+            if got_type != expected_type {
+                return Err(TypeError {
+                    span: Some(expression.span),
+                    case: TypeErrorCase::TypeMismatch {
+                        got: format!("{:?}", got_type),
+                        expected: format!("{:?}", expected_type),
+                    },
+                });
+            }
+            checked_arguments.push(checked);
+        }
+
+        // get the remaining extra arguments if the fn is variadic
+        for extra in arguments.iter().skip(expected_len) {
+            // remaining if the function is variadic
+            let (extra, _) = self.typecheck_expr(extra)?;
+            checked_arguments.push(extra);
+        }
+
+        return Ok((
+            ir::Expression::FunctionCall {
+                function: Box::new(ir::Expression::Identifier {
+                    name: name.to_string(),
+                }),
+                arguments: checked_arguments,
+            },
+            return_type,
+        ));
     }
 
     fn typecheck_expr(
@@ -194,76 +267,7 @@ impl TypeChecker {
                 arguments,
             } => {
                 if let ast::ExpressionData::Identifier { name } = &function.data {
-                    if let Some(func) = self.namespace.functions.get(name) {
-                        let arguments_to_check: Vec<ir::Typing> = func
-                            .head
-                            .arguments
-                            .iter()
-                            .map(|(_, typing)| typing.clone())
-                            .collect();
-                        let len_args = func.head.arguments.len();
-                        let return_type = func.head.ret.clone();
-                        if func.head.variadic && arguments.len() < len_args {
-                            return Err(TypeError {
-                                span: Some(function.span),
-                                case: TypeErrorCase::UnmatchedArguments {
-                                    name: name.clone(),
-                                    got: arguments.len(),
-                                    expected: len_args,
-                                },
-                            });
-                        }
-                        if !func.head.variadic && arguments.len() != len_args {
-                            return Err(TypeError {
-                                span: Some(function.span),
-                                case: TypeErrorCase::UnmatchedArguments {
-                                    name: name.clone(),
-                                    got: arguments.len(),
-                                    expected: len_args,
-                                },
-                            });
-                        }
-                        let mut validated_args = Vec::new();
-
-                        // having to create these variables below so the rust borrow checker shuts up
-                        // makes you ask why you're using this language a few times
-                        let declared_arguments_len = arguments_to_check.len();
-                        let variadic = func.head.variadic;
-                        let zip = arguments.iter().zip(arguments_to_check);
-                        for (expr, expected_type) in zip {
-                            let span = expr.span;
-                            let (validated, got_type) = self.typecheck_expr(expr)?;
-                            if got_type != expected_type {
-                                return Err(TypeError {
-                                    span: Some(span),
-                                    case: TypeErrorCase::TypeMismatch {
-                                        got: format!("{:?}", got_type),
-                                        expected: format!("{:?}", expected_type),
-                                    },
-                                });
-                            }
-                            validated_args.push(validated);
-                        }
-                        // Also add the remaining variadic values.
-                        if variadic && arguments.len() > declared_arguments_len {
-                            for expr in arguments.iter().skip(declared_arguments_len) {
-                                let (validated, _) = self.typecheck_expr(expr)?;
-                                validated_args.push(validated);
-                            }
-                        }
-                        return Ok((
-                            ir::Expression::FunctionCall {
-                                function: Box::new(self.typecheck_expr(function)?.0),
-                                arguments: validated_args,
-                            },
-                            return_type.clone(),
-                        ));
-                    } else {
-                        return Err(TypeError {
-                            span: Some(expr.span),
-                            case: TypeErrorCase::UnresolvedName { name: name.clone() },
-                        });
-                    }
+                    return self.typecheck_function_call(name, arguments, function.span);
                 } else {
                     return Err(TypeError {
                         span: Some(expr.span),
@@ -352,7 +356,7 @@ impl TypeChecker {
                 } else if let Some(f) = self.namespace.functions.get(name) {
                     return Ok((
                         ir::Expression::Identifier { name: name.clone() },
-                        f.head.ret.clone(), // FIXME: This should be the function pointer type
+                        f.ret.clone(), // FIXME: This should be the function pointer type
                     ));
                 } else {
                     // Iterate the local namespace in reverse (from the most recent scope to the oldest)
@@ -497,21 +501,21 @@ impl TypeChecker {
                 // Pop the scope
                 self.namespace.locals.pop();
 
+                let head = ir::FunctionHead {
+                    name: stmt.name.clone(),
+                    ret: validated_ret_type,
+                    arguments: validated_args,
+                    variadic: false, // In this case, variadic is ALWAYS false
+                                     // Because Elo is not meant to support variadic functions at all.
+                };
+
                 let validated = ir::Function {
-                    head: ir::FunctionHead {
-                        name: stmt.name.clone(),
-                        ret: validated_ret_type,
-                        arguments: validated_args,
-                        variadic: false, // In this case, variadic is ALWAYS false
-                                         // Because Elo is not meant to support variadic functions at all.
-                    },
+                    head: head.clone(),
                     block: validated_block,
                 };
 
                 // Insert the function into the namespace
-                self.namespace
-                    .functions
-                    .insert(stmt.name, validated.clone());
+                self.namespace.functions.insert(stmt.name, head);
 
                 return Ok(ir::Statement::FnStatement(validated));
             }
@@ -525,18 +529,13 @@ impl TypeChecker {
                     Some(ret_type) => self.check_type(ret_type)?,
                     None => ir::Typing::Void,
                 };
-                let validated = ir::Function {
-                    head: ir::FunctionHead {
-                        name: stmt.name.clone(),
-                        ret: validated_ret_type.clone(),
-                        arguments: validated_args.clone(),
-                        variadic: stmt.variadic,
-                    },
-                    block: Vec::new(),
+                let head = ir::FunctionHead {
+                    name: stmt.name.clone(),
+                    ret: validated_ret_type.clone(),
+                    arguments: validated_args.clone(),
+                    variadic: stmt.variadic,
                 };
-                self.namespace
-                    .functions
-                    .insert(stmt.name.clone(), validated.clone());
+                self.namespace.functions.insert(stmt.name.clone(), head);
                 return Ok(ir::Statement::ExternFnStatement(ir::FunctionHead {
                     name: stmt.name,
                     ret: validated_ret_type,
