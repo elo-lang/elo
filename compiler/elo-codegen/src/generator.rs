@@ -147,10 +147,10 @@ impl Generator {
                 output.push(';');
             }
             ir::Statement::FnStatement(stmt) => {
-                let r#return = self.choose_type(stmt.ret.clone());
-                let name = stmt.name.clone();
+                let r#return = self.choose_type(stmt.head.ret.clone());
+                let name = stmt.head.name.clone();
                 let mut arguments = Vec::new();
-                for (name, typing) in &stmt.arguments {
+                for (name, typing) in &stmt.head.arguments {
                     let t = self.choose_type(typing.clone());
                     let n = name.clone();
                     arguments.push(c::build_typed_field(t, n));
@@ -166,7 +166,7 @@ impl Generator {
                     r#return,
                     name,
                     arguments,
-                    stmt.variadic,
+                    stmt.head.variadic,
                     body,
                 ));
             }
