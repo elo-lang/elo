@@ -299,10 +299,7 @@ impl<'a> Parser<'a> {
     }
 
     // expr[, expr]*[,]?
-    fn parse_function_arguments(
-        &mut self,
-        termination: Token,
-    ) -> Result<Vec<Expression>, ParseError> {
+    fn parse_expression_list(&mut self, termination: Token) -> Result<Vec<Expression>, ParseError> {
         let mut fields = Vec::new();
         if let Some(Lexem {
             token: Token::Delimiter(')'),
@@ -524,7 +521,7 @@ impl<'a> Parser<'a> {
 
                     // Function call (e.g. foo(), bar())
                     if let Some(_) = self.test_token(Token::Delimiter('('), false) {
-                        let args = self.parse_function_arguments(Token::Delimiter(')'))?;
+                        let args = self.parse_expression_list(Token::Delimiter(')'))?;
                         self.expect_token(Token::Delimiter(')'))?;
                         return Ok(Expression {
                             span: i.span.merge(self.current_span.unwrap()),
@@ -574,7 +571,7 @@ impl<'a> Parser<'a> {
                     let init_span = self.current_span.unwrap();
                     let expr = self.parse_expr(1, true)?;
                     if let Some(_) = self.test_token(Token::Delimiter(','), false) {
-                        let tail = self.parse_function_arguments(Token::Delimiter(')'))?;
+                        let tail = self.parse_expression_list(Token::Delimiter(')'))?;
                         self.expect_token(Token::Delimiter(')'))?;
                         let span = init_span.merge(self.current_span.unwrap());
                         let mut exprs = vec![expr];
@@ -586,6 +583,18 @@ impl<'a> Parser<'a> {
                     }
                     self.expect_token(Token::Delimiter(')'))?;
                     return Ok(expr);
+                }
+                Token::Delimiter('{') => {
+                    self.next();
+                    let init_span = self.current_span.unwrap();
+                    let exprs = self.parse_expression_list(Token::Delimiter('}'))?;
+                    self.expect_token(Token::Delimiter('}'))?;
+                    let amount = exprs.len();
+                    let span = init_span.merge(self.current_span.unwrap());
+                    return Ok(Expression {
+                        span,
+                        data: ExpressionData::Array { exprs, amount },
+                    });
                 }
                 Token::CharLiteral(c) => {
                     let len = c.chars().count();
