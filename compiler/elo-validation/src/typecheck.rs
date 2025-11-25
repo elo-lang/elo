@@ -256,6 +256,38 @@ impl TypeChecker {
             ast::ExpressionData::Tuple { exprs: _exprs } => {
                 todo!();
             }
+            ast::ExpressionData::Array { exprs, amount } => {
+                let mut checked_exprs = Vec::new();
+                let mut r#type: Option<ir::Typing> = None;
+                for i in exprs {
+                    let (expr, expr_typing) = self.typecheck_expr(i)?;
+                    let span = i.span;
+                    checked_exprs.push(expr);
+                    if let Some(ref expected) = r#type {
+                        if expected != &expr_typing {
+                            return Err(TypeError {
+                                span: Some(span),
+                                case: TypeErrorCase::TypeMismatch {
+                                    got: format!("{:?}", expr_typing),
+                                    expected: format!("{:?}", expected),
+                                },
+                            });
+                        }
+                    } else {
+                        r#type = Some(expr_typing);
+                    }
+                }
+                return Ok((
+                    ir::Expression::ArrayLiteral {
+                        exprs: checked_exprs,
+                    },
+                    // TODO: Change this to `str` type.
+                    ir::Typing::Array {
+                        typ: Box::new(r#type.unwrap()),
+                        amount: *amount,
+                    },
+                ));
+            }
             ast::ExpressionData::FieldAccess {
                 origin: _origin,
                 field: _field,
