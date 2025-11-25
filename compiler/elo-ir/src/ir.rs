@@ -102,6 +102,9 @@ pub enum Expression {
     StringLiteral {
         value: String,
     },
+    ArrayLiteral {
+        exprs: Vec<Expression>,
+    },
     FieldAccess {
         origin: Box<Expression>,
         field: String,

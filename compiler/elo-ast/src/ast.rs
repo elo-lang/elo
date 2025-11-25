@@ -135,6 +135,10 @@ pub enum ExpressionData {
     Tuple {
         exprs: Vec<Expression>,
     },
+    Array {
+        exprs: Vec<Expression>,
+        amount: usize,
+    },
     FunctionCall {
         function: Box<Expression>,
         arguments: Vec<Expression>,
