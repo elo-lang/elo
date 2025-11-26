@@ -280,6 +280,7 @@ impl TypeChecker {
                 return Ok((
                     ir::Expression::ArrayLiteral {
                         exprs: checked_exprs,
+                        typ: r#type.clone().unwrap(),
                     },
                     // TODO: Change this to `str` type.
                     ir::Typing::Array {

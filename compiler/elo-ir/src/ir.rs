@@ -104,6 +104,7 @@ pub enum Expression {
     },
     ArrayLiteral {
         exprs: Vec<Expression>,
+        typ: Typing,
     },
     FieldAccess {
         origin: Box<Expression>,

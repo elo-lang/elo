@@ -56,6 +56,10 @@ pub fn build_unop(lhs: String, op: Unop) -> String {
     return format!("{}({})", op, lhs);
 }
 
+pub fn build_array_literal(typ: String, items: String) -> String {
+    return format!("({typ}[]){{{items}}}");
+}
+
 pub fn build_typed_field(r#type: String, name: String) -> String {
     return format!("{} {}", r#type, name);
 }
