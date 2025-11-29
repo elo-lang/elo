@@ -843,24 +843,18 @@ impl<'a> Parser<'a> {
 
     fn parse_struct_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
-        self.expect_token(Token::Delimiter('{'))?;
+        self.expect_token(Token::Delimiter('('))?;
         let fields = self.parse_typed_fields()?;
-        self.expect_token(Token::Delimiter('}'))?;
-        Ok(Statement::StructStatement(StructStatement {
-            name: name,
-            fields: fields,
-        }))
+        self.expect_token(Token::Delimiter(')'))?;
+        Ok(Statement::StructStatement(StructStatement { name, fields }))
     }
 
     fn parse_enum_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
-        self.expect_token(Token::Delimiter('{'))?;
-        let vars = self.parse_enum_variants()?;
-        self.expect_token(Token::Delimiter('}'))?;
-        Ok(Statement::EnumStatement(EnumStatement {
-            name: name,
-            variants: vars,
-        }))
+        self.expect_token(Token::Delimiter('('))?;
+        let variants = self.parse_enum_variants()?;
+        self.expect_token(Token::Delimiter(')'))?;
+        Ok(Statement::EnumStatement(EnumStatement { name, variants }))
     }
 
     fn parse_if_stmt(&mut self) -> Result<Statement, ParseError> {
