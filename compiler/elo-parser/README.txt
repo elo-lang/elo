@@ -5,7 +5,8 @@ Copyright (c) 2025 Igor Ferreira, Marcio Dantas
 +-------+-------------------------+
 | Level | Operations              |
 +-------+-------------------------+
-| 9     | unary &, !, ~, Unary -  |
+| 9     | unary &, !, ~,          |
+|       | Unary -, unary *        |
 | 8     | <<, >>                  |
 | 7     | *, /, %                 |
 | 6     | +, -                    |
@@ -16,4 +17,4 @@ Copyright (c) 2025 Igor Ferreira, Marcio Dantas
 | 1     | =                       |
 +-------+-------------------------+
 
-The higher the level is, the higher is the precedence 
+The higher the level is, the higher is the precedence

@@ -52,6 +52,7 @@ fn unop_precedence(op: &Token) -> Precedence {
         Token::Op('-', None) => 9,
         Token::Op('~', None) => 9,
         Token::Op('&', None) => 9,
+        Token::Op('*', None) => 9,
         // This is zero because the check made in parse_expr() will be false because
         // you have to start parsing expressions starting from limit = 1.
         // This way it just stops parsing when it finds something strange
