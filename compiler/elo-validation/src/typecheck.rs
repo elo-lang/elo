@@ -87,8 +87,6 @@ impl TypeChecker {
         }
     }
 
-    fn first_pass(&mut self) {}
-
     fn typecheck_binop(
         &mut self,
         lhs: &ExpressionMetadata,
@@ -257,14 +255,55 @@ impl TypeChecker {
             }
             ast::ExpressionData::UnaryOperation { operator, operand } => {
                 let operator = ir::UnaryOperation::from_ast(operator);
-                let (operand, operand_type, _) = self.typecheck_expr(&operand)?;
+                let (operand, operand_type, operand_id) = self.typecheck_expr(&operand)?;
+                let operation_type;
+                let id;
+                match operator {
+                    ir::UnaryOperation::Addr => {
+                        operation_type = ir::Typing::Pointer {
+                            typ: Box::new(operand_type),
+                        };
+                        id = ExpressionIdentity::Immediate;
+                    }
+                    ir::UnaryOperation::Neg
+                    | ir::UnaryOperation::Not
+                    | ir::UnaryOperation::BNot => {
+                        operation_type = operand_type;
+                        id = ExpressionIdentity::Immediate;
+                    }
+                    ir::UnaryOperation::Deref => match operand_id {
+                        ExpressionIdentity::Immediate => {
+                            return Err(TypeError {
+                                span: Some(expr.span),
+                                case: TypeErrorCase::InvalidExpression {
+                                    what: format!("{:?}", operand),
+                                    should: "valid value to dereference".to_string(),
+                                },
+                            });
+                        }
+                        e => {
+                            if let ir::Typing::Pointer { typ } = operand_type {
+                                operation_type = *typ;
+                            } else {
+                                return Err(TypeError {
+                                    span: Some(expr.span),
+                                    case: TypeErrorCase::TypeMismatch {
+                                        got: format!("{:?}", operand_type),
+                                        expected: "pointer".to_string(),
+                                    },
+                                });
+                            }
+                            id = e;
+                        }
+                    },
+                };
                 Ok((
                     ir::Expression::UnaryOperation {
                         operator,
                         operand: Box::new(operand),
                     },
-                    operand_type,
-                    ExpressionIdentity::Immediate,
+                    operation_type,
+                    id,
                 ))
             }
             ast::ExpressionData::CharacterLiteral { value } => {
@@ -295,7 +334,7 @@ impl TypeChecker {
                 let mut checked_exprs = Vec::new();
                 let mut r#type: Option<ir::Typing> = None;
                 for i in exprs {
-                    let (expr, expr_typing, expr_id) = self.typecheck_expr(i)?;
+                    let (expr, expr_typing, _) = self.typecheck_expr(i)?;
                     let span = i.span;
                     checked_exprs.push(expr);
                     if let Some(ref expected) = r#type {
