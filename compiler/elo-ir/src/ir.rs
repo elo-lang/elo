@@ -75,6 +75,7 @@ pub enum UnaryOperation {
     Not,
     BNot,
     Addr,
+    Deref,
 }
 
 impl UnaryOperation {
@@ -84,6 +85,7 @@ impl UnaryOperation {
             elo_ast::ast::UnaryOperation::BNot => UnaryOperation::BNot,
             elo_ast::ast::UnaryOperation::Neg => UnaryOperation::Neg,
             elo_ast::ast::UnaryOperation::Addr => UnaryOperation::Addr,
+            elo_ast::ast::UnaryOperation::Deref => UnaryOperation::Deref,
         }
     }
 }

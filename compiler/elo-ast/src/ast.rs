@@ -86,6 +86,7 @@ pub enum UnaryOperation {
     Not,
     BNot,
     Addr,
+    Deref,
 }
 
 impl UnaryOperation {
@@ -99,6 +100,7 @@ impl UnaryOperation {
             "~" => Some(UnaryOperation::BNot),
             "-" => Some(UnaryOperation::Neg),
             "&" => Some(UnaryOperation::Addr),
+            "*" => Some(UnaryOperation::Deref),
             _ => None,
         }
     }
