@@ -26,6 +26,16 @@ pub struct Scope {
     pub content: HashMap<String, Variable>,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+// This enum is like an extended version of the concept of Lvalues and Rvalues in C/C++ terms
+// read more
+enum ExpressionIdentity {
+    Locatable(bool), // bool: mutable
+    Immediate,
+}
+
+type ExpressionMetadata = (ir::Expression, ir::Typing, ExpressionIdentity);
+
 pub struct TypeChecker {
     input: ast::Program,
     namespace: Namespace,
@@ -81,18 +91,18 @@ impl TypeChecker {
 
     fn typecheck_binop(
         &mut self,
-        lhs_type: ir::Typing,
-        rhs_type: ir::Typing,
+        lhs: &ExpressionMetadata,
+        rhs: &ExpressionMetadata,
         binop: &ast::BinaryOperation,
         span: elo_lexer::span::Span,
-    ) -> Result<(ir::BinaryOperation, ir::Typing), TypeError> {
+    ) -> Result<(ir::BinaryOperation, ir::Typing, ExpressionIdentity), TypeError> {
         let ir_binop = ir::BinaryOperation::from_ast(&binop);
-        if rhs_type != lhs_type {
+        if rhs.1 != lhs.1 {
             return Err(TypeError {
                 span: Some(span),
                 case: TypeErrorCase::TypeMismatch {
-                    got: format!("{:?}", rhs_type),
-                    expected: format!("{:?}", lhs_type),
+                    got: format!("{:?}", rhs.1),
+                    expected: format!("{:?}", lhs.1),
                 },
             });
         }
@@ -107,7 +117,7 @@ impl TypeChecker {
             | ir::BinaryOperation::BNot
             | ir::BinaryOperation::BXor
             | ir::BinaryOperation::LShift
-            | ir::BinaryOperation::RShift => lhs_type,
+            | ir::BinaryOperation::RShift => lhs.1.clone(),
             ir::BinaryOperation::Eq
             | ir::BinaryOperation::Ne
             | ir::BinaryOperation::Lt
@@ -125,9 +135,32 @@ impl TypeChecker {
             | ir::BinaryOperation::AssignBAnd
             | ir::BinaryOperation::AssignBOr
             | ir::BinaryOperation::AssignBXor
-            | ir::BinaryOperation::AssignBNot => ir::Typing::Void,
+            | ir::BinaryOperation::AssignBNot => {
+                match lhs.2 {
+                    ExpressionIdentity::Locatable(false) => {
+                        return Err(TypeError {
+                            span: Some(span),
+                            case: TypeErrorCase::InvalidExpression {
+                                what: format!("{:?}", lhs.0),
+                                should: "mutable left-hand-side operand".to_string(),
+                            },
+                        });
+                    }
+                    ExpressionIdentity::Immediate => {
+                        return Err(TypeError {
+                            span: Some(span),
+                            case: TypeErrorCase::InvalidExpression {
+                                what: format!("{:?}", lhs.0),
+                                should: "valid left-hand-side operand".to_string(),
+                            },
+                        });
+                    }
+                    _ => {} // Ok! For assignment, the lhs must be a mutable locatable value
+                }
+                ir::Typing::Void
+            }
         };
-        Ok((ir_binop, typing))
+        Ok((ir_binop, typing, ExpressionIdentity::Immediate))
     }
 
     fn typecheck_function_call(
@@ -135,7 +168,7 @@ impl TypeChecker {
         name: &str,
         arguments: &Vec<Expression>,
         span: Span,
-    ) -> Result<(ir::Expression, ir::Typing), TypeError> {
+    ) -> Result<ExpressionMetadata, TypeError> {
         let function = self.namespace.functions.get(name).ok_or(TypeError {
             span: Some(span),
             case: TypeErrorCase::UnresolvedName {
@@ -169,7 +202,7 @@ impl TypeChecker {
         let mut checked_arguments = Vec::new();
         let iter = arguments.iter().zip(function.arguments.clone());
         for (expression, (_, expected_type)) in iter {
-            let (checked, got_type) = self.typecheck_expr(expression)?;
+            let (checked, got_type, _) = self.typecheck_expr(expression)?;
             if got_type != expected_type {
                 return Err(TypeError {
                     span: Some(expression.span),
@@ -185,7 +218,7 @@ impl TypeChecker {
         // get the remaining extra arguments if the fn is variadic
         for extra in arguments.iter().skip(expected_len) {
             // remaining if the function is variadic
-            let (extra, _) = self.typecheck_expr(extra)?;
+            let (extra, _, _) = self.typecheck_expr(extra)?;
             checked_arguments.push(extra);
         }
 
@@ -197,41 +230,41 @@ impl TypeChecker {
                 arguments: checked_arguments,
             },
             return_type,
+            ExpressionIdentity::Immediate,
         ));
     }
 
-    fn typecheck_expr(
-        &mut self,
-        expr: &ast::Expression,
-    ) -> Result<(ir::Expression, ir::Typing), TypeError> {
+    fn typecheck_expr(&mut self, expr: &ast::Expression) -> Result<ExpressionMetadata, TypeError> {
         match &expr.data {
             ast::ExpressionData::BinaryOperation {
                 operator,
                 left,
                 right,
             } => {
-                let (left, left_t) = self.typecheck_expr(left)?;
-                let (right, right_t) = self.typecheck_expr(right)?;
-                let (operator, typing) =
-                    self.typecheck_binop(left_t, right_t, operator, expr.span)?;
+                let lhs = self.typecheck_expr(left)?;
+                let rhs = self.typecheck_expr(right)?;
+                let (operator, typing, op_id) =
+                    self.typecheck_binop(&lhs, &rhs, operator, expr.span)?;
                 Ok((
                     ir::Expression::BinaryOperation {
                         operator,
-                        left: Box::new(left),
-                        right: Box::new(right),
+                        left: Box::new(lhs.0),
+                        right: Box::new(rhs.0),
                     },
                     typing,
+                    op_id,
                 ))
             }
             ast::ExpressionData::UnaryOperation { operator, operand } => {
                 let operator = ir::UnaryOperation::from_ast(operator);
-                let (operand, operand_type) = self.typecheck_expr(&operand)?;
+                let (operand, operand_type, _) = self.typecheck_expr(&operand)?;
                 Ok((
                     ir::Expression::UnaryOperation {
                         operator,
                         operand: Box::new(operand),
                     },
                     operand_type,
+                    ExpressionIdentity::Immediate,
                 ))
             }
             ast::ExpressionData::CharacterLiteral { value } => {
@@ -240,6 +273,7 @@ impl TypeChecker {
                         value: String::from(*value),
                     },
                     ir::Typing::Primitive(ir::Primitive::Char),
+                    ExpressionIdentity::Immediate,
                 ));
             }
             ast::ExpressionData::StrLiteral { value } => {
@@ -251,6 +285,7 @@ impl TypeChecker {
                     ir::Typing::Pointer {
                         typ: Box::new(ir::Typing::Primitive(ir::Primitive::U8)),
                     },
+                    ExpressionIdentity::Immediate,
                 ));
             }
             ast::ExpressionData::Tuple { exprs: _exprs } => {
@@ -260,7 +295,7 @@ impl TypeChecker {
                 let mut checked_exprs = Vec::new();
                 let mut r#type: Option<ir::Typing> = None;
                 for i in exprs {
-                    let (expr, expr_typing) = self.typecheck_expr(i)?;
+                    let (expr, expr_typing, expr_id) = self.typecheck_expr(i)?;
                     let span = i.span;
                     checked_exprs.push(expr);
                     if let Some(ref expected) = r#type {
@@ -287,6 +322,7 @@ impl TypeChecker {
                         typ: Box::new(r#type.unwrap()),
                         amount: *amount,
                     },
+                    ExpressionIdentity::Immediate,
                 ));
             }
             ast::ExpressionData::FieldAccess {
@@ -335,7 +371,7 @@ impl TypeChecker {
                             },
                         })?;
                     let field_value_span = field.value.span;
-                    let (expr, typing) = self.typecheck_expr(&field.value)?;
+                    let (expr, typing, _) = self.typecheck_expr(&field.value)?;
                     if &typing != expected_typing {
                         return Err(TypeError {
                             span: Some(field_value_span),
@@ -351,7 +387,11 @@ impl TypeChecker {
                     origin: strukt.clone(),
                     fields: checked_fields,
                 };
-                Ok((thing, ir::Typing::Struct(strukt)))
+                Ok((
+                    thing,
+                    ir::Typing::Struct(strukt),
+                    ExpressionIdentity::Immediate,
+                ))
             }
             ast::ExpressionData::IntegerLiteral { value } => {
                 let (lit, radix) = value;
@@ -360,6 +400,7 @@ impl TypeChecker {
                         value: i128::from_str_radix(lit, *radix).unwrap(),
                     },
                     ir::Typing::Primitive(ir::Primitive::Int),
+                    ExpressionIdentity::Immediate,
                 ))
             }
             ast::ExpressionData::FloatLiteral { int, float } => {
@@ -369,27 +410,32 @@ impl TypeChecker {
                 Ok((
                     ir::Expression::Float { value },
                     ir::Typing::Primitive(ir::Primitive::Float),
+                    ExpressionIdentity::Immediate,
                 ))
             }
             ast::ExpressionData::BooleanLiteral { value } => Ok((
                 ir::Expression::Bool { value: *value },
                 ir::Typing::Primitive(ir::Primitive::Bool),
+                ExpressionIdentity::Immediate,
             )),
             ast::ExpressionData::Identifier { name } => {
                 if let Some(typ) = self.namespace.constants.get(name) {
                     return Ok((
                         ir::Expression::Identifier { name: name.clone() },
                         typ.clone(),
+                        ExpressionIdentity::Immediate,
                     ));
                 } else if let Some(e) = self.namespace.enums.get(name) {
                     return Ok((
                         ir::Expression::Identifier { name: name.clone() },
                         ir::Typing::Enum(e.clone()),
+                        ExpressionIdentity::Immediate,
                     ));
                 } else if let Some(f) = self.namespace.functions.get(name) {
                     return Ok((
                         ir::Expression::Identifier { name: name.clone() },
                         f.ret.clone(), // FIXME: This should be the function pointer type
+                        ExpressionIdentity::Immediate,
                     ));
                 } else {
                     // Iterate the local namespace in reverse (from the most recent scope to the oldest)
@@ -401,6 +447,7 @@ impl TypeChecker {
                             return Ok((
                                 ir::Expression::Identifier { name: name.clone() },
                                 var.typing.clone(),
+                                ExpressionIdentity::Locatable(var.mutable),
                             ));
                         }
                     }
@@ -418,7 +465,7 @@ impl TypeChecker {
             ast::Statement::LetStatement(stmt) => {
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
-                let (expr, typ) = self.typecheck_expr(assignment)?;
+                let (expr, typ, _) = self.typecheck_expr(assignment)?;
 
                 // Add the variable to the current scope
                 self.namespace.locals.last_mut().unwrap().content.insert(
@@ -438,7 +485,7 @@ impl TypeChecker {
             ast::Statement::VarStatement(stmt) => {
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
-                let (expr, typ) = self.typecheck_expr(assignment)?;
+                let (expr, typ, _) = self.typecheck_expr(assignment)?;
 
                 // Add the variable to the current scope
                 self.namespace.locals.last_mut().unwrap().content.insert(
@@ -458,7 +505,7 @@ impl TypeChecker {
             ast::Statement::ConstStatement(stmt) => {
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
-                let (expr, typ) = self.typecheck_expr(assignment)?;
+                let (expr, typ, _) = self.typecheck_expr(assignment)?;
                 let annotated = self.check_type(&stmt.typing)?;
                 if annotated != typ {
                     return Err(TypeError {
@@ -478,7 +525,7 @@ impl TypeChecker {
             }
             ast::Statement::ReturnStatement(stmt) => {
                 if let Some(expr) = &stmt.expr {
-                    let (expr, typ) = self.typecheck_expr(expr)?;
+                    let (expr, typ, _) = self.typecheck_expr(expr)?;
                     return Ok(ir::Statement::ReturnStatement {
                         value: Some(expr),
                         typing: typ,
@@ -598,7 +645,7 @@ impl TypeChecker {
                 return Ok(ir::Statement::EnumStatement(e));
             }
             ast::Statement::IfStatement(stmt) => {
-                let (condition, typing) = self.typecheck_expr(&stmt.condition)?;
+                let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
                 if typing != ir::Typing::Primitive(ir::Primitive::Bool) {
                     return Err(TypeError {
                         span: Some(stmt.condition.span),
@@ -635,7 +682,7 @@ impl TypeChecker {
             }
             ast::Statement::WhileStatement(stmt) => {
                 // TODO: Remember to push a new scope to the namespace
-                let (condition, typing) = self.typecheck_expr(&stmt.condition)?;
+                let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
                 if typing != ir::Typing::Primitive(ir::Primitive::Bool) {
                     return Err(TypeError {
                         span: Some(stmt.condition.span),
