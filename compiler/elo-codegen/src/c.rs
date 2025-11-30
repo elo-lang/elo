@@ -35,6 +35,7 @@ pub enum Unop {
     BNot,
     Not,
     Addr,
+    Deref,
 }
 
 impl std::fmt::Display for Unop {
@@ -44,6 +45,7 @@ impl std::fmt::Display for Unop {
             Unop::BNot => write!(f, "~"),
             Unop::Not => write!(f, "!"),
             Unop::Addr => write!(f, "&"),
+            Unop::Deref => write!(f, "*"),
         }
     }
 }

@@ -84,7 +84,7 @@ impl Generator {
                     ir::UnaryOperation::BNot => c::build_unop(op, c::Unop::BNot),
                     ir::UnaryOperation::Not => c::build_unop(op, c::Unop::Not),
                     ir::UnaryOperation::Addr => c::build_unop(op, c::Unop::Addr),
-                    // TODO: Implement dereference operator
+                    ir::UnaryOperation::Deref => c::build_unop(op, c::Unop::Deref),
                 }
             }
             ir::Expression::BinaryOperation {
