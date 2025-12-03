@@ -260,6 +260,15 @@ impl TypeChecker {
                 let id;
                 match operator {
                     ir::UnaryOperation::Addr => {
+                        if let ExpressionIdentity::Immediate = operand_id {
+                            return Err(TypeError {
+                                span: Some(expr.span),
+                                case: TypeErrorCase::InvalidExpression {
+                                    what: format!("{:?}", operand),
+                                    should: "valid value to reference".to_string(),
+                                },
+                            });
+                        }
                         operation_type = ir::Typing::Pointer {
                             typ: Box::new(operand_type),
                         };
