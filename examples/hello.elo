@@ -1,0 +1,6 @@
+extern fn printf(f: *u8, ...)
+
+fn main(): int {
+    printf('Hello World\n");
+    ret 0;
+}
