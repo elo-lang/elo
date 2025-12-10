@@ -1,5 +1,7 @@
 mod cli;
 mod tcc;
+#[cfg(test)]
+mod tests;
 
 use elo_ast::ast;
 use elo_error::{parseerror, typeerror};
