@@ -724,7 +724,6 @@ impl<'a> Parser<'a> {
 
     fn parse_let_stmt(&mut self) -> Result<Statement, ParseError> {
         let (ident, expr) = self.parse_assignment()?;
-        self.expect_end()?;
         Ok(Statement::LetStatement(LetStatement {
             binding: ident,
             assignment: expr,
@@ -737,7 +736,6 @@ impl<'a> Parser<'a> {
         let typing = self.parse_type()?;
         let _ = self.expect_token(Token::Op('=', None))?;
         let expr = self.parse_expr(1, true)?;
-        self.expect_end()?;
         Ok(Statement::ConstStatement(ConstStatement {
             binding: ident,
             assignment: expr,
@@ -747,7 +745,6 @@ impl<'a> Parser<'a> {
 
     fn parse_var_stmt(&mut self) -> Result<Statement, ParseError> {
         let (ident, expr) = self.parse_assignment()?;
-        self.expect_end()?;
         Ok(Statement::VarStatement(VarStatement {
             binding: ident,
             assignment: expr,
@@ -833,7 +830,6 @@ impl<'a> Parser<'a> {
         if let Some(_) = self.test_token(Token::Delimiter(':'), false) {
             typ = Some(self.parse_type()?);
         }
-        self.expect_end()?;
         Ok(Statement::ExternFnStatement(ExternFnStatement {
             name,
             ret: typ,
@@ -895,7 +891,6 @@ impl<'a> Parser<'a> {
 
     fn parse_return_stmt(&mut self) -> Result<Statement, ParseError> {
         if self.test_end() {
-            self.expect_end()?;
             return Ok(Statement::ReturnStatement(ReturnStatement { expr: None }));
         }
         let expr = self.parse_expr(1, true)?;
@@ -911,38 +906,36 @@ impl<'a> Parser<'a> {
             span,
         }) = self.next()
         {
-            match kw {
-                Keyword::Struct => return self.parse_struct_stmt(),
-                Keyword::Fn => return self.parse_fn_stmt(),
-                Keyword::Extern => return self.parse_extern_fn_stmt(),
-                Keyword::Enum => return self.parse_enum_stmt(),
-                Keyword::Const => return self.parse_const_stmt(),
-                kw if !inside_block => {
-                    return Err(ParseError {
-                        span: Some(span),
-                        case: ParseErrorCase::UnexpectedToken {
-                            got: format!("{kw:?}"),
-                            expected: "valid statement".to_string(),
-                        },
-                    });
-                }
-                Keyword::Var => return self.parse_var_stmt(),
-                Keyword::Let => return self.parse_let_stmt(),
-                Keyword::If => return self.parse_if_stmt(),
-                Keyword::While => return self.parse_while_stmt(),
-                Keyword::Return => return self.parse_return_stmt(),
-                Keyword::Else => {
-                    return Err(ParseError {
-                        span: Some(span),
-                        case: ParseErrorCase::UnexpectedToken {
-                            got: "else keyword".to_string(),
-                            expected: "valid statement".to_string(),
-                        },
-                    });
-                }
+            let result = match kw {
+                Keyword::Struct => self.parse_struct_stmt(),
+                Keyword::Fn => self.parse_fn_stmt(),
+                Keyword::Extern => self.parse_extern_fn_stmt(),
+                Keyword::Enum => self.parse_enum_stmt(),
+                Keyword::Const => self.parse_const_stmt(),
+                kw if !inside_block => Err(ParseError {
+                    span: Some(span),
+                    case: ParseErrorCase::UnexpectedToken {
+                        got: format!("{kw:?}"),
+                        expected: "valid statement".to_string(),
+                    },
+                }),
+                Keyword::Var => self.parse_var_stmt(),
+                Keyword::Let => self.parse_let_stmt(),
+                Keyword::If => self.parse_if_stmt(),
+                Keyword::While => self.parse_while_stmt(),
+                Keyword::Return => self.parse_return_stmt(),
+                Keyword::Else => Err(ParseError {
+                    span: Some(span),
+                    case: ParseErrorCase::UnexpectedToken {
+                        got: "else keyword".to_string(),
+                        expected: "valid statement".to_string(),
+                    },
+                }),
                 Keyword::True => unreachable!("asked to parse true keyword in statement"),
                 Keyword::False => unreachable!("asked to parse false keyword in statement"),
-            }
+            };
+            self.expect_end()?;
+            return result;
         } else {
             unreachable!("asked to parse statement without keyword")
         }
