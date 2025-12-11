@@ -1,6 +1,7 @@
-<p align=center><img width="200" src="docs/design/elo-logo-improved-contrast.png"></p>
-<hr>
+<p align=center><img width="200" src="docs/assets/elo-icon-text-bw.png"></p>
 <h3 align=center><strong><em>Building software intuitively.</em></strong></h3>
+
+<hr>
 
 **Elo** is a systems compiled programming language
 designed to allow developers enjoy software development

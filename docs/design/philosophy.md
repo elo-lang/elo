@@ -1,7 +1,7 @@
 # Building software intuitively
 
 <p align="center">
-    <img src="elo-logo-improved-contrast.png" width="400" />
+    <img src="../assets/elo-logo-improved-contrast.png" width="400" />
 </p>
 
 Elo is a systems compiled programming language. Designed so developers create amazing things in a reliable and enjoyable way: readable syntax, a deliberately small standard library, and predictable behavior. It aims to remove ceremony and friction so you can focus on expressing intent rather than wrestling toolchain complexity.
