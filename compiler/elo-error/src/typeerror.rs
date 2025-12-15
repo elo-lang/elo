@@ -28,6 +28,10 @@ pub enum TypeErrorCase {
         name: String,
         from: String,
     },
+    NonAggregateMemberAccess {
+        typ: String,
+        member: String,
+    },
 }
 
 #[derive(Debug)]
@@ -59,7 +63,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
         TypeErrorCase::InvalidExpression { what, should } => {
             error(
                 "Type Check Error",
-                &format!("invalid expression: expression {what}. Expected to be {should}."),
+                &format!("invalid expression: expression {what} is expected to be {should}."),
                 filespan,
                 None,
                 None,
@@ -105,10 +109,21 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
         TypeErrorCase::UnresolvedMember { name, from } => {
             error(
                 "Type Check Error",
-                &format!("unresolved member: member {name} from {from} does not exist."),
+                &format!("unresolved member: {from} has no field named '{name}'."),
                 filespan,
                 None,
                 None,
+            );
+        }
+        TypeErrorCase::NonAggregateMemberAccess { typ, member } => {
+            error(
+                "Type Check Error",
+                &format!(
+                    "non aggregate member access: attempt to access member {member} from non-aggregate type {typ}."
+                ),
+                filespan,
+                None,
+                Some(&format!("you can't get members from {typ}")),
             );
         }
     }
