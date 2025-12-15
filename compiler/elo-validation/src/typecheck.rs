@@ -414,7 +414,13 @@ impl TypeChecker {
                         ));
                     }
                     _ => {
-                        panic!()
+                        return Err(TypeError {
+                            span: Some(origin.span),
+                            case: TypeErrorCase::NonAggregateMemberAccess {
+                                typ: format!("{:?}", typing),
+                                member: field.clone(),
+                            },
+                        });
                     }
                 }
             }
