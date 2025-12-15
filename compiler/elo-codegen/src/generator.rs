@@ -62,8 +62,13 @@ impl Generator {
             ir::Typing::Primitive(ir::Primitive::Char) => "uint32_t".to_string(),
             ir::Typing::Pointer { typ } => self.choose_type(typ) + "*",
             ir::Typing::Array { typ, .. } => self.choose_type(typ) + "*",
+            ir::Typing::Struct(ir::Struct { name, .. }) => format!("struct {name}"),
+            ir::Typing::Enum(ir::Enum { name, .. }) => format!("enum {name}"),
             ir::Typing::Void => "void".to_string(),
-            _ => todo!(),
+            e => {
+                dbg!(e);
+                todo!()
+            }
         };
     }
 
@@ -133,6 +138,15 @@ impl Generator {
                 _ => todo!(),
             },
             ir::Expression::Identifier { name } => name.clone(),
+            ir::Expression::StructInit { origin, fields } => {
+                let name = origin.name.clone();
+                let fields = fields
+                    .iter()
+                    .map(|(f, e)| (f.clone(), self.generate_expression(e)))
+                    .collect::<Vec<(String, String)>>();
+                return c::build_struct_init(name, &fields);
+            }
+
             _ => todo!(),
         }
     }
@@ -194,8 +208,14 @@ impl Generator {
                     stmt.variadic,
                 ))
             }
-            ir::Statement::StructStatement(_stmt) => {
-                todo!();
+            ir::Statement::StructStatement(stmt) => {
+                let fields = stmt
+                    .fields
+                    .iter()
+                    .map(|(k, v)| c::build_typed_field(self.choose_type(v), k.clone()));
+                let fields = fields.collect::<Vec<String>>();
+                let body = c::build_statement_list(&fields);
+                output.push_str(&c::build_struct_definition(stmt.name.clone(), body));
             }
             ir::Statement::EnumStatement(stmt) => {
                 let doby = c::build_comma_list(&stmt.variants);

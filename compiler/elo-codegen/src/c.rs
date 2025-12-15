@@ -151,5 +151,18 @@ pub fn build_return(value: Option<String>) -> String {
 }
 
 pub fn build_enum_definition(name: String, body: String) -> String {
-    return format!("typedef enum {{ {body} }} {name}");
+    return format!("enum {name} {{ {body} }}");
+}
+
+pub fn build_struct_definition(name: String, body: String) -> String {
+    return format!("struct {name} {{ {body} }}");
+}
+
+pub fn build_struct_init(name: String, fields: &[(String, String)]) -> String {
+    let mut xs = format!("(struct {name}){{");
+    for (field, value) in fields {
+        xs.push_str(&format!(".{field} = {value},"));
+    }
+    xs.push('}');
+    xs
 }
