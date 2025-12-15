@@ -54,6 +54,10 @@ pub fn build_binop(lhs: String, rhs: String, op: Binop) -> String {
     return format!("({}) {} ({})", lhs, op, rhs);
 }
 
+pub fn build_member_access(origin: String, member: String) -> String {
+    return format!("({origin}).{member}");
+}
+
 pub fn build_unop(lhs: String, op: Unop) -> String {
     return format!("{}({})", op, lhs);
 }

@@ -146,7 +146,11 @@ impl Generator {
                     .collect::<Vec<(String, String)>>();
                 return c::build_struct_init(name, &fields);
             }
-
+            ir::Expression::FieldAccess { origin, field } => {
+                let lhs = self.generate_expression(origin);
+                let rhs = field.clone();
+                return c::build_member_access(lhs, rhs);
+            }
             _ => todo!(),
         }
     }
