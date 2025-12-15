@@ -373,11 +373,50 @@ impl TypeChecker {
                     ExpressionIdentity::Immediate,
                 ));
             }
-            ast::ExpressionData::FieldAccess {
-                origin: _origin,
-                field: _field,
-            } => {
-                todo!();
+            ast::ExpressionData::FieldAccess { origin, field } => {
+                let (expression, typing, id) = self.typecheck_expr(origin)?;
+                if let ExpressionIdentity::Locatable(..) = id {
+                } else {
+                    return Err(TypeError {
+                        span: Some(origin.span),
+                        case: TypeErrorCase::InvalidExpression {
+                            what: format!("{:?} expression", id),
+                            should: String::from("locatable expression"),
+                        },
+                    });
+                }
+                match typing {
+                    ir::Typing::Struct(st) => {
+                        // the case when you are getting a field from struct instance
+                        // search for field
+                        let mut typ = None; // return type of the whole expression
+                        for (f, t) in st.fields {
+                            if field == &f {
+                                typ = Some(t);
+                            }
+                        }
+                        if let None = typ {
+                            return Err(TypeError {
+                                span: Some(expr.span),
+                                case: TypeErrorCase::UnresolvedMember {
+                                    name: format!("{field}"),
+                                    from: format!("struct {}", st.name),
+                                },
+                            });
+                        }
+                        return Ok((
+                            ir::Expression::FieldAccess {
+                                origin: Box::new(expression),
+                                field: field.clone(),
+                            },
+                            typ.unwrap(),
+                            id,
+                        ));
+                    }
+                    _ => {
+                        panic!()
+                    }
+                }
             }
             ast::ExpressionData::FunctionCall {
                 function,
