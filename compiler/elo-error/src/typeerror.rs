@@ -63,7 +63,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
         TypeErrorCase::InvalidExpression { what, should } => {
             error(
                 "Type Check Error",
-                &format!("invalid expression: expression {what} is expected to be {should}."),
+                &format!("invalid expression: expression {what} is expected to be {should}"),
                 filespan,
                 None,
                 None,
@@ -72,7 +72,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
         TypeErrorCase::UnresolvedName { name } => {
             error(
                 "Type Check Error",
-                &format!("unresolved name: could not find {name} in the current scope."),
+                &format!("unresolved name: could not find '{name}' in the current scope"),
                 filespan,
                 None,
                 None,
@@ -87,29 +87,29 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
             if too_much {
                 error(
                     "Type Check Error",
-                    &format!(
-                        "too much arguments to function {name}: expected {expected} argument(s) but got {got} argument(s) in the function call."
-                    ),
+                    &format!("too much arguments to function {name}"),
                     filespan,
-                    Some(&format!("remove the extra {} arguments", got - expected)),
                     None,
+                    Some(&format!(
+                        "function {name} accepts {expected} argument(s) but got {got}",
+                    )),
                 );
             } else {
                 error(
                     "Type Check Error",
-                    &format!(
-                        "too few arguments to function {name}: expected {expected} argument(s) but got {got} argument(s) in the function call."
-                    ),
+                    &format!("too few arguments to function {name}"),
                     filespan,
-                    Some(&format!("there are {} arguments left", expected - got)),
                     None,
+                    Some(&format!(
+                        "function {name} accepts {expected} argument(s) but got {got}",
+                    )),
                 );
             }
         }
         TypeErrorCase::UnresolvedMember { name, from } => {
             error(
                 "Type Check Error",
-                &format!("unresolved member: {from} has no field named '{name}'."),
+                &format!("unresolved member: {from} has no field named '{name}'"),
                 filespan,
                 None,
                 None,
@@ -119,7 +119,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
             error(
                 "Type Check Error",
                 &format!(
-                    "non aggregate member access: attempt to access member {member} from non-aggregate type {typ}."
+                    "non aggregate member access: attempt to access member {member} from non-aggregate type {typ}"
                 ),
                 filespan,
                 None,
