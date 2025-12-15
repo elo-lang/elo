@@ -20,7 +20,7 @@ pub fn parse_error(pe: ParseErrorCase, filespan: &FileSpan) {
         ParseErrorCase::UnexpectedToken { got, expected } => {
             error(
                 "Parse Error",
-                &format!("unexpected token while parsing: expected {expected} but got {got}"),
+                &format!("unexpected token: expected {expected} but got {got}"),
                 filespan,
                 None,
                 None,
@@ -29,7 +29,7 @@ pub fn parse_error(pe: ParseErrorCase, filespan: &FileSpan) {
         ParseErrorCase::InvalidCharacterLiteral => {
             error(
                 "Parse Error",
-                &format!("invalid token found while parsing"),
+                &format!("invalid token found"),
                 filespan,
                 Some("if you meant to use str/string, use ' or \" instead of `"),
                 Some("invalid character literal"),
@@ -38,7 +38,7 @@ pub fn parse_error(pe: ParseErrorCase, filespan: &FileSpan) {
         ParseErrorCase::ExpectedStatement => {
             error(
                 "Parse Error",
-                &format!("expected statement after `=>`, but found nothing"),
+                &format!("expected statement after '=>', but found nothing"),
                 filespan,
                 Some("if you meant to have an empty block, use just {}"),
                 None,
