@@ -5,7 +5,7 @@
 ## Destructuring
 - Destructure struct fields by separating each field by `,` (comma) in `let`, `var` or `for` statements:
 ```
-struct Vector2(x: int, y: int);
+struct Vector2 { x: int, y: int };
 
 fn main() {
     var a = Vector2 { x: 10, y: 7 };

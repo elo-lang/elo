@@ -56,17 +56,17 @@ Struct is a compound structure that has named fields. Each field must have a typ
 
 - Define a structure using the keyword `struct`, according to this model:
 ```
-struct Person (
+struct Person {
     name: str,
     age: int
-)
+}
 ```
 
 - You may use the same syntax of function arguments to compress fields that have the same type:
 ```
-struct Vector2 (
+struct Vector2 {
     x, y: int
-)
+}
 ```
 
 ### Enumerations
@@ -74,7 +74,7 @@ Enumeration is a compound structure that contains variants that may hold a speci
 
 Define enumerations using the keyword `enum`:
 ```
-enum Week (
+enum Week {
     Sun,
     Mon,
     Tue,
@@ -82,7 +82,7 @@ enum Week (
     Thu,
     Fri,
     Sat,
-)
+}
 ```
 
 ### Usage
