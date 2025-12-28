@@ -110,9 +110,6 @@ This is the main concept around AMM.
     }
     ```
 
-1. Dereferencing a pointer to a dynamic instance will work
-but will generate shallow copied alias.
-
 1. Pointers to dynamic types aren't considered dynamic types themselves. That's why they can't be dropped even when dereferenced.
 
 1. When dereferencing pointers to dynamic instances, the operation returns a **shallow copy** of the original instance.
