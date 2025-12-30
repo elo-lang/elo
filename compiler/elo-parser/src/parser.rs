@@ -20,23 +20,23 @@ fn toint(literal: &str, radix: u32) -> i128 {
 
 fn binop_precedence(token: &Token) -> Precedence {
     match token {
-        Token::Op('=', None) => 1,
+        Token::Op('=', None)      => 1,
         Token::Op('=', Some('=')) => 2,
         Token::Op('!', Some('=')) => 2,
         Token::Op('<', Some('=')) => 3,
         Token::Op('>', Some('=')) => 3,
-        Token::Op('<', None) => 3,
-        Token::Op('>', None) => 3,
+        Token::Op('<', None)      => 3,
+        Token::Op('>', None)      => 3,
         Token::Op('&', Some('&')) => 4,
         Token::Op('|', Some('|')) => 4,
-        Token::Op('&', None) => 5,
-        Token::Op('|', None) => 5,
-        Token::Op('^', None) => 5,
-        Token::Op('+', None) => 6,
-        Token::Op('-', None) => 6,
-        Token::Op('*', None) => 7,
-        Token::Op('/', None) => 7,
-        Token::Op('%', None) => 7,
+        Token::Op('&', None)      => 5,
+        Token::Op('|', None)      => 5,
+        Token::Op('^', None)      => 5,
+        Token::Op('+', None)      => 6,
+        Token::Op('-', None)      => 6,
+        Token::Op('*', None)      => 7,
+        Token::Op('/', None)      => 7,
+        Token::Op('%', None)      => 7,
         Token::Op('<', Some('<')) => 8,
         Token::Op('>', Some('>')) => 8,
         // This is zero because the check made in parse_expr() will be false because
@@ -531,16 +531,6 @@ impl<'a> Parser<'a> {
                                 arguments: args,
                             },
                         });
-                    } else if let Some(_) = self.test_token(Token::Delimiter('.'), false) {
-                        // Field access (e.g. instance.method(), foo.bar)
-                        let field = self.expect_identifier()?;
-                        return Ok(Expression {
-                            span: i.span.merge(self.current_span.unwrap()),
-                            data: ExpressionData::FieldAccess {
-                                origin: Box::new(i),
-                                field: field,
-                            },
-                        });
                     }
 
                     if let Some(Lexem {
@@ -690,11 +680,26 @@ impl<'a> Parser<'a> {
         struct_allowed: bool,
     ) -> Result<Expression, ParseError> {
         let mut left = self.parse_primary(struct_allowed)?;
-        while let Some(op) = self.lexer.peek() {
-            let next_limit = binop_precedence(&op.token);
+        while let Some(Lexem { token, .. }) = self.lexer.peek() {
+            // Everything put before checking the precedence automatically means it's always the highest precedence.
+            let next_limit = binop_precedence(token);
+            if let Some(_) = self.test_token(Token::Delimiter('.'), true) {
+                // Field access (e.g. instance.method(), foo.bar)
+                let field = self.expect_identifier()?;
+                left = Expression {
+                    span: left.span.merge(self.current_span.unwrap()),
+                    data: ExpressionData::FieldAccess {
+                        origin: Box::new(left),
+                        field: field,
+                    },
+                };
+                continue;
+            }
+
             if limit > next_limit {
                 break;
             }
+
             if let Some(Lexem {
                 token: Token::Op(a, b),
                 ..
@@ -712,6 +717,7 @@ impl<'a> Parser<'a> {
                 };
             }
         }
+
         Ok(left)
     }
 
