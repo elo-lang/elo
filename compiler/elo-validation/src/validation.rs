@@ -13,18 +13,21 @@ pub struct Validator {
 }
 
 impl Validator {
-    pub fn new(input: ast::Program) -> Validator {
+    pub fn new() -> Validator {
         Validator {
-            typechecker: TypeChecker::new(input),
+            typechecker: TypeChecker::new(),
         }
     }
 
-    pub fn go(self) -> Result<ir::Program, ValidationError> {
-        match self.typechecker.go() {
-            Ok(ir) => {
-                return Ok(ir);
-            }
-            Err(e) => return Err(ValidationError::TypeChecking(e)),
+    pub fn go(mut self, input: Vec<ast::Node>) -> Result<ir::Program, Vec<ValidationError>> {
+        let tc = self.typechecker.go(input);
+        let mut errors = Vec::new();
+        for e in self.typechecker.errors {
+            errors.push(ValidationError::TypeChecking(e));
         }
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+        Ok(tc)
     }
 }

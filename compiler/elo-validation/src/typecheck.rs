@@ -34,14 +34,14 @@ enum ExpressionIdentity {
 type ExpressionMetadata = (ir::Expression, ir::Typing, ExpressionIdentity);
 
 pub struct TypeChecker {
-    input: ast::Program,
     namespace: Namespace,
+    pub errors: Vec<TypeError>,
 }
 
 impl TypeChecker {
-    pub fn new(input: ast::Program) -> Self {
+    pub fn new() -> Self {
         Self {
-            input,
+            errors: Vec::new(),
             namespace: Namespace {
                 name: None,
                 structs: HashMap::new(),
@@ -546,6 +546,17 @@ impl TypeChecker {
         }
     }
 
+    fn typecheck_generic_block(&mut self, block: Vec<ast::Node>) -> Vec<ir::Statement> {
+        let mut blk = Vec::new();
+        for a in Box::new(block).into_iter() {
+            match self.typecheck_node(a) {
+                Ok(stmt) => blk.push(stmt),
+                Err(e) => self.errors.push(e),
+            }
+        }
+        blk
+    }
+
     fn typecheck_node(&mut self, node: ast::Node) -> Result<ir::Statement, TypeError> {
         match node.stmt {
             ast::Statement::LetStatement(stmt) => {
@@ -633,8 +644,6 @@ impl TypeChecker {
                     Some(ret_type) => self.check_type(ret_type)?,
                     None => ir::Typing::Void,
                 };
-                let mut validated_block = Vec::new();
-                let xs = Box::new(stmt.block.content);
 
                 // Create a new scope for the function
                 self.namespace.locals.push(HashMap::new());
@@ -651,9 +660,9 @@ impl TypeChecker {
                         },
                     );
                 }
-                for a in xs.into_iter() {
-                    validated_block.push(self.typecheck_node(a)?);
-                }
+
+                let mut validated_block = self.typecheck_generic_block(stmt.block.content);
+
                 // Add extra return to the end in case of a function that returns void, or it will segfault
                 // NOTE: It would if we were still using llvm, but now with C backend this doesn't matter,
                 //       but it's good to keep it here anyways
@@ -741,20 +750,18 @@ impl TypeChecker {
                         },
                     });
                 }
+
                 self.namespace.locals.push(HashMap::new());
-                let mut block_true_content = Vec::new();
-                for a in Box::new(stmt.block_true.content).into_iter() {
-                    block_true_content.push(self.typecheck_node(a)?);
-                }
+                let block_true_content = self.typecheck_generic_block(stmt.block_true.content);
                 self.namespace.locals.pop(); // Pop the true block scope
+
                 self.namespace.locals.push(HashMap::new());
-                let mut block_false_content = Vec::new();
+                let mut block_false_content = vec![];
                 if let Some(block_false) = stmt.block_false {
-                    for a in Box::new(block_false.content).into_iter() {
-                        block_false_content.push(self.typecheck_node(a)?);
-                    }
+                    block_false_content = self.typecheck_generic_block(block_false.content);
                 }
                 self.namespace.locals.pop(); // Pop the false block scope
+
                 return Ok(ir::Statement::IfStatement {
                     condition,
                     block_true: block_true_content,
@@ -774,10 +781,7 @@ impl TypeChecker {
                     });
                 }
                 self.namespace.locals.push(HashMap::new());
-                let mut block = Vec::new();
-                for a in Box::new(stmt.block.content).into_iter() {
-                    block.push(self.typecheck_node(a)?);
-                }
+                let block = self.typecheck_generic_block(stmt.block.content);
                 self.namespace.locals.pop();
                 return Ok(ir::Statement::WhileStatement { condition, block });
             }
@@ -790,12 +794,9 @@ impl TypeChecker {
     }
 
     // Type-check and transform the AST into the IR of Elo code
-    pub fn go(mut self) -> Result<ir::Program, TypeError> {
+    pub fn go(&mut self, input: Vec<ast::Node>) -> ir::Program {
         // This is why i'm making a language
-        let mut nodes = Vec::new();
-        for node in std::mem::take(&mut self.input.nodes) {
-            nodes.push(self.typecheck_node(node)?);
-        }
-        Ok(ir::Program { nodes })
+        let nodes = self.typecheck_generic_block(input);
+        ir::Program { nodes }
     }
 }

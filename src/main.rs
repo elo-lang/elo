@@ -21,9 +21,9 @@ fn parse_program(p: InputFile) -> Result<ast::Program, parseerror::ParseError> {
     parser.parse()
 }
 
-fn validate_program(prog: ast::Program) -> Result<ir::Program, validation::ValidationError> {
-    let validator = Validator::new(prog);
-    validator.go()
+fn validate_program(prog: ast::Program) -> Result<ir::Program, Vec<validation::ValidationError>> {
+    let validator = Validator::new();
+    validator.go(prog.nodes)
 }
 
 fn generate_program(prog: ir::Program) -> String {
@@ -70,12 +70,16 @@ fn main() {
                                 std::fs::write(&output, &r#gen.output).unwrap();
                             }
                         }
-                        Err(e) => match e {
-                            ValidationError::TypeChecking(e) => {
-                                typeerror::type_error(
-                                    e.case,
-                                    &e.span.unwrap().into_filespan(input_file),
-                                );
+                        Err(es) => {
+                            for e in es {
+                                match e {
+                                    ValidationError::TypeChecking(e) => {
+                                        typeerror::type_error(
+                                            e.case,
+                                            &e.span.unwrap().into_filespan(input_file),
+                                        );
+                                    }
+                                }
                             }
                         },
                     },
@@ -113,12 +117,16 @@ fn main() {
                                 arguments.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
                             tcc.run(&arguments)
                         }
-                        Err(e) => match e {
-                            ValidationError::TypeChecking(e) => {
-                                typeerror::type_error(
-                                    e.case,
-                                    &e.span.unwrap().into_filespan(input_file),
-                                );
+                        Err(es) => {
+                            for e in es {
+                                match e {
+                                    ValidationError::TypeChecking(e) => {
+                                        typeerror::type_error(
+                                            e.case,
+                                            &e.span.unwrap().into_filespan(input_file),
+                                        );
+                                    }
+                                }
                             }
                         },
                     },

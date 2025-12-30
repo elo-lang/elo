@@ -12,16 +12,18 @@ fn test_file() {
     let lx = Lexer::new(InputFile::new("test.rs", source_text));
 
     let prog = Parser::new(lx).parse().unwrap();
-    let val = Validator::new(prog);
-    match val.go() {
+    let val = Validator::new();
+    match val.go(prog) {
         Ok(ast) => {
             println!("{:#?}", ast);
         }
         Err(e) =>
         {
-            #[allow(irrefutable_let_patterns)]
-            if let ValidationError::TypeChecking(t) = e {
-                println!("{:?}", t);
+            for e in e {
+                #[allow(irrefutable_let_patterns)]
+                if let ValidationError::TypeChecking(t) = e {
+                    println!("{:?}", t);
+                }
             }
         }
     }
