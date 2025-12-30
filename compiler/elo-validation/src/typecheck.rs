@@ -520,12 +520,6 @@ impl TypeChecker {
                         typ.clone(),
                         ExpressionIdentity::Immediate,
                     ));
-                } else if let Some(e) = self.namespace.enums.get(name) {
-                    return Ok((
-                        ir::Expression::Identifier { name: name.clone() },
-                        ir::Typing::Enum(e.clone()),
-                        ExpressionIdentity::Immediate,
-                    ));
                 } else if let Some(f) = self.namespace.functions.get(name) {
                     return Ok((
                         ir::Expression::Identifier { name: name.clone() },
