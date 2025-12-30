@@ -21,10 +21,7 @@ pub struct Variable {
     pub typing: ir::Typing,
 }
 
-#[derive(Debug)]
-pub struct Scope {
-    pub content: HashMap<String, Variable>,
-}
+pub type Scope = HashMap<String, Variable>;
 
 #[derive(Debug, PartialEq, Eq)]
 // This enum is like an extended version of the concept of Lvalues and Rvalues in C/C++ terms
@@ -532,7 +529,7 @@ impl TypeChecker {
                     // This is because the most recent scope should take precedence.
                     // If the variable is not found, return an error.
                     for i in self.namespace.locals.iter().rev() {
-                        if let Some(var) = i.content.get(name) {
+                        if let Some(var) = i.get(name) {
                             return Ok((
                                 ir::Expression::Identifier { name: name.clone() },
                                 var.typing.clone(),
@@ -557,7 +554,7 @@ impl TypeChecker {
                 let (expr, typ, _) = self.typecheck_expr(assignment)?;
 
                 // Add the variable to the current scope
-                self.namespace.locals.last_mut().unwrap().content.insert(
+                self.namespace.locals.last_mut().unwrap().insert(
                     name.clone(),
                     Variable {
                         name: name.clone(),
@@ -577,7 +574,7 @@ impl TypeChecker {
                 let (expr, typ, _) = self.typecheck_expr(assignment)?;
 
                 // Add the variable to the current scope
-                self.namespace.locals.last_mut().unwrap().content.insert(
+                self.namespace.locals.last_mut().unwrap().insert(
                     name.clone(),
                     Variable {
                         name: name.clone(),
@@ -626,7 +623,7 @@ impl TypeChecker {
                 })
             }
             ast::Statement::FnStatement(stmt) => {
-                // TODO: Add type-checking
+                // TODO: Add proper type-checking for the function block (check return type in all control flow branches)
                 let mut validated_args = Vec::new();
                 for a in stmt.arguments.iter() {
                     validated_args.push((a.name.clone(), self.check_type(&a.typing)?));
@@ -640,14 +637,12 @@ impl TypeChecker {
                 let xs = Box::new(stmt.block.content);
 
                 // Create a new scope for the function
-                self.namespace.locals.push(Scope {
-                    content: HashMap::new(),
-                });
+                self.namespace.locals.push(HashMap::new());
 
                 // Add the arguments to the scope
                 for arg in validated_args.iter() {
                     let (name, typing) = arg;
-                    self.namespace.locals.last_mut().unwrap().content.insert(
+                    self.namespace.locals.last_mut().unwrap().insert(
                         name.clone(),
                         Variable {
                             name: name.clone(),
@@ -660,6 +655,8 @@ impl TypeChecker {
                     validated_block.push(self.typecheck_node(a)?);
                 }
                 // Add extra return to the end in case of a function that returns void, or it will segfault
+                // NOTE: It would if we were still using llvm, but now with C backend this doesn't matter,
+                //       but it's good to keep it here anyways
                 if validated_ret_type == ir::Typing::Void {
                     validated_block.push(ir::Statement::ReturnStatement {
                         value: None,
@@ -744,18 +741,13 @@ impl TypeChecker {
                         },
                     });
                 }
-                self.namespace.locals.push(Scope {
-                    content: HashMap::new(),
-                });
+                self.namespace.locals.push(HashMap::new());
                 let mut block_true_content = Vec::new();
                 for a in Box::new(stmt.block_true.content).into_iter() {
                     block_true_content.push(self.typecheck_node(a)?);
                 }
                 self.namespace.locals.pop(); // Pop the true block scope
-                self.namespace.locals.push(Scope {
-                    // Push a new scope for the false block
-                    content: HashMap::new(),
-                });
+                self.namespace.locals.push(HashMap::new());
                 let mut block_false_content = Vec::new();
                 if let Some(block_false) = stmt.block_false {
                     for a in Box::new(block_false.content).into_iter() {
@@ -781,9 +773,7 @@ impl TypeChecker {
                         },
                     });
                 }
-                self.namespace.locals.push(Scope {
-                    content: HashMap::new(),
-                });
+                self.namespace.locals.push(HashMap::new());
                 let mut block = Vec::new();
                 for a in Box::new(stmt.block.content).into_iter() {
                     block.push(self.typecheck_node(a)?);
