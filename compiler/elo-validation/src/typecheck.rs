@@ -64,6 +64,8 @@ impl TypeChecker {
                     return Ok(ir::Typing::Primitive(t));
                 } else if let Some(e) = self.namespace.enums.get(name) {
                     return Ok(ir::Typing::Enum(e.clone()));
+                } else if let Some(e) = self.namespace.structs.get(name) {
+                    return Ok(ir::Typing::Struct(e.clone()));
                 }
                 return Err(TypeError {
                     span: Some(typ.span),
