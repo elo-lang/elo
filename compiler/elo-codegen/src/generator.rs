@@ -151,7 +151,6 @@ impl Generator {
                 let rhs = field.clone();
                 return c::build_member_access(lhs, rhs);
             }
-            _ => todo!(),
         }
     }
 
