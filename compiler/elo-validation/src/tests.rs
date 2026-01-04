@@ -13,7 +13,7 @@ fn test_file() {
 
     let prog = Parser::new(lx).parse().unwrap();
     let val = Validator::new();
-    match val.go(prog) {
+    match val.go(prog.nodes) {
         Ok(ast) => {
             println!("{:#?}", ast);
         }
