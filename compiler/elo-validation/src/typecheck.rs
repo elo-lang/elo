@@ -137,9 +137,8 @@ impl TypeChecker {
                     ExpressionIdentity::Locatable(false) => {
                         return Err(TypeError {
                             span: Some(span),
-                            case: TypeErrorCase::InvalidExpression {
-                                what: format!("{:?}", lhs.0),
-                                should: "mutable left-hand-side operand".to_string(),
+                            case: TypeErrorCase::AssignImmutable {
+                                expression: format!("{:?}", lhs.0),
                             },
                         });
                     }
