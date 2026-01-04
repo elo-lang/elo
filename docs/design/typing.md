@@ -2,31 +2,82 @@
 
 ---
 
-## Types
-Elo has 2 different kinds of types that can be used arbitrarily by the user:
-1. Static types (stack-allocated)
-1. Dynamic types (heap-allocated)
+## Categorization and casting
 
-- The list of all static types is the following:
-  * Signed integers: `int`, `i8`, `i16`, `i32`, `i64`
-  * Unsigned integers: `uint`, `u8`, `u16`, `u32`, `u64`
-  * Boolean: `bool`
-  * Function-pointer: `fn R(A, ...)`
-  * Floating-point: `float`, `f32`, `f64`
-  * Character: `char`
-  * Sequences: `(T, ...)`, `str`, `{T; N}`
-  * Pointer and slice: `*T`, `{T}`
+### Categories
+Types in Elo are categorized into 2 main categories and their corresponding subcategories:
 
-- The list of all dynamic types is the following:
+1. **Compound types**
+- pointer: `*T`, `*mut T`
+- sequence: `{T}`, `{T; n}`
+- sum type: `T?`, `O!E`
+- dynamic: `[T]`, `[K:V]`, `string`
+- function: `fn R(A, ...)`
+
+1. **Primitive types**
+- signed integer: `int` `i8` `i16` `i32` `i64`
+- unsigned integer: `uint` `u8` `u16` `u32` `u64`
+- floating-point: `float` `f32` `f64`
+- textual: `char` `str`
+- logic: `bool`
+
+### Type casting
+Elo's type-checker is meant to automatically infer implicit casts between types that are safe to cast automatically.
+
+Automatic cast is allowed when converting:
+
+1. Any unsigned with size X into signed with size >=2X
+1. Any signed of size X into a floating-point with
+   size >=X
+1. Any unsigned of size X into any floating-point with
+   size >=2X
+1. Any logic into any integer
+1. `char` into `u32`
+1. `{char}` or `{char; _}` into `str` and vice-versa
+1. `*mut T` into `*T`
+
+Otherwise, you must use explicit cast or the cast is just not possible.
+
+To make an explicit cast in Elo, use the `as` keyword:
+```
+foo as i32
+bar as str
+baz as u8
+```
+
+
+Automatic casting examples:
+```
+struct Person {
+  name: str, age: i64
+}
+
+let x: u32 = 50
+let p = Person { name: 'bob', age: x }; // auto cast rule #1
+//                                 ^
+```
+
+```
+struct Vector2 { x, y: f64 }
+
+let x: u16 = 69
+let y: u16 = 420
+let v2 = Vector2 { x: x, y: y } // auto cast rule #3
+//                    ^     ^
+```
+
+## Static types VS Dynamic types
+Static types are all stack-allocated. That means their lifetime is defined by their scope and have fixed size.
+1. Dynamic types are heap-allocated. Their lifetimes are arbitrary and may have different size during runtime.
+
+All the static types are the primitives.
+
+The list of all dynamic types is the following:
   * Dynamic array: `[T]`
-  * Growable and mutable string: `string`
-  * Hashmap: `[K:V]`
+  * Growable and mutable string (string builder): `string`
+  * Hash map: `[K:V]`
   * _We plan to add more types to this list, but for now this is what
     we see as the most needed ones_.
-
-Static types may also be called "primitive types", since they
-do not need special memory management or advanced checking by
-the Elo's compiler.
 
 ## Pointers
 In Elo, pointers are raw addresses that point to specific part of memory, containing a value of a specified type (`*T`).
