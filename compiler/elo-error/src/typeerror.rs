@@ -15,6 +15,9 @@ pub enum TypeErrorCase {
         what: String,
         should: String,
     },
+    AssignImmutable {
+        expression: String,
+    },
     UnresolvedName {
         name: String,
     },
@@ -42,6 +45,15 @@ pub struct TypeError {
 
 pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
     match pe {
+        TypeErrorCase::AssignImmutable { expression } => {
+            error(
+                "Type Check Error",
+                &format!("tried to assign to immutable expresion {expression}"),
+                filespan,
+                None,
+                Some("left-hand is immutable, but should be mutable to be assigned"),
+            );
+        }
         TypeErrorCase::TypeMismatch { got, expected } => {
             error(
                 "Type Check Error",
