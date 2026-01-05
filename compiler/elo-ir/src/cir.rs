@@ -253,7 +253,6 @@ pub struct ReturnStatement {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    None,
     Variable {
         binding: String,
         assignment: Expression,
