@@ -1,3 +1,5 @@
+const NL: &'static str = "\n";
+
 pub enum Binop {
     Add,
     Sub,
@@ -50,27 +52,11 @@ impl std::fmt::Display for Unop {
     }
 }
 
-pub fn build_binop(lhs: String, rhs: String, op: Binop) -> String {
-    return format!("({}) {} ({})", lhs, op, rhs);
-}
-
-pub fn build_member_access(origin: String, member: String) -> String {
-    return format!("({origin}).{member}");
-}
-
-pub fn build_unop(lhs: String, op: Unop) -> String {
-    return format!("{}({})", op, lhs);
-}
-
-pub fn build_array_literal(typ: String, items: String) -> String {
-    return format!("({typ}[]){{{items}}}");
-}
-
-pub fn build_typed_field(r#type: String, name: String) -> String {
+pub fn field(r#type: &str, name: &str) -> String {
     return format!("{} {}", r#type, name);
 }
 
-pub fn build_comma_list(arguments: &[String]) -> String {
+pub fn list(arguments: &[String]) -> String {
     let mut s = String::new();
     let l = arguments.len();
     for (i, x) in arguments.into_iter().enumerate() {
@@ -82,27 +68,44 @@ pub fn build_comma_list(arguments: &[String]) -> String {
     s
 }
 
-pub fn build_function_call(name: String, arguments: String) -> String {
+pub fn binop(lhs: &str, rhs: &str, op: Binop) -> String {
+    return format!("({}) {} ({})", lhs, op, rhs);
+}
+
+pub fn unop(lhs: &str, op: Unop) -> String {
+    return format!("{}({})", op, lhs);
+}
+
+pub fn member_expr(origin: &str, member: &str) -> String {
+    return format!("({origin}).{member}");
+}
+
+pub fn array_expr(typ: &str, items: &str) -> String {
+    return format!("({typ}[]){{{items}}}");
+}
+
+
+pub fn function_call_expr(name: &str, arguments: &str) -> String {
     return format!("{name}({arguments})");
 }
 
-pub fn build_statement(core: String) -> String {
-    return format!("{core};\n");
+pub fn statement(core: &str) -> String {
+    return format!("{core};{NL}");
 }
 
-pub fn build_statement_list(statements: &[String]) -> String {
+pub fn statement_list(statements: &[String]) -> String {
     let mut s = String::new();
     for x in statements {
         s.push_str(x);
-        s.push_str(";\n");
+        s.push_str(&format!(";{NL}"));
     }
     s
 }
 
-pub fn build_function_declaration(
-    r#return: String,
-    name: String,
-    arguments: String,
+pub fn function_decl_stmt(
+    r#return: &str,
+    name: &str,
+    arguments: &str,
     varargs: bool,
 ) -> String {
     return format!(
@@ -111,12 +114,12 @@ pub fn build_function_declaration(
     );
 }
 
-pub fn build_function_definition(
-    r#return: String,
-    name: String,
-    arguments: String,
+pub fn function_stmt(
+    r#return: &str,
+    name: &str,
+    arguments: &str,
     varargs: bool,
-    body: String,
+    body: &str,
 ) -> String {
     return format!(
         "{return} {name}({arguments}{}){{\n{body}}}",
@@ -124,7 +127,7 @@ pub fn build_function_definition(
     );
 }
 
-pub fn build_if(condition: String, r#true: String, r#false: Option<String>) -> String {
+pub fn if_stmt(condition: &str, r#true: &str, r#false: Option<String>) -> String {
     return format!(
         "if({condition})\n{{{true}}}{}",
         if let Some(r#false) = r#false {
@@ -135,15 +138,15 @@ pub fn build_if(condition: String, r#true: String, r#false: Option<String>) -> S
     );
 }
 
-pub fn build_while(condition: String, block: String) -> String {
+pub fn while_stmt(condition: &str, block: &str) -> String {
     return format!("while({condition})\n{{{block}}}");
 }
 
-pub fn build_variable_definition(r#type: String, name: String, value: String) -> String {
-    return format!("{}={value}", build_typed_field(r#type, name));
+pub fn variable_stmt(r#type: &str, name: &str, value: &str) -> String {
+    return format!("{type} {name} = {value}");
 }
 
-pub fn build_return(value: Option<String>) -> String {
+pub fn return_stmt(value: Option<String>) -> String {
     return format!(
         "return{}",
         if let Some(value) = value {
@@ -154,15 +157,15 @@ pub fn build_return(value: Option<String>) -> String {
     );
 }
 
-pub fn build_enum_definition(name: String, body: String) -> String {
+pub fn enum_stmt(name: &str, body: &str) -> String {
     return format!("enum {name} {{ {body} }}");
 }
 
-pub fn build_struct_definition(name: String, body: String) -> String {
+pub fn struct_stmt(name: &str, body: &str) -> String {
     return format!("struct {name} {{ {body} }}");
 }
 
-pub fn build_struct_init(name: String, fields: &[(String, String)]) -> String {
+pub fn struct_expr(name: &str, fields: &[(String, String)]) -> String {
     let mut xs = format!("(struct {name}){{");
     for (field, value) in fields {
         xs.push_str(&format!(".{field} = {value},"));

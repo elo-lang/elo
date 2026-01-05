@@ -83,13 +83,13 @@ impl Generator {
                 return if *value { "1" } else { "0" }.to_string();
             }
             ir::Expression::UnaryOperation { operator, operand } => {
-                let op = self.generate_expression(operand);
+                let op = &self.generate_expression(operand);
                 match *operator {
-                    ir::UnaryOperation::Neg => c::build_unop(op, c::Unop::Neg),
-                    ir::UnaryOperation::BNot => c::build_unop(op, c::Unop::BNot),
-                    ir::UnaryOperation::Not => c::build_unop(op, c::Unop::Not),
-                    ir::UnaryOperation::Addr => c::build_unop(op, c::Unop::Addr),
-                    ir::UnaryOperation::Deref => c::build_unop(op, c::Unop::Deref),
+                    ir::UnaryOperation::Neg => c::unop(op, c::Unop::Neg),
+                    ir::UnaryOperation::BNot => c::unop(op, c::Unop::BNot),
+                    ir::UnaryOperation::Not => c::unop(op, c::Unop::Not),
+                    ir::UnaryOperation::Addr => c::unop(op, c::Unop::Addr),
+                    ir::UnaryOperation::Deref => c::unop(op, c::Unop::Deref),
                 }
             }
             ir::Expression::BinaryOperation {
@@ -97,20 +97,20 @@ impl Generator {
                 left,
                 right,
             } => {
-                let lhs = self.generate_expression(left);
-                let rhs = self.generate_expression(right);
+                let lhs = &self.generate_expression(left);
+                let rhs = &self.generate_expression(right);
                 match *operator {
-                    ir::BinaryOperation::Add => c::build_binop(lhs, rhs, c::Binop::Add),
-                    ir::BinaryOperation::Sub => c::build_binop(lhs, rhs, c::Binop::Sub),
-                    ir::BinaryOperation::Mul => c::build_binop(lhs, rhs, c::Binop::Mul),
-                    ir::BinaryOperation::Div => c::build_binop(lhs, rhs, c::Binop::Div),
-                    ir::BinaryOperation::Lt => c::build_binop(lhs, rhs, c::Binop::Lt),
-                    ir::BinaryOperation::Gt => c::build_binop(lhs, rhs, c::Binop::Gt),
-                    ir::BinaryOperation::Le => c::build_binop(lhs, rhs, c::Binop::Le),
-                    ir::BinaryOperation::Ge => c::build_binop(lhs, rhs, c::Binop::Ge),
-                    ir::BinaryOperation::Eq => c::build_binop(lhs, rhs, c::Binop::Eq),
-                    ir::BinaryOperation::Ne => c::build_binop(lhs, rhs, c::Binop::Ne),
-                    ir::BinaryOperation::Assign => c::build_binop(lhs, rhs, c::Binop::Assign),
+                    ir::BinaryOperation::Add => c::binop(lhs, rhs, c::Binop::Add),
+                    ir::BinaryOperation::Sub => c::binop(lhs, rhs, c::Binop::Sub),
+                    ir::BinaryOperation::Mul => c::binop(lhs, rhs, c::Binop::Mul),
+                    ir::BinaryOperation::Div => c::binop(lhs, rhs, c::Binop::Div),
+                    ir::BinaryOperation::Lt => c::binop(lhs, rhs, c::Binop::Lt),
+                    ir::BinaryOperation::Gt => c::binop(lhs, rhs, c::Binop::Gt),
+                    ir::BinaryOperation::Le => c::binop(lhs, rhs, c::Binop::Le),
+                    ir::BinaryOperation::Ge => c::binop(lhs, rhs, c::Binop::Ge),
+                    ir::BinaryOperation::Eq => c::binop(lhs, rhs, c::Binop::Eq),
+                    ir::BinaryOperation::Ne => c::binop(lhs, rhs, c::Binop::Ne),
+                    ir::BinaryOperation::Assign => c::binop(lhs, rhs, c::Binop::Assign),
                     c => {
                         dbg!(c);
                         todo!()
@@ -119,9 +119,9 @@ impl Generator {
             }
             ir::Expression::ArrayLiteral { exprs, typ } => {
                 let exprs = exprs.iter().map(|e| self.generate_expression(e));
-                let items = c::build_comma_list(&exprs.collect::<Vec<String>>());
+                let items = c::list(&exprs.collect::<Vec<String>>());
                 let typ = self.choose_type(typ);
-                return c::build_array_literal(typ, items);
+                return c::array_expr(&typ, &items);
             }
             ir::Expression::FunctionCall {
                 function,
@@ -132,8 +132,8 @@ impl Generator {
                         .iter()
                         .map(|x| self.generate_expression(x))
                         .collect();
-                    let arguments = c::build_comma_list(arguments.as_slice());
-                    return c::build_function_call(name.clone(), arguments);
+                    let arguments = c::list(arguments.as_slice());
+                    return c::function_call_expr(name, &arguments);
                 }
                 _ => todo!(),
             },
@@ -144,12 +144,12 @@ impl Generator {
                     .iter()
                     .map(|(f, e)| (f.clone(), self.generate_expression(e)))
                     .collect::<Vec<(String, String)>>();
-                return c::build_struct_init(name, &fields);
+                return c::struct_expr(&name, &fields);
             }
             ir::Expression::FieldAccess { origin, field } => {
                 let lhs = self.generate_expression(origin);
                 let rhs = field.clone();
-                return c::build_member_access(lhs, rhs);
+                return c::member_expr(&lhs, &rhs);
             }
         }
     }
@@ -176,22 +176,21 @@ impl Generator {
                 let mut arguments = Vec::new();
                 for (name, typing) in &stmt.head.arguments {
                     let t = self.choose_type(typing);
-                    let n = name.clone();
-                    arguments.push(c::build_typed_field(t, n));
+                    arguments.push(c::field(&t, name));
                 }
-                let arguments = c::build_comma_list(arguments.as_slice());
+                let arguments = c::list(arguments.as_slice());
                 let body = stmt
                     .block
                     .iter_mut()
                     .map(|x| self.generate_statement(x))
                     .collect::<Vec<String>>();
-                let body = c::build_statement_list(body.as_slice());
-                output.push_str(&c::build_function_definition(
-                    r#return,
-                    name,
-                    arguments,
+                let body = c::statement_list(body.as_slice());
+                output.push_str(&c::function_stmt(
+                    &r#return,
+                    &name,
+                    &arguments,
                     stmt.head.variadic,
-                    body,
+                    &body,
                 ));
             }
             ir::Statement::ExternFnStatement(stmt) => {
@@ -200,14 +199,13 @@ impl Generator {
                 let mut arguments = Vec::new();
                 for (name, typing) in &stmt.arguments {
                     let t = self.choose_type(typing);
-                    let n = name.clone();
-                    arguments.push(c::build_typed_field(t, n));
+                    arguments.push(c::field(&t, name));
                 }
-                let arguments = c::build_comma_list(arguments.as_slice());
-                output.push_str(&c::build_function_declaration(
-                    r#return,
-                    name,
-                    arguments,
+                let arguments = c::list(arguments.as_slice());
+                output.push_str(&c::function_decl_stmt(
+                    &r#return,
+                    &name,
+                    &arguments,
                     stmt.variadic,
                 ))
             }
@@ -215,14 +213,14 @@ impl Generator {
                 let fields = stmt
                     .fields
                     .iter()
-                    .map(|(k, v)| c::build_typed_field(self.choose_type(v), k.clone()));
+                    .map(|(k, v)| c::field(&self.choose_type(v), k));
                 let fields = fields.collect::<Vec<String>>();
-                let body = c::build_statement_list(&fields);
-                output.push_str(&c::build_struct_definition(stmt.name.clone(), body));
+                let body = c::statement_list(&fields);
+                output.push_str(&c::struct_stmt(&stmt.name, &body));
             }
             ir::Statement::EnumStatement(stmt) => {
-                let doby = c::build_comma_list(&stmt.variants);
-                output.push_str(&c::build_enum_definition(stmt.name.clone(), doby));
+                let doby = c::list(&stmt.variants);
+                output.push_str(&c::enum_stmt(&stmt.name, &doby));
             }
             ir::Statement::Variable {
                 binding,
@@ -231,7 +229,7 @@ impl Generator {
             } => {
                 let typ = self.choose_type(typing);
                 let expr = self.generate_expression(&assignment);
-                output.push_str(&c::build_variable_definition(typ, binding.clone(), expr));
+                output.push_str(&c::variable_stmt(&typ, binding, &expr));
             }
             ir::Statement::ExpressionStatement(expr) => {
                 let e = self.generate_expression(&expr);
@@ -239,7 +237,7 @@ impl Generator {
             }
             ir::Statement::ReturnStatement { value, typing: _ } => {
                 let e = value.as_ref().map(|x| self.generate_expression(x));
-                output.push_str(&c::build_return(e));
+                output.push_str(&c::return_stmt(e));
             }
             ir::Statement::IfStatement {
                 condition,
@@ -251,7 +249,7 @@ impl Generator {
                     .iter_mut()
                     .map(|x| self.generate_statement(x))
                     .collect::<Vec<String>>();
-                let r#true = c::build_statement_list(r#true.as_slice());
+                let r#true = c::statement_list(r#true.as_slice());
 
                 let mut r#false = None;
                 if !block_false.is_empty() {
@@ -259,9 +257,9 @@ impl Generator {
                         .iter_mut()
                         .map(|x| self.generate_statement(x))
                         .collect::<Vec<String>>();
-                    r#false = Some(c::build_statement_list(f.as_slice()));
+                    r#false = Some(c::statement_list(f.as_slice()));
                 }
-                output.push_str(&c::build_if(comparison, r#true, r#false));
+                output.push_str(&c::if_stmt(&comparison, &r#true, r#false));
             }
             ir::Statement::WhileStatement { condition, block } => {
                 let comparison = self.generate_expression(&condition);
@@ -269,8 +267,8 @@ impl Generator {
                     .iter_mut()
                     .map(|x| self.generate_statement(x))
                     .collect::<Vec<String>>();
-                let block = c::build_statement_list(block.as_slice());
-                output.push_str(&c::build_while(comparison, block));
+                let block = c::statement_list(block.as_slice());
+                output.push_str(&c::while_stmt(&comparison, &block));
             }
             _ => todo!(),
         };
