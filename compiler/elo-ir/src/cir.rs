@@ -177,13 +177,11 @@ pub struct Enum {
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Primitive {
-    I128,
     I64,
     I32,
     I16,
     I8,
     Bool,
-    U128,
     U64,
     U32,
     U16,
@@ -210,12 +208,10 @@ impl Primitive {
             "i16" => Some(Primitive::I16),
             "i32" => Some(Primitive::I32),
             "i64" => Some(Primitive::I64),
-            "i128" => Some(Primitive::I128),
             "u8" => Some(Primitive::U8),
             "u16" => Some(Primitive::U16),
             "u32" => Some(Primitive::U32),
             "u64" => Some(Primitive::U64),
-            "u128" => Some(Primitive::U128),
             "bool" => Some(Primitive::Bool),
             "str" => Some(Primitive::Str),
             "char" => Some(Primitive::Char),
