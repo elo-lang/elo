@@ -7,4 +7,3 @@ edition.workspace = true
 
 [dependencies]
 elo-lexer = { path = "../elo-lexer" }
-elo-ast = { path = "../elo-ast" }

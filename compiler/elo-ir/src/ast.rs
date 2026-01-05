@@ -1,3 +1,5 @@
+// Abstract Syntax Tree
+
 use elo_lexer::span::Span;
 
 #[derive(Debug)]

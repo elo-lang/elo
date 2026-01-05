@@ -6,7 +6,6 @@ version = 4
 name = "elo"
 version = "0.1.0"
 dependencies = [
- "elo-ast",
  "elo-codegen",
  "elo-error",
  "elo-ir",
@@ -16,17 +15,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "elo-ast"
-version = "0.1.0"
-dependencies = [
- "elo-lexer",
-]
-
-[[package]]
 name = "elo-codegen"
 version = "0.1.0"
 dependencies = [
- "elo-ast",
  "elo-error",
  "elo-ir",
  "elo-lexer",
@@ -45,7 +36,6 @@ dependencies = [
 name = "elo-ir"
 version = "0.1.0"
 dependencies = [
- "elo-ast",
  "elo-lexer",
 ]
 
@@ -57,8 +47,8 @@ version = "0.1.0"
 name = "elo-parser"
 version = "0.1.0"
 dependencies = [
- "elo-ast",
  "elo-error",
+ "elo-ir",
  "elo-lexer",
 ]
 
@@ -66,7 +56,6 @@ dependencies = [
 name = "elo-validation"
 version = "0.1.0"
 dependencies = [
- "elo-ast",
  "elo-error",
  "elo-ir",
  "elo-lexer",

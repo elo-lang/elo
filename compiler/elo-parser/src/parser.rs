@@ -8,9 +8,9 @@ use elo_lexer::lexer::Lexer;
 use elo_lexer::span::Span;
 use elo_lexer::token::Token;
 
-use elo_ast::ast::Node;
-use elo_ast::ast::Program;
-use elo_ast::ast::*;
+use elo_ir::ast::Node;
+use elo_ir::ast::Program;
+use elo_ir::ast::*;
 
 pub type Precedence = u8;
 

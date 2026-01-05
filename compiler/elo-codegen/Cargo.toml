@@ -8,7 +8,6 @@ edition.workspace = true
 [dependencies]
 elo-ir = { path = "../elo-ir" }
 elo-error = { path = "../elo-error" }
-elo-ast = { path = "../elo-ast" }
 elo-lexer = { path = "../elo-lexer" }
 elo-parser = { path = "../elo-parser" }
 elo-validation = { path = "../elo-validation" }

@@ -1,16 +1,16 @@
-use elo_ast::ast::{self, Expression, TypedField};
+use elo_ir::ast::{self, Expression, TypedField};
 use elo_error::typeerror::*;
-use elo_ir::ir;
+use elo_ir::cir;
 use elo_lexer::span::Span;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Namespace {
     pub name: Option<String>,
-    pub constants: HashMap<String, ir::Typing>,
-    pub structs: HashMap<String, ir::Struct>,
-    pub enums: HashMap<String, ir::Enum>,
-    pub functions: HashMap<String, ir::FunctionHead>,
+    pub constants: HashMap<String, cir::Typing>,
+    pub structs: HashMap<String, cir::Struct>,
+    pub enums: HashMap<String, cir::Enum>,
+    pub functions: HashMap<String, cir::FunctionHead>,
     pub locals: Vec<Scope>,
 }
 
@@ -18,7 +18,7 @@ pub struct Namespace {
 pub struct Variable {
     pub name: String,
     pub mutable: bool,
-    pub typing: ir::Typing,
+    pub typing: cir::Typing,
 }
 
 pub type Scope = HashMap<String, Variable>;
@@ -31,7 +31,7 @@ enum ExpressionIdentity {
     Immediate,
 }
 
-type ExpressionMetadata = (ir::Expression, ir::Typing, ExpressionIdentity);
+type ExpressionMetadata = (cir::Expression, cir::Typing, ExpressionIdentity);
 
 pub struct TypeChecker {
     namespace: Namespace,
@@ -53,16 +53,16 @@ impl TypeChecker {
         }
     }
 
-    fn check_type(&mut self, typ: &ast::Type) -> Result<ir::Typing, TypeError> {
+    fn check_type(&mut self, typ: &ast::Type) -> Result<cir::Typing, TypeError> {
         match &typ.typing {
             // TODO: Add generics
             ast::Typing::Named { name, .. } => {
-                if let Some(t) = ir::Primitive::from_str(name) {
-                    return Ok(ir::Typing::Primitive(t));
+                if let Some(t) = cir::Primitive::from_str(name) {
+                    return Ok(cir::Typing::Primitive(t));
                 } else if let Some(e) = self.namespace.enums.get(name) {
-                    return Ok(ir::Typing::Enum(e.clone()));
+                    return Ok(cir::Typing::Enum(e.clone()));
                 } else if let Some(e) = self.namespace.structs.get(name) {
-                    return Ok(ir::Typing::Struct(e.clone()));
+                    return Ok(cir::Typing::Struct(e.clone()));
                 }
                 return Err(TypeError {
                     span: Some(typ.span),
@@ -73,7 +73,7 @@ impl TypeChecker {
             }
             ast::Typing::Pointer { typ } => {
                 let inner_typing = self.check_type(typ)?;
-                return Ok(ir::Typing::Pointer {
+                return Ok(cir::Typing::Pointer {
                     typ: Box::new(inner_typing),
                 });
             }
@@ -92,8 +92,8 @@ impl TypeChecker {
         rhs: &ExpressionMetadata,
         binop: &ast::BinaryOperation,
         span: elo_lexer::span::Span,
-    ) -> Result<(ir::BinaryOperation, ir::Typing, ExpressionIdentity), TypeError> {
-        let ir_binop = ir::BinaryOperation::from_ast(&binop);
+    ) -> Result<(cir::BinaryOperation, cir::Typing, ExpressionIdentity), TypeError> {
+        let ir_binop = cir::BinaryOperation::from_ast(&binop);
         if rhs.1 != lhs.1 {
             return Err(TypeError {
                 span: Some(span),
@@ -104,35 +104,35 @@ impl TypeChecker {
             });
         }
         let typing = match ir_binop {
-            ir::BinaryOperation::Add
-            | ir::BinaryOperation::Sub
-            | ir::BinaryOperation::Mul
-            | ir::BinaryOperation::Div
-            | ir::BinaryOperation::Mod
-            | ir::BinaryOperation::BAnd
-            | ir::BinaryOperation::BOr
-            | ir::BinaryOperation::BNot
-            | ir::BinaryOperation::BXor
-            | ir::BinaryOperation::LShift
-            | ir::BinaryOperation::RShift => lhs.1.clone(),
-            ir::BinaryOperation::Eq
-            | ir::BinaryOperation::Ne
-            | ir::BinaryOperation::Lt
-            | ir::BinaryOperation::Le
-            | ir::BinaryOperation::Gt
-            | ir::BinaryOperation::Ge
-            | ir::BinaryOperation::And
-            | ir::BinaryOperation::Or => ir::Typing::Primitive(ir::Primitive::Bool),
-            ir::BinaryOperation::Assign
-            | ir::BinaryOperation::AssignAdd
-            | ir::BinaryOperation::AssignSub
-            | ir::BinaryOperation::AssignMul
-            | ir::BinaryOperation::AssignDiv
-            | ir::BinaryOperation::AssignMod
-            | ir::BinaryOperation::AssignBAnd
-            | ir::BinaryOperation::AssignBOr
-            | ir::BinaryOperation::AssignBXor
-            | ir::BinaryOperation::AssignBNot => {
+            cir::BinaryOperation::Add
+            | cir::BinaryOperation::Sub
+            | cir::BinaryOperation::Mul
+            | cir::BinaryOperation::Div
+            | cir::BinaryOperation::Mod
+            | cir::BinaryOperation::BAnd
+            | cir::BinaryOperation::BOr
+            | cir::BinaryOperation::BNot
+            | cir::BinaryOperation::BXor
+            | cir::BinaryOperation::LShift
+            | cir::BinaryOperation::RShift => lhs.1.clone(),
+            cir::BinaryOperation::Eq
+            | cir::BinaryOperation::Ne
+            | cir::BinaryOperation::Lt
+            | cir::BinaryOperation::Le
+            | cir::BinaryOperation::Gt
+            | cir::BinaryOperation::Ge
+            | cir::BinaryOperation::And
+            | cir::BinaryOperation::Or => cir::Typing::Primitive(cir::Primitive::Bool),
+            cir::BinaryOperation::Assign
+            | cir::BinaryOperation::AssignAdd
+            | cir::BinaryOperation::AssignSub
+            | cir::BinaryOperation::AssignMul
+            | cir::BinaryOperation::AssignDiv
+            | cir::BinaryOperation::AssignMod
+            | cir::BinaryOperation::AssignBAnd
+            | cir::BinaryOperation::AssignBOr
+            | cir::BinaryOperation::AssignBXor
+            | cir::BinaryOperation::AssignBNot => {
                 match lhs.2 {
                     ExpressionIdentity::Locatable(false) => {
                         return Err(TypeError {
@@ -153,7 +153,7 @@ impl TypeChecker {
                     }
                     _ => {} // Ok! For assignment, the lhs must be a mutable locatable value
                 }
-                ir::Typing::Void
+                cir::Typing::Void
             }
         };
         Ok((ir_binop, typing, ExpressionIdentity::Immediate))
@@ -219,8 +219,8 @@ impl TypeChecker {
         }
 
         return Ok((
-            ir::Expression::FunctionCall {
-                function: Box::new(ir::Expression::Identifier {
+            cir::Expression::FunctionCall {
+                function: Box::new(cir::Expression::Identifier {
                     name: name.to_string(),
                 }),
                 arguments: checked_arguments,
@@ -242,7 +242,7 @@ impl TypeChecker {
                 let (operator, typing, op_id) =
                     self.typecheck_binop(&lhs, &rhs, operator, expr.span)?;
                 Ok((
-                    ir::Expression::BinaryOperation {
+                    cir::Expression::BinaryOperation {
                         operator,
                         left: Box::new(lhs.0),
                         right: Box::new(rhs.0),
@@ -252,12 +252,12 @@ impl TypeChecker {
                 ))
             }
             ast::ExpressionData::UnaryOperation { operator, operand } => {
-                let operator = ir::UnaryOperation::from_ast(operator);
+                let operator = cir::UnaryOperation::from_ast(operator);
                 let (operand, operand_type, operand_id) = self.typecheck_expr(&operand)?;
                 let operation_type;
                 let id;
                 match operator {
-                    ir::UnaryOperation::Addr => {
+                    cir::UnaryOperation::Addr => {
                         if let ExpressionIdentity::Immediate = operand_id {
                             return Err(TypeError {
                                 span: Some(expr.span),
@@ -267,18 +267,18 @@ impl TypeChecker {
                                 },
                             });
                         }
-                        operation_type = ir::Typing::Pointer {
+                        operation_type = cir::Typing::Pointer {
                             typ: Box::new(operand_type),
                         };
                         id = ExpressionIdentity::Immediate;
                     }
-                    ir::UnaryOperation::Neg
-                    | ir::UnaryOperation::Not
-                    | ir::UnaryOperation::BNot => {
+                    cir::UnaryOperation::Neg
+                    | cir::UnaryOperation::Not
+                    | cir::UnaryOperation::BNot => {
                         operation_type = operand_type;
                         id = ExpressionIdentity::Immediate;
                     }
-                    ir::UnaryOperation::Deref => match operand_id {
+                    cir::UnaryOperation::Deref => match operand_id {
                         ExpressionIdentity::Immediate => {
                             return Err(TypeError {
                                 span: Some(expr.span),
@@ -289,7 +289,7 @@ impl TypeChecker {
                             });
                         }
                         e => {
-                            if let ir::Typing::Pointer { typ } = operand_type {
+                            if let cir::Typing::Pointer { typ } = operand_type {
                                 operation_type = *typ;
                             } else {
                                 return Err(TypeError {
@@ -305,7 +305,7 @@ impl TypeChecker {
                     },
                 };
                 Ok((
-                    ir::Expression::UnaryOperation {
+                    cir::Expression::UnaryOperation {
                         operator,
                         operand: Box::new(operand),
                     },
@@ -315,21 +315,21 @@ impl TypeChecker {
             }
             ast::ExpressionData::CharacterLiteral { value } => {
                 return Ok((
-                    ir::Expression::StringLiteral {
+                    cir::Expression::StringLiteral {
                         value: String::from(*value),
                     },
-                    ir::Typing::Primitive(ir::Primitive::Char),
+                    cir::Typing::Primitive(cir::Primitive::Char),
                     ExpressionIdentity::Immediate,
                 ));
             }
             ast::ExpressionData::StrLiteral { value } => {
                 return Ok((
-                    ir::Expression::StringLiteral {
+                    cir::Expression::StringLiteral {
                         value: value.clone(),
                     },
                     // TODO: Change this to `str` type.
-                    ir::Typing::Pointer {
-                        typ: Box::new(ir::Typing::Primitive(ir::Primitive::U8)),
+                    cir::Typing::Pointer {
+                        typ: Box::new(cir::Typing::Primitive(cir::Primitive::U8)),
                     },
                     ExpressionIdentity::Immediate,
                 ));
@@ -339,7 +339,7 @@ impl TypeChecker {
             }
             ast::ExpressionData::Array { exprs, amount } => {
                 let mut checked_exprs = Vec::new();
-                let mut r#type: Option<ir::Typing> = None;
+                let mut r#type: Option<cir::Typing> = None;
                 for i in exprs {
                     let (expr, expr_typing, _) = self.typecheck_expr(i)?;
                     let span = i.span;
@@ -359,12 +359,12 @@ impl TypeChecker {
                     }
                 }
                 return Ok((
-                    ir::Expression::ArrayLiteral {
+                    cir::Expression::ArrayLiteral {
                         exprs: checked_exprs,
                         typ: r#type.clone().unwrap(),
                     },
                     // TODO: Change this to `str` type.
-                    ir::Typing::Array {
+                    cir::Typing::Array {
                         typ: Box::new(r#type.unwrap()),
                         amount: *amount,
                     },
@@ -384,7 +384,7 @@ impl TypeChecker {
                     });
                 }
                 match typing {
-                    ir::Typing::Struct(st) => {
+                    cir::Typing::Struct(st) => {
                         // the case when you are getting a field from struct instance
                         // search for field
                         let mut typ = None; // return type of the whole expression
@@ -403,7 +403,7 @@ impl TypeChecker {
                             });
                         }
                         return Ok((
-                            ir::Expression::FieldAccess {
+                            cir::Expression::FieldAccess {
                                 origin: Box::new(expression),
                                 field: field.clone(),
                             },
@@ -474,23 +474,23 @@ impl TypeChecker {
                     }
                     checked_fields.push((field.name.clone(), expr));
                 }
-                let thing = ir::Expression::StructInit {
+                let thing = cir::Expression::StructInit {
                     origin: strukt.clone(),
                     fields: checked_fields,
                 };
                 Ok((
                     thing,
-                    ir::Typing::Struct(strukt),
+                    cir::Typing::Struct(strukt),
                     ExpressionIdentity::Immediate,
                 ))
             }
             ast::ExpressionData::IntegerLiteral { value } => {
                 let (lit, radix) = value;
                 Ok((
-                    ir::Expression::Integer {
+                    cir::Expression::Integer {
                         value: i128::from_str_radix(lit, *radix).unwrap(),
                     },
-                    ir::Typing::Primitive(ir::Primitive::Int),
+                    cir::Typing::Primitive(cir::Primitive::Int),
                     ExpressionIdentity::Immediate,
                 ))
             }
@@ -499,26 +499,26 @@ impl TypeChecker {
                 let fractional = u64::from_str_radix(&float.0, float.1).unwrap();
                 let value = format!("{}.{}", integer, fractional).parse().unwrap();
                 Ok((
-                    ir::Expression::Float { value },
-                    ir::Typing::Primitive(ir::Primitive::Float),
+                    cir::Expression::Float { value },
+                    cir::Typing::Primitive(cir::Primitive::Float),
                     ExpressionIdentity::Immediate,
                 ))
             }
             ast::ExpressionData::BooleanLiteral { value } => Ok((
-                ir::Expression::Bool { value: *value },
-                ir::Typing::Primitive(ir::Primitive::Bool),
+                cir::Expression::Bool { value: *value },
+                cir::Typing::Primitive(cir::Primitive::Bool),
                 ExpressionIdentity::Immediate,
             )),
             ast::ExpressionData::Identifier { name } => {
                 if let Some(typ) = self.namespace.constants.get(name) {
                     return Ok((
-                        ir::Expression::Identifier { name: name.clone() },
+                        cir::Expression::Identifier { name: name.clone() },
                         typ.clone(),
                         ExpressionIdentity::Immediate,
                     ));
                 } else if let Some(f) = self.namespace.functions.get(name) {
                     return Ok((
-                        ir::Expression::Identifier { name: name.clone() },
+                        cir::Expression::Identifier { name: name.clone() },
                         f.ret.clone(), // FIXME: This should be the function pointer type
                         ExpressionIdentity::Immediate,
                     ));
@@ -530,7 +530,7 @@ impl TypeChecker {
                     for i in self.namespace.locals.iter().rev() {
                         if let Some(var) = i.get(name) {
                             return Ok((
-                                ir::Expression::Identifier { name: name.clone() },
+                                cir::Expression::Identifier { name: name.clone() },
                                 var.typing.clone(),
                                 ExpressionIdentity::Locatable(var.mutable),
                             ));
@@ -545,7 +545,7 @@ impl TypeChecker {
         }
     }
 
-    fn typecheck_generic_block(&mut self, block: Vec<ast::Node>) -> Vec<ir::Statement> {
+    fn typecheck_generic_block(&mut self, block: Vec<ast::Node>) -> Vec<cir::Statement> {
         let mut blk = Vec::new();
         for a in Box::new(block).into_iter() {
             match self.typecheck_node(a) {
@@ -556,7 +556,7 @@ impl TypeChecker {
         blk
     }
 
-    fn typecheck_node(&mut self, node: ast::Node) -> Result<ir::Statement, TypeError> {
+    fn typecheck_node(&mut self, node: ast::Node) -> Result<cir::Statement, TypeError> {
         match node.stmt {
             ast::Statement::LetStatement(stmt) => {
                 let assignment = &stmt.assignment;
@@ -572,7 +572,7 @@ impl TypeChecker {
                         typing: typ.clone(),
                     },
                 );
-                Ok(ir::Statement::Variable {
+                Ok(cir::Statement::Variable {
                     assignment: expr,
                     binding: name.clone(),
                     typing: typ,
@@ -592,7 +592,7 @@ impl TypeChecker {
                         typing: typ.clone(),
                     },
                 );
-                Ok(ir::Statement::Variable {
+                Ok(cir::Statement::Variable {
                     assignment: expr,
                     binding: name.clone(),
                     typing: typ,
@@ -613,7 +613,7 @@ impl TypeChecker {
                     });
                 }
                 self.namespace.constants.insert(name.clone(), typ.clone());
-                Ok(ir::Statement::Constant {
+                Ok(cir::Statement::Constant {
                     value: expr,
                     binding: name.clone(),
                     typing: typ,
@@ -622,14 +622,14 @@ impl TypeChecker {
             ast::Statement::ReturnStatement(stmt) => {
                 if let Some(expr) = &stmt.expr {
                     let (expr, typ, _) = self.typecheck_expr(expr)?;
-                    return Ok(ir::Statement::ReturnStatement {
+                    return Ok(cir::Statement::ReturnStatement {
                         value: Some(expr),
                         typing: typ,
                     });
                 }
-                Ok(ir::Statement::ReturnStatement {
+                Ok(cir::Statement::ReturnStatement {
                     value: None,
-                    typing: ir::Typing::Void,
+                    typing: cir::Typing::Void,
                 })
             }
             ast::Statement::FnStatement(stmt) => {
@@ -641,7 +641,7 @@ impl TypeChecker {
 
                 let validated_ret_type = match &stmt.ret {
                     Some(ret_type) => self.check_type(ret_type)?,
-                    None => ir::Typing::Void,
+                    None => cir::Typing::Void,
                 };
 
                 // Create a new scope for the function
@@ -665,17 +665,17 @@ impl TypeChecker {
                 // Add extra return to the end in case of a function that returns void, or it will segfault
                 // NOTE: It would if we were still using llvm, but now with C backend this doesn't matter,
                 //       but it's good to keep it here anyways
-                if validated_ret_type == ir::Typing::Void {
-                    validated_block.push(ir::Statement::ReturnStatement {
+                if validated_ret_type == cir::Typing::Void {
+                    validated_block.push(cir::Statement::ReturnStatement {
                         value: None,
-                        typing: ir::Typing::Void,
+                        typing: cir::Typing::Void,
                     });
                 }
 
                 // Pop the scope
                 self.namespace.locals.pop();
 
-                let head = ir::FunctionHead {
+                let head = cir::FunctionHead {
                     name: stmt.name.clone(),
                     ret: validated_ret_type,
                     arguments: validated_args,
@@ -683,7 +683,7 @@ impl TypeChecker {
                                      // Because Elo is not meant to support variadic functions at all.
                 };
 
-                let validated = ir::Function {
+                let validated = cir::Function {
                     head: head.clone(),
                     block: validated_block,
                 };
@@ -691,7 +691,7 @@ impl TypeChecker {
                 // Insert the function into the namespace
                 self.namespace.functions.insert(stmt.name, head);
 
-                return Ok(ir::Statement::FnStatement(validated));
+                return Ok(cir::Statement::FnStatement(validated));
             }
             ast::Statement::ExternFnStatement(stmt) => {
                 // TODO: Add type-checking
@@ -701,16 +701,16 @@ impl TypeChecker {
                 }
                 let validated_ret_type = match &stmt.ret {
                     Some(ret_type) => self.check_type(ret_type)?,
-                    None => ir::Typing::Void,
+                    None => cir::Typing::Void,
                 };
-                let head = ir::FunctionHead {
+                let head = cir::FunctionHead {
                     name: stmt.name.clone(),
                     ret: validated_ret_type.clone(),
                     arguments: validated_args.clone(),
                     variadic: stmt.variadic,
                 };
                 self.namespace.functions.insert(stmt.name.clone(), head);
-                return Ok(ir::Statement::ExternFnStatement(ir::FunctionHead {
+                return Ok(cir::Statement::ExternFnStatement(cir::FunctionHead {
                     name: stmt.name,
                     ret: validated_ret_type,
                     arguments: validated_args,
@@ -723,29 +723,29 @@ impl TypeChecker {
                     let checked_type = self.check_type(typing)?;
                     fields.insert(name.clone(), checked_type);
                 }
-                let e = ir::Struct {
+                let e = cir::Struct {
                     name: stmt.name,
                     fields,
                 };
                 self.namespace.structs.insert(e.name.clone(), e.clone());
-                return Ok(ir::Statement::StructStatement(e));
+                return Ok(cir::Statement::StructStatement(e));
             }
             ast::Statement::EnumStatement(stmt) => {
-                let e = ir::Enum {
+                let e = cir::Enum {
                     name: stmt.name,
                     variants: stmt.variants,
                 };
                 self.namespace.enums.insert(e.name.clone(), e.clone());
-                return Ok(ir::Statement::EnumStatement(e));
+                return Ok(cir::Statement::EnumStatement(e));
             }
             ast::Statement::IfStatement(stmt) => {
                 let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
-                if typing != ir::Typing::Primitive(ir::Primitive::Bool) {
+                if typing != cir::Typing::Primitive(cir::Primitive::Bool) {
                     return Err(TypeError {
                         span: Some(stmt.condition.span),
                         case: TypeErrorCase::TypeMismatch {
                             got: format!("{:?}", typing),
-                            expected: format!("{:?}", ir::Typing::Primitive(ir::Primitive::Bool)),
+                            expected: format!("{:?}", cir::Typing::Primitive(cir::Primitive::Bool)),
                         },
                     });
                 }
@@ -761,7 +761,7 @@ impl TypeChecker {
                 }
                 self.namespace.locals.pop(); // Pop the false block scope
 
-                return Ok(ir::Statement::IfStatement {
+                return Ok(cir::Statement::IfStatement {
                     condition,
                     block_true: block_true_content,
                     block_false: block_false_content,
@@ -770,22 +770,22 @@ impl TypeChecker {
             ast::Statement::WhileStatement(stmt) => {
                 // TODO: Remember to push a new scope to the namespace
                 let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
-                if typing != ir::Typing::Primitive(ir::Primitive::Bool) {
+                if typing != cir::Typing::Primitive(cir::Primitive::Bool) {
                     return Err(TypeError {
                         span: Some(stmt.condition.span),
                         case: TypeErrorCase::TypeMismatch {
                             got: format!("{:?}", typing),
-                            expected: format!("{:?}", ir::Typing::Primitive(ir::Primitive::Bool)),
+                            expected: format!("{:?}", cir::Typing::Primitive(cir::Primitive::Bool)),
                         },
                     });
                 }
                 self.namespace.locals.push(HashMap::new());
                 let block = self.typecheck_generic_block(stmt.block.content);
                 self.namespace.locals.pop();
-                return Ok(ir::Statement::WhileStatement { condition, block });
+                return Ok(cir::Statement::WhileStatement { condition, block });
             }
             ast::Statement::ExpressionStatement(stmt) => {
-                return Ok(ir::Statement::ExpressionStatement(
+                return Ok(cir::Statement::ExpressionStatement(
                     self.typecheck_expr(&stmt)?.0,
                 ));
             }
@@ -793,9 +793,9 @@ impl TypeChecker {
     }
 
     // Type-check and transform the AST into the IR of Elo code
-    pub fn go(&mut self, input: Vec<ast::Node>) -> ir::Program {
+    pub fn go(&mut self, input: Vec<ast::Node>) -> cir::Program {
         // This is why i'm making a language
         let nodes = self.typecheck_generic_block(input);
-        ir::Program { nodes }
+        cir::Program { nodes }
     }
 }

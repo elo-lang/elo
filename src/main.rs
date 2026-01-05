@@ -3,9 +3,8 @@ mod tcc;
 #[cfg(test)]
 mod tests;
 
-use elo_ast::ast;
 use elo_error::{parseerror, typeerror};
-use elo_ir::ir;
+use elo_ir::*;
 
 use elo_codegen::generator::*;
 use elo_lexer::{inputfile::InputFile, lexer::Lexer};
@@ -21,12 +20,12 @@ fn parse_program(p: InputFile) -> Result<ast::Program, parseerror::ParseError> {
     parser.parse()
 }
 
-fn validate_program(prog: ast::Program) -> Result<ir::Program, Vec<validation::ValidationError>> {
+fn validate_program(prog: ast::Program) -> Result<cir::Program, Vec<validation::ValidationError>> {
     let validator = Validator::new();
     validator.go(prog.nodes)
 }
 
-fn generate_program(prog: ir::Program) -> String {
+fn generate_program(prog: cir::Program) -> String {
     let mut r#gen = Generator::new(prog);
     r#gen.go();
     return r#gen.output;
@@ -40,7 +39,7 @@ fn strip_extension(path: &str) -> String {
     }
 }
 
-fn parse_and_validate(filename: &str, source: &str, mut callback: impl FnMut(ir::Program)) {
+fn parse_and_validate(filename: &str, source: &str, mut callback: impl FnMut(cir::Program)) {
     let input_file = InputFile {
         filename,
         content: source,

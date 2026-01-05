@@ -19,4 +19,3 @@ elo-validation = { path = "compiler/elo-validation" }
 elo-codegen = { path = "compiler/elo-codegen" }
 elo-error = { path = "compiler/elo-error" }
 elo-ir = { path = "compiler/elo-ir" }
-elo-ast = { path = "compiler/elo-ast" }

@@ -1,3 +1,4 @@
+// Compiled Intermediate Representation
 use std::collections::HashMap;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -34,37 +35,37 @@ pub enum BinaryOperation {
 }
 
 impl BinaryOperation {
-    pub fn from_ast(x: &elo_ast::ast::BinaryOperation) -> Self {
+    pub fn from_ast(x: &crate::ast::BinaryOperation) -> Self {
         match x {
-            elo_ast::ast::BinaryOperation::Add => BinaryOperation::Add,
-            elo_ast::ast::BinaryOperation::Sub => BinaryOperation::Sub,
-            elo_ast::ast::BinaryOperation::Mul => BinaryOperation::Mul,
-            elo_ast::ast::BinaryOperation::Div => BinaryOperation::Div,
-            elo_ast::ast::BinaryOperation::Mod => BinaryOperation::Mod,
-            elo_ast::ast::BinaryOperation::Lt => BinaryOperation::Lt,
-            elo_ast::ast::BinaryOperation::Gt => BinaryOperation::Gt,
-            elo_ast::ast::BinaryOperation::BAnd => BinaryOperation::BAnd,
-            elo_ast::ast::BinaryOperation::BOr => BinaryOperation::BOr,
-            elo_ast::ast::BinaryOperation::BXor => BinaryOperation::BXor,
-            elo_ast::ast::BinaryOperation::BNot => BinaryOperation::BNot,
-            elo_ast::ast::BinaryOperation::Assign => BinaryOperation::Assign,
-            elo_ast::ast::BinaryOperation::Eq => BinaryOperation::Eq,
-            elo_ast::ast::BinaryOperation::Ne => BinaryOperation::Ne,
-            elo_ast::ast::BinaryOperation::Le => BinaryOperation::Le,
-            elo_ast::ast::BinaryOperation::Ge => BinaryOperation::Ge,
-            elo_ast::ast::BinaryOperation::And => BinaryOperation::And,
-            elo_ast::ast::BinaryOperation::Or => BinaryOperation::Or,
-            elo_ast::ast::BinaryOperation::LShift => BinaryOperation::LShift,
-            elo_ast::ast::BinaryOperation::RShift => BinaryOperation::RShift,
-            elo_ast::ast::BinaryOperation::AssignAdd => BinaryOperation::AssignAdd,
-            elo_ast::ast::BinaryOperation::AssignSub => BinaryOperation::AssignSub,
-            elo_ast::ast::BinaryOperation::AssignMul => BinaryOperation::AssignMul,
-            elo_ast::ast::BinaryOperation::AssignDiv => BinaryOperation::AssignDiv,
-            elo_ast::ast::BinaryOperation::AssignMod => BinaryOperation::AssignMod,
-            elo_ast::ast::BinaryOperation::AssignBAnd => BinaryOperation::AssignBAnd,
-            elo_ast::ast::BinaryOperation::AssignBOr => BinaryOperation::AssignBOr,
-            elo_ast::ast::BinaryOperation::AssignBXor => BinaryOperation::AssignBXor,
-            elo_ast::ast::BinaryOperation::AssignBNot => BinaryOperation::AssignBNot,
+            crate::ast::BinaryOperation::Add => BinaryOperation::Add,
+            crate::ast::BinaryOperation::Sub => BinaryOperation::Sub,
+            crate::ast::BinaryOperation::Mul => BinaryOperation::Mul,
+            crate::ast::BinaryOperation::Div => BinaryOperation::Div,
+            crate::ast::BinaryOperation::Mod => BinaryOperation::Mod,
+            crate::ast::BinaryOperation::Lt => BinaryOperation::Lt,
+            crate::ast::BinaryOperation::Gt => BinaryOperation::Gt,
+            crate::ast::BinaryOperation::BAnd => BinaryOperation::BAnd,
+            crate::ast::BinaryOperation::BOr => BinaryOperation::BOr,
+            crate::ast::BinaryOperation::BXor => BinaryOperation::BXor,
+            crate::ast::BinaryOperation::BNot => BinaryOperation::BNot,
+            crate::ast::BinaryOperation::Assign => BinaryOperation::Assign,
+            crate::ast::BinaryOperation::Eq => BinaryOperation::Eq,
+            crate::ast::BinaryOperation::Ne => BinaryOperation::Ne,
+            crate::ast::BinaryOperation::Le => BinaryOperation::Le,
+            crate::ast::BinaryOperation::Ge => BinaryOperation::Ge,
+            crate::ast::BinaryOperation::And => BinaryOperation::And,
+            crate::ast::BinaryOperation::Or => BinaryOperation::Or,
+            crate::ast::BinaryOperation::LShift => BinaryOperation::LShift,
+            crate::ast::BinaryOperation::RShift => BinaryOperation::RShift,
+            crate::ast::BinaryOperation::AssignAdd => BinaryOperation::AssignAdd,
+            crate::ast::BinaryOperation::AssignSub => BinaryOperation::AssignSub,
+            crate::ast::BinaryOperation::AssignMul => BinaryOperation::AssignMul,
+            crate::ast::BinaryOperation::AssignDiv => BinaryOperation::AssignDiv,
+            crate::ast::BinaryOperation::AssignMod => BinaryOperation::AssignMod,
+            crate::ast::BinaryOperation::AssignBAnd => BinaryOperation::AssignBAnd,
+            crate::ast::BinaryOperation::AssignBOr => BinaryOperation::AssignBOr,
+            crate::ast::BinaryOperation::AssignBXor => BinaryOperation::AssignBXor,
+            crate::ast::BinaryOperation::AssignBNot => BinaryOperation::AssignBNot,
         }
     }
 }
@@ -79,13 +80,13 @@ pub enum UnaryOperation {
 }
 
 impl UnaryOperation {
-    pub fn from_ast(x: &elo_ast::ast::UnaryOperation) -> Self {
+    pub fn from_ast(x: &crate::ast::UnaryOperation) -> Self {
         match x {
-            elo_ast::ast::UnaryOperation::Not => UnaryOperation::Not,
-            elo_ast::ast::UnaryOperation::BNot => UnaryOperation::BNot,
-            elo_ast::ast::UnaryOperation::Neg => UnaryOperation::Neg,
-            elo_ast::ast::UnaryOperation::Addr => UnaryOperation::Addr,
-            elo_ast::ast::UnaryOperation::Deref => UnaryOperation::Deref,
+            crate::ast::UnaryOperation::Not => UnaryOperation::Not,
+            crate::ast::UnaryOperation::BNot => UnaryOperation::BNot,
+            crate::ast::UnaryOperation::Neg => UnaryOperation::Neg,
+            crate::ast::UnaryOperation::Addr => UnaryOperation::Addr,
+            crate::ast::UnaryOperation::Deref => UnaryOperation::Deref,
         }
     }
 }

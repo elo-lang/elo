@@ -1,7 +1,6 @@
 use crate::typecheck::*;
-use elo_ast::ast;
 use elo_error::typeerror::*;
-use elo_ir::ir;
+use elo_ir::*;
 
 #[derive(Debug)]
 pub enum ValidationError {
@@ -19,7 +18,7 @@ impl Validator {
         }
     }
 
-    pub fn go(mut self, input: Vec<ast::Node>) -> Result<ir::Program, Vec<ValidationError>> {
+    pub fn go(mut self, input: Vec<ast::Node>) -> Result<cir::Program, Vec<ValidationError>> {
         let tc = self.typechecker.go(input);
         let mut errors = Vec::new();
         for e in self.typechecker.errors {
