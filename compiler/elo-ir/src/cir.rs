@@ -114,7 +114,8 @@ pub enum Expression {
         field: String,
     },
     FunctionCall {
-        function: Box<Expression>,
+        span: Span,
+        function: String,
         arguments: Vec<Expression>,
     },
     StructInit {

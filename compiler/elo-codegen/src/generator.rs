@@ -125,16 +125,14 @@ impl Generator {
             cir::Expression::FunctionCall {
                 function,
                 arguments,
-            } => match function.as_ref() {
-                cir::Expression::Identifier { name } => {
-                    let arguments: Vec<String> = arguments
-                        .iter()
-                        .map(|x| self.generate_expression(x))
-                        .collect();
-                    let arguments = c::list(arguments.as_slice());
-                    return c::function_call_expr(name, &arguments);
-                }
-                _ => todo!(),
+                ..
+            } => {
+                let arguments: Vec<String> = arguments
+                    .iter()
+                    .map(|x| self.generate_expression(x))
+                    .collect();
+                let arguments = c::list(arguments.as_slice());
+                return c::function_call_expr(function, &arguments);
             },
             cir::Expression::Identifier { name } => name.clone(),
             cir::Expression::StructInit { origin, fields } => {
