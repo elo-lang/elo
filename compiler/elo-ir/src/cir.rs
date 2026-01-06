@@ -1,4 +1,5 @@
 // Compiled Intermediate Representation
+use elo_lexer::span::Span;
 use std::collections::HashMap;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -94,22 +95,27 @@ impl UnaryOperation {
 #[derive(Debug, Clone)]
 pub enum Expression {
     BinaryOperation {
+        span: Span,
         operator: BinaryOperation,
         left: Box<Expression>,
         right: Box<Expression>,
     },
     UnaryOperation {
+        span: Span,
         operator: UnaryOperation,
         operand: Box<Expression>,
     },
     StringLiteral {
+        span: Span,
         value: String,
     },
     ArrayLiteral {
+        span: Span,
         exprs: Vec<Expression>,
         typ: Typing,
     },
     FieldAccess {
+        span: Span,
         origin: Box<Expression>,
         field: String,
     },
@@ -119,19 +125,24 @@ pub enum Expression {
         arguments: Vec<Expression>,
     },
     StructInit {
+        span: Span,
         origin: Struct,
         fields: Vec<Field>,
     },
     Integer {
+        span: Span,
         value: i128,
     },
     Float {
+        span: Span,
         value: f64,
     },
     Bool {
+        span: Span,
         value: bool,
     },
     Identifier {
+        span: Span,
         name: String,
     },
 }
@@ -247,39 +258,53 @@ pub type TypedField = (String, Typing);
 pub type Field = (String, Expression);
 
 #[derive(Debug, Clone)]
-pub struct ReturnStatement {
-    pub value: Expression,
-    pub typing: Typing,
-}
-
-#[derive(Debug, Clone)]
 pub enum Statement {
     Variable {
+        span: Span,
         binding: String,
         assignment: Expression,
         typing: Typing,
     },
     Constant {
+        span: Span,
         binding: String,
         value: Expression,
         typing: Typing,
     },
     ReturnStatement {
+        span: Span,
         value: Option<Expression>,
         typing: Typing,
     },
     IfStatement {
+        span: Span,
         condition: Expression,
         block_true: Block,
         block_false: Block,
     },
     WhileStatement {
+        span: Span,
         condition: Expression,
         block: Block,
     },
-    FnStatement(Function),
-    ExternFnStatement(FunctionHead),
-    StructStatement(Struct),
-    EnumStatement(Enum),
-    ExpressionStatement(Expression),
+    FnStatement {
+        span: Span,
+        inner: Function
+    },
+    ExternFnStatement {
+        span: Span,
+        inner: FunctionHead
+    },
+    StructStatement {
+        span: Span,
+        inner: Struct
+    },
+    EnumStatement {
+        span: Span,
+        inner: Enum
+    },
+    ExpressionStatement {
+        span: Span,
+        inner: Expression
+    },
 }
