@@ -74,14 +74,14 @@ impl Generator {
     // which is not a valid value in LLVM unfortunately.
     // Not using the option now since we don't use LLVM anymore
     pub fn generate_expression(&mut self, expr: &cir::Expression) -> String {
-        match expr {
-            cir::Expression::Integer { value, .. } => value.to_string(),
-            cir::Expression::Float { value, .. } => value.to_string(),
-            cir::Expression::StringLiteral { value, .. } => format!("\"{}\"", value),
-            cir::Expression::Bool { value, .. } => {
+        match &expr.data {
+            cir::ExpressionData::Integer { value } => value.to_string(),
+            cir::ExpressionData::Float { value } => value.to_string(),
+            cir::ExpressionData::StringLiteral { value } => format!("\"{}\"", value),
+            cir::ExpressionData::Bool { value } => {
                 return if *value { "1" } else { "0" }.to_string();
             }
-            cir::Expression::UnaryOperation { operator, operand, .. } => {
+            cir::ExpressionData::UnaryOperation { operator, operand } => {
                 let op = &self.generate_expression(operand);
                 match *operator {
                     cir::UnaryOperation::Neg => c::unop(op, c::Unop::Neg),
@@ -91,7 +91,7 @@ impl Generator {
                     cir::UnaryOperation::Deref => c::unop(op, c::Unop::Deref),
                 }
             }
-            cir::Expression::BinaryOperation {
+            cir::ExpressionData::BinaryOperation {
                 operator,
                 left,
                 right,
@@ -117,13 +117,13 @@ impl Generator {
                     }
                 }
             }
-            cir::Expression::ArrayLiteral { exprs, typ, .. } => {
+            cir::ExpressionData::ArrayLiteral { exprs, typ } => {
                 let exprs = exprs.iter().map(|e| self.generate_expression(e));
                 let items = c::list(&exprs.collect::<Vec<String>>());
                 let typ = self.choose_type(typ);
                 return c::array_expr(&typ, &items);
             }
-            cir::Expression::FunctionCall {
+            cir::ExpressionData::FunctionCall {
                 function,
                 arguments,
                 ..
@@ -135,8 +135,8 @@ impl Generator {
                 let arguments = c::list(arguments.as_slice());
                 return c::function_call_expr(function, &arguments);
             },
-            cir::Expression::Identifier { name, .. } => name.clone(),
-            cir::Expression::StructInit { origin, fields, .. } => {
+            cir::ExpressionData::Identifier { name } => name.clone(),
+            cir::ExpressionData::StructInit { origin, fields } => {
                 let name = origin.name.clone();
                 let fields = fields
                     .iter()
@@ -144,7 +144,7 @@ impl Generator {
                     .collect::<Vec<(String, String)>>();
                 return c::struct_expr(&name, &fields);
             }
-            cir::Expression::FieldAccess { origin, field, .. } => {
+            cir::ExpressionData::FieldAccess { origin, field } => {
                 let lhs = self.generate_expression(origin);
                 let rhs = field.clone();
                 return c::member_expr(&lhs, &rhs);
@@ -154,12 +154,11 @@ impl Generator {
 
     pub fn generate_statement(&mut self, stmt: &mut cir::Statement) -> String {
         let mut output = String::new();
-        match stmt {
-            cir::Statement::Constant {
+        match &mut stmt.kind {
+            cir::StatementKind::Constant {
                 value,
                 binding,
                 typing,
-                ..
             } => {
                 output.push_str("static ");
                 output.push_str(self.choose_type(typing).as_str());
@@ -169,7 +168,7 @@ impl Generator {
                 output.push_str(&expr);
                 output.push(';');
             }
-            cir::Statement::FnStatement{ inner: stmt, .. } => {
+            cir::StatementKind::FnStatement(stmt) => {
                 let r#return = self.choose_type(&stmt.head.ret);
                 let name = stmt.head.name.clone();
                 let mut arguments = Vec::new();
@@ -192,7 +191,7 @@ impl Generator {
                     &body,
                 ));
             }
-            cir::Statement::ExternFnStatement{ inner: stmt, .. } => {
+            cir::StatementKind::ExternFnStatement(stmt) => {
                 let r#return = self.choose_type(&stmt.ret);
                 let name = stmt.name.clone();
                 let mut arguments = Vec::new();
@@ -208,7 +207,7 @@ impl Generator {
                     stmt.variadic,
                 ))
             }
-            cir::Statement::StructStatement{ inner: stmt, .. } => {
+            cir::StatementKind::StructStatement(stmt) => {
                 let fields = stmt
                     .fields
                     .iter()
@@ -217,11 +216,11 @@ impl Generator {
                 let body = c::statement_list(&fields);
                 output.push_str(&c::struct_stmt(&stmt.name, &body));
             }
-            cir::Statement::EnumStatement{ inner: stmt, .. } => {
+            cir::StatementKind::EnumStatement(stmt) => {
                 let doby = c::list(&stmt.variants);
                 output.push_str(&c::enum_stmt(&stmt.name, &doby));
             }
-            cir::Statement::Variable {
+            cir::StatementKind::Variable {
                 binding,
                 assignment,
                 typing,
@@ -231,15 +230,15 @@ impl Generator {
                 let expr = self.generate_expression(&assignment);
                 output.push_str(&c::variable_stmt(&typ, binding, &expr));
             }
-            cir::Statement::ExpressionStatement{ inner: expr, .. } => {
+            cir::StatementKind::ExpressionStatement(expr) => {
                 let e = self.generate_expression(&expr);
                 output.push_str(&e);
             }
-            cir::Statement::ReturnStatement { value, .. } => {
+            cir::StatementKind::ReturnStatement { value, .. } => {
                 let e = value.as_ref().map(|x| self.generate_expression(x));
                 output.push_str(&c::return_stmt(e));
             }
-            cir::Statement::IfStatement {
+            cir::StatementKind::IfStatement {
                 condition,
                 block_true,
                 block_false,
@@ -262,7 +261,7 @@ impl Generator {
                 }
                 output.push_str(&c::if_stmt(&comparison, &r#true, r#false));
             }
-            cir::Statement::WhileStatement { condition, block, .. } => {
+            cir::StatementKind::WhileStatement { condition, block } => {
                 let comparison = self.generate_expression(&condition);
                 let block = block
                     .iter_mut()

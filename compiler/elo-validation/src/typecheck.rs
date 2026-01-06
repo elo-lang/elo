@@ -2,7 +2,7 @@ use elo_ir::ast::{self, Expression, TypedField};
 use elo_error::typeerror::*;
 use elo_ir::cir;
 use elo_lexer::span::Span;
-use std::collections::HashMap;
+use std::{collections::HashMap, thread::current};
 
 #[derive(Debug)]
 pub struct Namespace {
@@ -219,10 +219,12 @@ impl TypeChecker {
         }
 
         return Ok((
-            cir::Expression::FunctionCall {
+            cir::Expression {
                 span,
-                function: name.to_string(),
-                arguments: checked_arguments,
+                data: cir::ExpressionData::FunctionCall {
+                    function: name.to_string(),
+                    arguments: checked_arguments,
+                }
             },
             return_type,
             ExpressionIdentity::Immediate,
@@ -241,11 +243,13 @@ impl TypeChecker {
                 let (operator, typing, op_id) =
                     self.typecheck_binop(&lhs, &rhs, operator, expr.span)?;
                 Ok((
-                    cir::Expression::BinaryOperation {
+                    cir::Expression {
                         span: expr.span,
-                        operator,
-                        left: Box::new(lhs.0),
-                        right: Box::new(rhs.0),
+                        data: cir::ExpressionData::BinaryOperation {
+                            operator,
+                            left: Box::new(lhs.0),
+                            right: Box::new(rhs.0),
+                        }
                     },
                     typing,
                     op_id,
@@ -305,10 +309,12 @@ impl TypeChecker {
                     },
                 };
                 Ok((
-                    cir::Expression::UnaryOperation {
+                    cir::Expression {
                         span: expr.span,
-                        operator,
-                        operand: Box::new(operand),
+                        data: cir::ExpressionData::UnaryOperation {
+                            operator,
+                            operand: Box::new(operand),
+                        },
                     },
                     operation_type,
                     id,
@@ -316,9 +322,11 @@ impl TypeChecker {
             }
             ast::ExpressionData::CharacterLiteral { value } => {
                 return Ok((
-                    cir::Expression::StringLiteral {
+                    cir::Expression {
                         span: expr.span,
-                        value: String::from(*value),
+                        data: cir::ExpressionData::StringLiteral {
+                            value: String::from(*value),
+                        }
                     },
                     cir::Typing::Primitive(cir::Primitive::Char),
                     ExpressionIdentity::Immediate,
@@ -326,9 +334,11 @@ impl TypeChecker {
             }
             ast::ExpressionData::StrLiteral { value } => {
                 return Ok((
-                    cir::Expression::StringLiteral {
+                    cir::Expression {
                         span: expr.span,
-                        value: value.clone(),
+                        data: cir::ExpressionData::StringLiteral {
+                            value: value.clone(),
+                        }
                     },
                     // TODO: Change this to `str` type.
                     cir::Typing::Pointer {
@@ -362,10 +372,12 @@ impl TypeChecker {
                     }
                 }
                 return Ok((
-                    cir::Expression::ArrayLiteral {
+                    cir::Expression {
                         span: expr.span,
-                        exprs: checked_exprs,
-                        typ: r#type.clone().unwrap(),
+                        data: cir::ExpressionData::ArrayLiteral {
+                            exprs: checked_exprs,
+                            typ: r#type.clone().unwrap(),
+                        }
                     },
                     // TODO: Change this to `str` type.
                     cir::Typing::Array {
@@ -407,10 +419,12 @@ impl TypeChecker {
                             });
                         }
                         return Ok((
-                            cir::Expression::FieldAccess {
+                            cir::Expression {
                                 span: expr.span,
-                                origin: Box::new(expression),
-                                field: field.clone(),
+                                data: cir::ExpressionData::FieldAccess {
+                                    origin: Box::new(expression),
+                                    field: field.clone(),
+                                }
                             },
                             typ.unwrap(),
                             id,
@@ -479,13 +493,15 @@ impl TypeChecker {
                     }
                     checked_fields.push((field.name.clone(), expr));
                 }
-                let thing = cir::Expression::StructInit {
-                    span: expr.span,
+                let thing = cir::ExpressionData::StructInit {
                     origin: strukt.clone(),
                     fields: checked_fields,
                 };
                 Ok((
-                    thing,
+                    cir::Expression {
+                        span: expr.span,
+                        data: thing,
+                    },
                     cir::Typing::Struct(strukt),
                     ExpressionIdentity::Immediate,
                 ))
@@ -493,9 +509,11 @@ impl TypeChecker {
             ast::ExpressionData::IntegerLiteral { value } => {
                 let (lit, radix) = value;
                 Ok((
-                    cir::Expression::Integer {
+                    cir::Expression {
                         span: expr.span,
-                        value: i128::from_str_radix(lit, *radix).unwrap(),
+                        data: cir::ExpressionData::Integer {
+                            value: i128::from_str_radix(lit, *radix).unwrap(),
+                        }
                     },
                     cir::Typing::Primitive(cir::Primitive::Int),
                     ExpressionIdentity::Immediate,
@@ -506,26 +524,36 @@ impl TypeChecker {
                 let fractional = u64::from_str_radix(&float.0, float.1).unwrap();
                 let value = format!("{}.{}", integer, fractional).parse().unwrap();
                 Ok((
-                    cir::Expression::Float { span: expr.span, value },
+                    cir::Expression {
+                        span: expr.span,
+                        data: cir::ExpressionData::Float { value }
+                    },
                     cir::Typing::Primitive(cir::Primitive::Float),
                     ExpressionIdentity::Immediate,
                 ))
             }
             ast::ExpressionData::BooleanLiteral { value } => Ok((
-                cir::Expression::Bool { span: expr.span, value: *value },
+                cir::Expression {
+                    span: expr.span,
+                    data: cir::ExpressionData::Bool { value: *value },
+                },
                 cir::Typing::Primitive(cir::Primitive::Bool),
                 ExpressionIdentity::Immediate,
             )),
             ast::ExpressionData::Identifier { name } => {
+                let thing = cir::Expression {
+                    span: expr.span,
+                    data: cir::ExpressionData::Identifier { name: name.clone() }
+                };
                 if let Some(typ) = self.namespace.constants.get(name) {
                     return Ok((
-                        cir::Expression::Identifier { span: expr.span, name: name.clone() },
+                        thing,
                         typ.clone(),
                         ExpressionIdentity::Immediate,
                     ));
                 } else if let Some(f) = self.namespace.functions.get(name) {
                     return Ok((
-                        cir::Expression::Identifier { span: expr.span, name: name.clone() },
+                        thing,
                         f.ret.clone(), // FIXME: This should be the function pointer type
                         ExpressionIdentity::Immediate,
                     ));
@@ -537,7 +565,7 @@ impl TypeChecker {
                     for i in self.namespace.locals.iter().rev() {
                         if let Some(var) = i.get(name) {
                             return Ok((
-                                cir::Expression::Identifier { span: expr.span, name: name.clone() },
+                                thing,
                                 var.typing.clone(),
                                 ExpressionIdentity::Locatable(var.mutable),
                             ));
@@ -576,12 +604,16 @@ impl TypeChecker {
                         typing: typ.clone(),
                     },
                 );
-                Ok(cir::Statement::Variable {
-                    span: node.span,
-                    assignment: expr,
-                    binding: name.clone(),
-                    typing: typ,
-                })
+                Ok(
+                    cir::Statement {
+                        span: node.span,
+                        kind: cir::StatementKind::Variable {
+                            assignment: expr,
+                            binding: name.clone(),
+                            typing: typ,
+                        }
+                    }
+                )
             }
             ast::Statement::VarStatement(stmt) => {
                 let assignment = &stmt.assignment;
@@ -597,11 +629,13 @@ impl TypeChecker {
                         typing: typ.clone(),
                     },
                 );
-                Ok(cir::Statement::Variable {
+                Ok(cir::Statement {
                     span: node.span,
-                    assignment: expr,
-                    binding: name.clone(),
-                    typing: typ,
+                    kind: cir::StatementKind::Variable {
+                        assignment: expr,
+                        binding: name.clone(),
+                        typing: typ,
+                    }
                 })
             }
             ast::Statement::ConstStatement(stmt) => {
@@ -619,26 +653,32 @@ impl TypeChecker {
                     });
                 }
                 self.namespace.constants.insert(name.clone(), typ.clone());
-                Ok(cir::Statement::Constant {
+                Ok(cir::Statement {
                     span: node.span,
-                    value: expr,
-                    binding: name.clone(),
-                    typing: typ,
+                    kind: cir::StatementKind::Constant {
+                        value: expr,
+                        binding: name.clone(),
+                        typing: typ,
+                    }
                 })
             }
             ast::Statement::ReturnStatement(stmt) => {
                 if let Some(expr) = &stmt.expr {
                     let (expr, typ, _) = self.typecheck_expr(expr)?;
-                    return Ok(cir::Statement::ReturnStatement {
+                    return Ok(cir::Statement {
                         span: node.span,
-                        value: Some(expr),
-                        typing: typ,
+                        kind: cir::StatementKind::ReturnStatement {
+                            value: Some(expr),
+                            typing: typ,
+                        }
                     });
                 }
-                Ok(cir::Statement::ReturnStatement {
+                Ok(cir::Statement {
                     span: node.span,
-                    value: None,
-                    typing: cir::Typing::Void,
+                    kind: cir::StatementKind::ReturnStatement {
+                        value: None,
+                        typing: cir::Typing::Void,
+                    }
                 })
             }
             ast::Statement::FnStatement(stmt) => {
@@ -669,13 +709,13 @@ impl TypeChecker {
                     );
                 }
 
-                let mut validated_block = self.typecheck_generic_block(stmt.block.content)?;
+                let validated_block = self.typecheck_generic_block(stmt.block.content)?;
 
                 // Add extra return to the end in case of a function that returns void, or it will segfault
                 // NOTE: It would if we were still using llvm, but now with C backend this doesn't matter,
                 //       but it's good to keep it here anyways
                 // if validated_ret_type == cir::Typing::Void {
-                //     validated_block.push(cir::Statement::ReturnStatement {
+                //     validated_block.push(cir::StatementKind::ReturnStatement {
                 //         value: None,
                 //         typing: cir::Typing::Void,
                 //     });
@@ -701,7 +741,10 @@ impl TypeChecker {
                 // Insert the function into the namespace
                 self.namespace.functions.insert(stmt.name, head);
 
-                return Ok(cir::Statement::FnStatement{ span: node.span, inner: validated });
+                return Ok(cir::Statement {
+                    span: node.span,
+                    kind: cir::StatementKind::FnStatement(validated)
+                });
             }
             ast::Statement::ExternFnStatement(stmt) => {
                 // TODO: Add type-checking
@@ -721,14 +764,14 @@ impl TypeChecker {
                 };
                 self.namespace.functions.insert(stmt.name.clone(), head);
                 return Ok(
-                    cir::Statement::ExternFnStatement{
+                    cir::Statement {
                         span: node.span,
-                        inner: cir::FunctionHead {
+                        kind: cir::StatementKind::ExternFnStatement(cir::FunctionHead {
                             name: stmt.name,
                             ret: validated_ret_type,
                             arguments: validated_args,
                             variadic: stmt.variadic,
-                        }
+                        })
                     }
                 );
             }
@@ -743,7 +786,10 @@ impl TypeChecker {
                     fields,
                 };
                 self.namespace.structs.insert(e.name.clone(), e.clone());
-                return Ok(cir::Statement::StructStatement{ span: node.span, inner: e });
+                return Ok(cir::Statement {
+                    span: node.span,
+                    kind: cir::StatementKind::StructStatement(e)
+                });
             }
             ast::Statement::EnumStatement(stmt) => {
                 let e = cir::Enum {
@@ -751,7 +797,10 @@ impl TypeChecker {
                     variants: stmt.variants,
                 };
                 self.namespace.enums.insert(e.name.clone(), e.clone());
-                return Ok(cir::Statement::EnumStatement{ span: node.span, inner: e });
+                return Ok(cir::Statement {
+                    span: node.span,
+                    kind: cir::StatementKind::EnumStatement(e)
+                });
             }
             ast::Statement::IfStatement(stmt) => {
                 let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
@@ -776,12 +825,16 @@ impl TypeChecker {
                 }
                 self.namespace.locals.pop(); // Pop the false block scope
 
-                return Ok(cir::Statement::IfStatement {
-                    span: node.span,
-                    condition,
-                    block_true: block_true_content,
-                    block_false: block_false_content,
-                });
+                return Ok(
+                    cir::Statement {
+                        span: node.span,
+                        kind: cir::StatementKind::IfStatement {
+                            condition,
+                            block_true: block_true_content,
+                            block_false: block_false_content,
+                        }
+                    }
+                );
             }
             ast::Statement::WhileStatement(stmt) => {
                 // TODO: Remember to push a new scope to the namespace
@@ -798,13 +851,20 @@ impl TypeChecker {
                 self.namespace.locals.push(HashMap::new());
                 let block = self.typecheck_generic_block(stmt.block.content)?;
                 self.namespace.locals.pop();
-                return Ok(cir::Statement::WhileStatement { span: node.span, condition, block });
+                return Ok(
+                    cir::Statement {
+                        span: node.span,
+                        kind: cir::StatementKind::WhileStatement { condition, block }
+                    }
+                );
             }
             ast::Statement::ExpressionStatement(stmt) => {
-                return Ok(cir::Statement::ExpressionStatement{
-                    span: node.span,
-                    inner: self.typecheck_expr(&stmt)?.0,
-                });
+                return Ok(
+                    cir::Statement {
+                        span: node.span,
+                        kind: cir::StatementKind::ExpressionStatement(self.typecheck_expr(&stmt)?.0)
+                    }
+                );
             }
         }
     }
