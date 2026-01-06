@@ -93,65 +93,53 @@ impl UnaryOperation {
 }
 
 #[derive(Debug, Clone)]
-pub enum Expression {
+pub struct Expression {
+    pub span: Span,
+    pub data: ExpressionData,
+}
+
+#[derive(Debug, Clone)]
+pub enum ExpressionData {
     BinaryOperation {
-        span: Span,
         operator: BinaryOperation,
         left: Box<Expression>,
         right: Box<Expression>,
     },
     UnaryOperation {
-        span: Span,
         operator: UnaryOperation,
         operand: Box<Expression>,
     },
     StringLiteral {
-        span: Span,
         value: String,
     },
     ArrayLiteral {
-        span: Span,
         exprs: Vec<Expression>,
         typ: Typing,
     },
     FieldAccess {
-        span: Span,
         origin: Box<Expression>,
         field: String,
     },
     FunctionCall {
-        span: Span,
         function: String,
         arguments: Vec<Expression>,
     },
     StructInit {
-        span: Span,
         origin: Struct,
         fields: Vec<Field>,
     },
     Integer {
-        span: Span,
         value: i128,
     },
     Float {
-        span: Span,
         value: f64,
     },
     Bool {
-        span: Span,
         value: bool,
     },
     Identifier {
-        span: Span,
         name: String,
     },
-}
-
-#[derive(Debug, Clone)]
-pub struct VarStatement {
-    pub binding: String,
-    pub assignment: Expression,
-    pub typing: Typing,
 }
 
 pub type Block = Vec<Statement>;
@@ -258,53 +246,39 @@ pub type TypedField = (String, Typing);
 pub type Field = (String, Expression);
 
 #[derive(Debug, Clone)]
-pub enum Statement {
+pub struct Statement {
+    pub span: Span,
+    pub kind: StatementKind,
+}
+
+#[derive(Debug, Clone)]
+pub enum StatementKind {
     Variable {
-        span: Span,
         binding: String,
         assignment: Expression,
         typing: Typing,
     },
     Constant {
-        span: Span,
         binding: String,
         value: Expression,
         typing: Typing,
     },
     ReturnStatement {
-        span: Span,
         value: Option<Expression>,
         typing: Typing,
     },
     IfStatement {
-        span: Span,
         condition: Expression,
         block_true: Block,
         block_false: Block,
     },
     WhileStatement {
-        span: Span,
         condition: Expression,
         block: Block,
     },
-    FnStatement {
-        span: Span,
-        inner: Function
-    },
-    ExternFnStatement {
-        span: Span,
-        inner: FunctionHead
-    },
-    StructStatement {
-        span: Span,
-        inner: Struct
-    },
-    EnumStatement {
-        span: Span,
-        inner: Enum
-    },
-    ExpressionStatement {
-        span: Span,
-        inner: Expression
-    },
+    FnStatement(Function),
+    ExternFnStatement(FunctionHead),
+    StructStatement(Struct),
+    EnumStatement(Enum),
+    ExpressionStatement(Expression),
 }
