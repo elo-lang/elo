@@ -31,6 +31,18 @@ pub enum TypeErrorCase {
         name: String,
         from: String,
     },
+    ReturnValueOnVoidFunction {
+        function: String,
+    },
+    NoReturn {
+        function: String,
+        returns: String,
+    },
+    MismatchedReturnType {
+        function: String,
+        got: String,
+        expected: String,
+    },
     NonAggregateMemberAccess {
         typ: String,
         member: String,
@@ -45,6 +57,33 @@ pub struct TypeError {
 
 pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
     match pe {
+        TypeErrorCase::NoReturn { function, returns } => {
+            error(
+                "Type Check Error",
+                &format!("reached the end of {function}, which returns {returns} but it doesn't return a value"),
+                filespan,
+                None,
+                Some(&format!("function is here")),
+            );
+        }
+        TypeErrorCase::ReturnValueOnVoidFunction { function } => {
+            error(
+                "Type Check Error",
+                &format!("tried to return value out of function {function} that doesn't return anything"),
+                filespan,
+                None,
+                Some(&format!("this return should not have a value")),
+            );
+        }
+        TypeErrorCase::MismatchedReturnType { function, expected, got } => {
+            error(
+                "Type Check Error",
+                &format!("return type of {function} is expected to be {expected} but got {got}"),
+                filespan,
+                None,
+                Some(&format!("the value of this return should be of type {expected}")),
+            );
+        }
         TypeErrorCase::AssignImmutable { expression } => {
             error(
                 "Type Check Error",
