@@ -545,15 +545,12 @@ impl TypeChecker {
         }
     }
 
-    fn typecheck_generic_block(&mut self, block: Vec<ast::Node>) -> Vec<cir::Statement> {
+    fn typecheck_generic_block(&mut self, block: Vec<ast::Node>) -> Result<Vec<cir::Statement>, TypeError> {
         let mut blk = Vec::new();
         for a in Box::new(block).into_iter() {
-            match self.typecheck_node(a) {
-                Ok(stmt) => blk.push(stmt),
-                Err(e) => self.errors.push(e),
-            }
+            blk.push(self.typecheck_node(a)?);
         }
-        blk
+        Ok(blk)
     }
 
     fn typecheck_node(&mut self, node: ast::Node) -> Result<cir::Statement, TypeError> {
@@ -660,7 +657,7 @@ impl TypeChecker {
                     );
                 }
 
-                let mut validated_block = self.typecheck_generic_block(stmt.block.content);
+                let mut validated_block = self.typecheck_generic_block(stmt.block.content)?;
 
                 // Add extra return to the end in case of a function that returns void, or it will segfault
                 // NOTE: It would if we were still using llvm, but now with C backend this doesn't matter,
@@ -751,13 +748,13 @@ impl TypeChecker {
                 }
 
                 self.namespace.locals.push(HashMap::new());
-                let block_true_content = self.typecheck_generic_block(stmt.block_true.content);
+                let block_true_content = self.typecheck_generic_block(stmt.block_true.content)?;
                 self.namespace.locals.pop(); // Pop the true block scope
 
                 self.namespace.locals.push(HashMap::new());
                 let mut block_false_content = vec![];
                 if let Some(block_false) = stmt.block_false {
-                    block_false_content = self.typecheck_generic_block(block_false.content);
+                    block_false_content = self.typecheck_generic_block(block_false.content)?;
                 }
                 self.namespace.locals.pop(); // Pop the false block scope
 
@@ -780,7 +777,7 @@ impl TypeChecker {
                     });
                 }
                 self.namespace.locals.push(HashMap::new());
-                let block = self.typecheck_generic_block(stmt.block.content);
+                let block = self.typecheck_generic_block(stmt.block.content)?;
                 self.namespace.locals.pop();
                 return Ok(cir::Statement::WhileStatement { condition, block });
             }
@@ -795,7 +792,13 @@ impl TypeChecker {
     // Type-check and transform the AST into the IR of Elo code
     pub fn go(&mut self, input: Vec<ast::Node>) -> cir::Program {
         // This is why i'm making a language
-        let nodes = self.typecheck_generic_block(input);
-        cir::Program { nodes }
+        let mut stmts = Vec::new();
+        for node in Box::new(input).into_iter() {
+            match self.typecheck_node(node) {
+                Ok(s) => stmts.push(s),
+                Err(e) => self.errors.push(e),
+            }
+        }
+        cir::Program { nodes: stmts }
     }
 }
