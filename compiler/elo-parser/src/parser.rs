@@ -900,7 +900,6 @@ impl<'a> Parser<'a> {
             return Ok(Statement::ReturnStatement(ReturnStatement { expr: None }));
         }
         let expr = self.parse_expr(1, true)?;
-        self.expect_end()?;
         Ok(Statement::ReturnStatement(ReturnStatement {
             expr: Some(expr),
         }))
