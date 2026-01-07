@@ -683,7 +683,12 @@ impl<'a> Parser<'a> {
         while let Some(Lexem { token, .. }) = self.lexer.peek() {
             // Everything put before checking the precedence automatically means it's always the highest precedence.
             let next_limit = binop_precedence(token);
-            if let Some(_) = self.test_token(Token::Delimiter('.'), true) {
+            // FIXME: The argument `false` of the test_token call below is not correct
+            //        because it is desirable to let you have member accesses in a chain
+            //        over multiple lines, but this causes the test_token function to consume
+            //        the newline token that is needed to ensure proper statement termination.
+            //        Possible Fix: only allow "lazy" parsing of expressions inside ()
+            if let Some(_) = self.test_token(Token::Delimiter('.'), false) {
                 // Field access (e.g. instance.method(), foo.bar)
                 let field = self.expect_identifier()?;
                 left = Expression {
@@ -874,9 +879,7 @@ impl<'a> Parser<'a> {
                     content: vec![if_node],
                 });
             } else {
-                self.expect_token(Token::Delimiter('{'))?;
-                block_false = Some(self.parse_stmts()?);
-                self.expect_token(Token::Delimiter('}'))?;
+                block_false = Some(self.parse_block(true, true)?);
             }
         }
         Ok(Statement::IfStatement(IfStatement {
