@@ -926,6 +926,7 @@ impl<'a> Parser<'a> {
                 Keyword::Extern => self.parse_extern_fn_stmt(),
                 Keyword::Enum => self.parse_enum_stmt(),
                 Keyword::Const => self.parse_const_stmt(),
+                Keyword::Return => self.parse_return_stmt(),
                 kw if !inside_block => Err(ParseError {
                     span: Some(span),
                     case: ParseErrorCase::UnexpectedToken {
@@ -937,7 +938,6 @@ impl<'a> Parser<'a> {
                 Keyword::Let => self.parse_let_stmt(),
                 Keyword::If => self.parse_if_stmt(),
                 Keyword::While => self.parse_while_stmt(),
-                Keyword::Return => self.parse_return_stmt(),
                 Keyword::Else => Err(ParseError {
                     span: Some(span),
                     case: ParseErrorCase::UnexpectedToken {
