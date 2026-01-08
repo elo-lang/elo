@@ -735,6 +735,8 @@ impl<'a> Parser<'a> {
 
     fn parse_let_stmt(&mut self) -> Result<Statement, ParseError> {
         let (ident, expr) = self.parse_assignment()?;
+
+        self.expect_end()?;
         Ok(Statement::LetStatement(LetStatement {
             binding: ident,
             assignment: expr,
@@ -747,6 +749,8 @@ impl<'a> Parser<'a> {
         let typing = self.parse_type()?;
         let _ = self.expect_token(Token::Op('=', None))?;
         let expr = self.parse_expr(1, true)?;
+
+        self.expect_end()?;
         Ok(Statement::ConstStatement(ConstStatement {
             binding: ident,
             assignment: expr,
@@ -756,6 +760,8 @@ impl<'a> Parser<'a> {
 
     fn parse_var_stmt(&mut self) -> Result<Statement, ParseError> {
         let (ident, expr) = self.parse_assignment()?;
+
+        self.expect_end()?;
         Ok(Statement::VarStatement(VarStatement {
             binding: ident,
             assignment: expr,
@@ -903,6 +909,8 @@ impl<'a> Parser<'a> {
             return Ok(Statement::ReturnStatement(ReturnStatement { expr: None }));
         }
         let expr = self.parse_expr(1, true)?;
+
+        self.expect_end()?;
         Ok(Statement::ReturnStatement(ReturnStatement {
             expr: Some(expr),
         }))
@@ -942,7 +950,6 @@ impl<'a> Parser<'a> {
                 Keyword::True => unreachable!("asked to parse true keyword in statement"),
                 Keyword::False => unreachable!("asked to parse false keyword in statement"),
             };
-            self.expect_end()?;
             return result;
         } else {
             unreachable!("asked to parse statement without keyword")
