@@ -47,6 +47,7 @@ pub enum TypeErrorCase {
         typ: String,
         member: String,
     },
+    MisplacedReturn,
 }
 
 #[derive(Debug)]
@@ -57,13 +58,22 @@ pub struct TypeError {
 
 pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
     match pe {
+        TypeErrorCase::MisplacedReturn => {
+            error(
+                "Type Check Error",
+                &format!("attempt to use return statement outside of function block"),
+                filespan,
+                None,
+                None,
+            );
+        }
         TypeErrorCase::NoReturn { function, returns } => {
             error(
                 "Type Check Error",
-                &format!("reached the end of {function}, which returns {returns} but it doesn't return a value"),
+                &format!("found path of {function} (which returns {returns}) that doesn't return a value"),
                 filespan,
                 None,
-                Some(&format!("function is here")),
+                Some(&format!("ensure that the function returns {returns} after this")),
             );
         }
         TypeErrorCase::ReturnValueOnVoidFunction { function } => {
