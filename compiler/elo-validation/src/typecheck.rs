@@ -35,6 +35,7 @@ type ExpressionMetadata = (cir::Expression, cir::Typing, ExpressionIdentity);
 
 pub struct TypeChecker {
     namespace: Namespace,
+    current_function: String,
     pub errors: Vec<TypeError>,
 }
 
@@ -42,6 +43,7 @@ impl TypeChecker {
     pub fn new() -> Self {
         Self {
             errors: Vec::new(),
+            current_function: String::new(),
             namespace: Namespace {
                 name: None,
                 structs: HashMap::new(),
@@ -580,15 +582,57 @@ impl TypeChecker {
         }
     }
 
-    fn typecheck_generic_block(&mut self, block: Vec<ast::Node>) -> Result<Vec<cir::Statement>, TypeError> {
+    fn typecheck_generic_block(&mut self, block: Vec<ast::Node>, expects_return: Option<&cir::Typing>) -> Result<Vec<cir::Statement>, TypeError> {
         let mut blk = Vec::new();
         for a in Box::new(block).into_iter() {
-            blk.push(self.typecheck_node(a)?);
+            blk.push(self.typecheck_node(a, expects_return)?);
         }
         Ok(blk)
     }
 
-    fn typecheck_node(&mut self, node: ast::Node) -> Result<cir::Statement, TypeError> {
+    fn typecheck_inner_function_block(&mut self, span: Span, block: &Vec<cir::Statement>, is_top_level: bool, function_name: &str, return_type: &cir::Typing) -> Result<(bool, Span), TypeError> {
+        let mut last_span = span;
+        for i in block {
+            last_span = i.span;
+            match &i.kind {
+                cir::StatementKind::ReturnStatement { value, .. } => {
+                    if value.is_some() && return_type == &cir::Typing::Void {
+                        return Err(TypeError { span: Some(i.span), case: TypeErrorCase::ReturnValueOnVoidFunction {
+                            function: function_name.to_string(),
+                        }})
+                    }
+                    return Ok((true, i.span));
+                }
+                cir::StatementKind::IfStatement { block_true, block_false, .. } => {
+                    let (a, s1) = self.typecheck_inner_function_block(span, block_true, false, function_name, return_type)?;
+                    let (b, s2) = self.typecheck_inner_function_block(span, block_false, false, function_name, return_type)?;
+                    if a && b {
+                        return Ok((true, s2));
+                    }
+                    last_span = if a { s2 } else { s1 };
+                }
+                // NOTE: In this case there's no reason to check for while loop,
+                //       since it always reaches the end and continues execution after its condition becomes false
+                _ => {}
+            }
+        }
+        if is_top_level && return_type != &cir::Typing::Void {
+            return Err(TypeError { span: Some(last_span), case: TypeErrorCase::NoReturn {
+                function: function_name.to_string(),
+                returns: format!("{:?}", return_type)
+            }});
+        }
+        Ok((false, last_span))
+    }
+
+    fn typecheck_function_block(&mut self, span: Span, block: Vec<ast::Node>, function_name: &str, return_type: &cir::Typing) -> Result<Vec<cir::Statement>, TypeError> {
+        self.current_function = function_name.to_string();
+        let blk = self.typecheck_generic_block(block, Some(return_type))?;
+        self.typecheck_inner_function_block(span, &blk, true, function_name, return_type)?;
+        Ok(blk)
+    }
+
+    fn typecheck_node(&mut self, node: ast::Node, expects_return: Option<&cir::Typing>) -> Result<cir::Statement, TypeError> {
         match node.stmt {
             ast::Statement::LetStatement(stmt) => {
                 let assignment = &stmt.assignment;
@@ -663,8 +707,18 @@ impl TypeChecker {
                 })
             }
             ast::Statement::ReturnStatement(stmt) => {
+                if expects_return.is_none() && stmt.expr.is_some() {
+                    return Err(TypeError { span: Some(node.span), case: TypeErrorCase::MisplacedReturn })
+                }
                 if let Some(expr) = &stmt.expr {
                     let (expr, typ, _) = self.typecheck_expr(expr)?;
+                    if &typ != expects_return.unwrap() {
+                        return Err(TypeError { span: Some(node.span), case: TypeErrorCase::MismatchedReturnType {
+                            function: self.current_function.clone(),
+                            got: format!("{:?}", typ),
+                            expected: format!("{:?}", expects_return.unwrap()),
+                        }});
+                    }
                     return Ok(cir::Statement {
                         span: node.span,
                         kind: cir::StatementKind::ReturnStatement {
@@ -709,7 +763,7 @@ impl TypeChecker {
                     );
                 }
 
-                let validated_block = self.typecheck_generic_block(stmt.block.content)?;
+                let validated_block = self.typecheck_function_block(node.span, stmt.block.content, &stmt.name, &validated_ret_type)?;
 
                 // Add extra return to the end in case of a function that returns void, or it will segfault
                 // NOTE: It would if we were still using llvm, but now with C backend this doesn't matter,
@@ -815,13 +869,13 @@ impl TypeChecker {
                 }
 
                 self.namespace.locals.push(HashMap::new());
-                let block_true_content = self.typecheck_generic_block(stmt.block_true.content)?;
+                let block_true_content = self.typecheck_generic_block(stmt.block_true.content, expects_return)?;
                 self.namespace.locals.pop(); // Pop the true block scope
 
                 self.namespace.locals.push(HashMap::new());
                 let mut block_false_content = vec![];
                 if let Some(block_false) = stmt.block_false {
-                    block_false_content = self.typecheck_generic_block(block_false.content)?;
+                    block_false_content = self.typecheck_generic_block(block_false.content, expects_return)?;
                 }
                 self.namespace.locals.pop(); // Pop the false block scope
 
@@ -849,7 +903,7 @@ impl TypeChecker {
                     });
                 }
                 self.namespace.locals.push(HashMap::new());
-                let block = self.typecheck_generic_block(stmt.block.content)?;
+                let block = self.typecheck_generic_block(stmt.block.content, expects_return)?;
                 self.namespace.locals.pop();
                 return Ok(
                     cir::Statement {
@@ -874,7 +928,7 @@ impl TypeChecker {
         // This is why i'm making a language
         let mut stmts = Vec::new();
         for node in Box::new(input).into_iter() {
-            match self.typecheck_node(node) {
+            match self.typecheck_node(node, None) {
                 Ok(s) => stmts.push(s),
                 Err(e) => self.errors.push(e),
             }
