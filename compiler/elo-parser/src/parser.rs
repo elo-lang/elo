@@ -805,9 +805,7 @@ impl<'a> Parser<'a> {
         if let Some(_) = self.test_token(Token::Delimiter(':'), false) {
             typ = Some(self.parse_type()?);
         }
-        self.expect_token(Token::Delimiter('{'))?;
-        let block = self.parse_stmts()?;
-        self.expect_token(Token::Delimiter('}'))?;
+        let block = self.parse_block(true, false)?;
         Ok(Statement::FnStatement(FnStatement {
             name,
             block,
