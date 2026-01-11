@@ -2,7 +2,7 @@ use elo_ir::ast::{self, Expression, TypedField};
 use elo_error::typeerror::*;
 use elo_ir::cir;
 use elo_lexer::span::Span;
-use std::{collections::HashMap, thread::current};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Namespace {
