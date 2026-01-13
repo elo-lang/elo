@@ -45,6 +45,13 @@ impl Span {
     // let c = a.merge(b);
     // assert_eq!(c, Span { line: 5, start: 10, end: 22 })
 
+    pub fn default(input_file: InputFile<'_>) -> Self {
+        Span {
+            line: input_file.content.lines().count() - 1,
+            start: 0, end: 1
+        }
+    }
+
     pub fn merge(&self, other: Span) -> Span {
         Span {
             line: self.line,

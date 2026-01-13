@@ -55,7 +55,7 @@ fn parse_and_validate(filename: &str, source: &str, mut callback: impl FnMut(cir
                         ValidationError::TypeChecking(e) => {
                             typeerror::type_error(
                                 e.case,
-                                &e.span.unwrap().into_filespan(input_file),
+                                &e.span.into_filespan(input_file),
                             );
                         }
                     }
@@ -63,7 +63,7 @@ fn parse_and_validate(filename: &str, source: &str, mut callback: impl FnMut(cir
             },
         },
         Err(e) => {
-            parseerror::parse_error(e.case, &e.span.unwrap().into_filespan(input_file));
+            parseerror::parse_error(e.case, &e.span.into_filespan(input_file));
         }
     }
 }

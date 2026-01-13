@@ -52,7 +52,7 @@ pub enum TypeErrorCase {
 
 #[derive(Debug)]
 pub struct TypeError {
-    pub span: Option<Span>,
+    pub span: Span,
     pub case: TypeErrorCase,
 }
 

@@ -11,7 +11,7 @@ pub enum ParseErrorCase {
 
 #[derive(Debug)]
 pub struct ParseError {
-    pub span: Option<Span>,
+    pub span: Span,
     pub case: ParseErrorCase,
 }
 

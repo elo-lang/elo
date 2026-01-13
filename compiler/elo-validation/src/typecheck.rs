@@ -67,7 +67,7 @@ impl TypeChecker {
                     return Ok(cir::Typing::Struct(e.clone()));
                 }
                 return Err(TypeError {
-                    span: Some(typ.span),
+                    span: typ.span,
                     case: TypeErrorCase::InvalidType {
                         what: format!("{:?}", typ.typing),
                     },
@@ -80,7 +80,7 @@ impl TypeChecker {
                 });
             }
             x => Err(TypeError {
-                span: Some(typ.span),
+                span: typ.span,
                 case: TypeErrorCase::InvalidType {
                     what: format!("{:?}", x),
                 },
@@ -98,7 +98,7 @@ impl TypeChecker {
         let ir_binop = cir::BinaryOperation::from_ast(&binop);
         if rhs.1 != lhs.1 {
             return Err(TypeError {
-                span: Some(span),
+                span: span,
                 case: TypeErrorCase::TypeMismatch {
                     got: format!("{:?}", rhs.1),
                     expected: format!("{:?}", lhs.1),
@@ -138,7 +138,7 @@ impl TypeChecker {
                 match lhs.2 {
                     ExpressionIdentity::Locatable(false) => {
                         return Err(TypeError {
-                            span: Some(span),
+                            span: span,
                             case: TypeErrorCase::AssignImmutable {
                                 expression: format!("{:?}", lhs.0),
                             },
@@ -146,7 +146,7 @@ impl TypeChecker {
                     }
                     ExpressionIdentity::Immediate => {
                         return Err(TypeError {
-                            span: Some(span),
+                            span: span,
                             case: TypeErrorCase::InvalidExpression {
                                 what: format!("{:?}", lhs.0),
                                 should: "valid left-hand-side operand".to_string(),
@@ -168,7 +168,7 @@ impl TypeChecker {
         span: Span,
     ) -> Result<ExpressionMetadata, TypeError> {
         let function = self.namespace.functions.get(name).ok_or(TypeError {
-            span: Some(span),
+            span: span,
             case: TypeErrorCase::UnresolvedName {
                 name: name.to_string(),
             },
@@ -178,7 +178,7 @@ impl TypeChecker {
         let expected_len = function.arguments.len();
         if passed_length < expected_len {
             return Err(TypeError {
-                span: Some(span),
+                span: span,
                 case: TypeErrorCase::UnmatchedArguments {
                     name: name.to_string(),
                     got: passed_length,
@@ -188,7 +188,7 @@ impl TypeChecker {
             });
         } else if (passed_length > expected_len) && !function.variadic {
             return Err(TypeError {
-                span: Some(span),
+                span: span,
                 case: TypeErrorCase::UnmatchedArguments {
                     name: name.to_string(),
                     got: passed_length,
@@ -203,7 +203,7 @@ impl TypeChecker {
             let (checked, got_type, _) = self.typecheck_expr(expression)?;
             if got_type != expected_type {
                 return Err(TypeError {
-                    span: Some(expression.span),
+                    span: expression.span,
                     case: TypeErrorCase::TypeMismatch {
                         got: format!("{:?}", got_type),
                         expected: format!("{:?}", expected_type),
@@ -266,7 +266,7 @@ impl TypeChecker {
                     cir::UnaryOperation::Addr => {
                         if let ExpressionIdentity::Immediate = operand_id {
                             return Err(TypeError {
-                                span: Some(expr.span),
+                                span: expr.span,
                                 case: TypeErrorCase::InvalidExpression {
                                     what: format!("{:?}", operand),
                                     should: "valid value to reference".to_string(),
@@ -287,7 +287,7 @@ impl TypeChecker {
                     cir::UnaryOperation::Deref => match operand_id {
                         ExpressionIdentity::Immediate => {
                             return Err(TypeError {
-                                span: Some(expr.span),
+                                span: expr.span,
                                 case: TypeErrorCase::InvalidExpression {
                                     what: format!("{:?}", operand),
                                     should: "valid value to dereference".to_string(),
@@ -299,7 +299,7 @@ impl TypeChecker {
                                 operation_type = *typ;
                             } else {
                                 return Err(TypeError {
-                                    span: Some(expr.span),
+                                    span: expr.span,
                                     case: TypeErrorCase::TypeMismatch {
                                         got: format!("{:?}", operand_type),
                                         expected: "pointer".to_string(),
@@ -362,7 +362,7 @@ impl TypeChecker {
                     if let Some(ref expected) = r#type {
                         if expected != &expr_typing {
                             return Err(TypeError {
-                                span: Some(span),
+                                span: span,
                                 case: TypeErrorCase::TypeMismatch {
                                     got: format!("{:?}", expr_typing),
                                     expected: format!("{:?}", expected),
@@ -394,7 +394,7 @@ impl TypeChecker {
                 if let ExpressionIdentity::Locatable(..) = id {
                 } else {
                     return Err(TypeError {
-                        span: Some(origin.span),
+                        span: origin.span,
                         case: TypeErrorCase::InvalidExpression {
                             what: format!("{:?} expression", id),
                             should: String::from("locatable expression"),
@@ -413,7 +413,7 @@ impl TypeChecker {
                         }
                         if let None = typ {
                             return Err(TypeError {
-                                span: Some(expr.span),
+                                span: expr.span,
                                 case: TypeErrorCase::UnresolvedMember {
                                     name: format!("{field}"),
                                     from: format!("struct {}", st.name),
@@ -434,7 +434,7 @@ impl TypeChecker {
                     }
                     _ => {
                         return Err(TypeError {
-                            span: Some(origin.span),
+                            span: origin.span,
                             case: TypeErrorCase::NonAggregateMemberAccess {
                                 typ: format!("{:?}", typing),
                                 member: field.clone(),
@@ -451,7 +451,7 @@ impl TypeChecker {
                     return self.typecheck_function_call(name, arguments, function.span);
                 } else {
                     return Err(TypeError {
-                        span: Some(expr.span),
+                        span: expr.span,
                         case: TypeErrorCase::InvalidExpression {
                             what: format!("{:?}", &function.data),
                             should: "identifier".to_string(),
@@ -466,7 +466,7 @@ impl TypeChecker {
                     .structs
                     .get(name)
                     .ok_or_else(|| TypeError {
-                        span: Some(span),
+                        span: span,
                         case: TypeErrorCase::UnresolvedName {
                             name: format!("{}", &name),
                         },
@@ -476,7 +476,7 @@ impl TypeChecker {
                 for field in fields {
                     let expected_typing =
                         strukt.fields.get(&field.name).ok_or_else(|| TypeError {
-                            span: Some(span),
+                            span: span,
                             case: TypeErrorCase::UnresolvedMember {
                                 name: format!("{}", &field.name),
                                 from: format!("struct {}", &strukt.name),
@@ -486,7 +486,7 @@ impl TypeChecker {
                     let (expr, typing, _) = self.typecheck_expr(&field.value)?;
                     if &typing != expected_typing {
                         return Err(TypeError {
-                            span: Some(field_value_span),
+                            span: field_value_span,
                             case: TypeErrorCase::TypeMismatch {
                                 got: format!("{:?}", typing),
                                 expected: format!("{:?}", expected_typing),
@@ -574,7 +574,7 @@ impl TypeChecker {
                         }
                     }
                     return Err(TypeError {
-                        span: Some(expr.span),
+                        span: expr.span,
                         case: TypeErrorCase::UnresolvedName { name: name.clone() },
                     });
                 }
@@ -597,7 +597,7 @@ impl TypeChecker {
             match &i.kind {
                 cir::StatementKind::ReturnStatement { value, .. } => {
                     if value.is_some() && return_type == &cir::Typing::Void {
-                        return Err(TypeError { span: Some(i.span), case: TypeErrorCase::ReturnValueOnVoidFunction {
+                        return Err(TypeError { span: i.span, case: TypeErrorCase::ReturnValueOnVoidFunction {
                             function: function_name.to_string(),
                         }})
                     }
@@ -617,7 +617,7 @@ impl TypeChecker {
             }
         }
         if is_top_level && return_type != &cir::Typing::Void {
-            return Err(TypeError { span: Some(last_span), case: TypeErrorCase::NoReturn {
+            return Err(TypeError { span: last_span, case: TypeErrorCase::NoReturn {
                 function: function_name.to_string(),
                 returns: format!("{:?}", return_type)
             }});
@@ -689,7 +689,7 @@ impl TypeChecker {
                 let annotated = self.check_type(&stmt.typing)?;
                 if annotated != typ {
                     return Err(TypeError {
-                        span: Some(stmt.typing.span),
+                        span: stmt.typing.span,
                         case: TypeErrorCase::TypeMismatch {
                             got: format!("{:?}", typ),
                             expected: format!("{:?}", annotated),
@@ -708,12 +708,12 @@ impl TypeChecker {
             }
             ast::Statement::ReturnStatement(stmt) => {
                 if expects_return.is_none() && stmt.expr.is_some() {
-                    return Err(TypeError { span: Some(node.span), case: TypeErrorCase::MisplacedReturn })
+                    return Err(TypeError { span: node.span, case: TypeErrorCase::MisplacedReturn })
                 }
                 if let Some(expr) = &stmt.expr {
                     let (expr, typ, _) = self.typecheck_expr(expr)?;
                     if &typ != expects_return.unwrap() {
-                        return Err(TypeError { span: Some(node.span), case: TypeErrorCase::MismatchedReturnType {
+                        return Err(TypeError { span: node.span, case: TypeErrorCase::MismatchedReturnType {
                             function: self.current_function.clone(),
                             got: format!("{:?}", typ),
                             expected: format!("{:?}", expects_return.unwrap()),
@@ -860,7 +860,7 @@ impl TypeChecker {
                 let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
                 if typing != cir::Typing::Primitive(cir::Primitive::Bool) {
                     return Err(TypeError {
-                        span: Some(stmt.condition.span),
+                        span: stmt.condition.span,
                         case: TypeErrorCase::TypeMismatch {
                             got: format!("{:?}", typing),
                             expected: format!("{:?}", cir::Typing::Primitive(cir::Primitive::Bool)),
@@ -895,7 +895,7 @@ impl TypeChecker {
                 let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
                 if typing != cir::Typing::Primitive(cir::Primitive::Bool) {
                     return Err(TypeError {
-                        span: Some(stmt.condition.span),
+                        span: stmt.condition.span,
                         case: TypeErrorCase::TypeMismatch {
                             got: format!("{:?}", typing),
                             expected: format!("{:?}", cir::Typing::Primitive(cir::Primitive::Bool)),

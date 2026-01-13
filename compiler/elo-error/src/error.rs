@@ -14,10 +14,9 @@ pub fn error(
     submessage: Option<&str>,
 ) {
     let file_content = filespan.input_file.content;
-
-    let line = file_content.lines().nth(filespan.line - 1);
+    let mut line = file_content.lines().nth(filespan.line - 1);
     if line.is_none() {
-        unreachable!("could not find the source code line to throw error");
+        line = Some("")
     }
     let line = line.unwrap();
 
@@ -37,7 +36,9 @@ pub fn error(
     eprintln!(
         "{indent}{CYAN_BOLD}:{RESET}{}{GREEN_BOLD} ^{} {RESET}",
         " ".repeat(filespan.start),
-        "-".repeat(span_length - 1),
+        "-".repeat(
+            if span_length == 0 { 0 } else { span_length - 1 }
+        ),
     );
     if submessage.is_some() {
         eprintln!(
