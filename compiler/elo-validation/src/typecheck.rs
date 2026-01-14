@@ -450,13 +450,7 @@ impl TypeChecker {
                 if let ast::ExpressionData::Identifier { name } = &function.data {
                     return self.typecheck_function_call(name, arguments, function.span);
                 } else {
-                    return Err(TypeError {
-                        span: expr.span,
-                        case: TypeErrorCase::InvalidExpression {
-                            what: format!("{:?}", &function.data),
-                            should: "identifier".to_string(),
-                        },
-                    });
+                    todo!("implement other cases for function call")
                 }
             }
             ast::ExpressionData::StructInit { name, fields } => {
