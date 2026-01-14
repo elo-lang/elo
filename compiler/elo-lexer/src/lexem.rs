@@ -1,6 +1,6 @@
 use crate::{span::Span, token::Token};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Lexem {
     pub span: Span,
     pub token: Token,

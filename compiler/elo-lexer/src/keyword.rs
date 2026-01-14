@@ -36,3 +36,23 @@ impl Keyword {
         }
     }
 }
+
+impl std::fmt::Display for Keyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Keyword::Var => write!(f, "var"),
+            Keyword::Let => write!(f, "let"),
+            Keyword::Const => write!(f, "const"),
+            Keyword::Fn => write!(f, "fn"),
+            Keyword::Struct => write!(f, "struct"),
+            Keyword::Enum => write!(f, "enum"),
+            Keyword::If => write!(f, "if"),
+            Keyword::Else => write!(f, "else"),
+            Keyword::While => write!(f, "while"),
+            Keyword::Return => write!(f, "return"),
+            Keyword::Extern => write!(f, "extern"),
+            Keyword::True => write!(f, "true"),
+            Keyword::False => write!(f, "false"),
+        }
+    }
+}
