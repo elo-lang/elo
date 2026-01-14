@@ -269,7 +269,6 @@ impl Generator {
                 let block = c::statement_list(block.as_slice());
                 output.push_str(&c::while_stmt(&comparison, &block));
             }
-            _ => todo!(),
         };
         return output;
     }

@@ -196,7 +196,7 @@ impl std::fmt::Display for ExpressionData {
             ExpressionData::BinaryOperation { operator, left, right } => write!(f, "{left} {operator} {right}"),
             ExpressionData::UnaryOperation { operator, operand } => write!(f, "{operator}{operand}"),
             ExpressionData::StringLiteral { value } => write!(f, "\"{value}\""),
-            ExpressionData::ArrayLiteral { exprs, typ } => write!(f, "{{{}{}}}", exprs[0], if exprs.len() > 1 { "..." } else { "" }),
+            ExpressionData::ArrayLiteral { exprs, .. } => write!(f, "{{{}{}}}", exprs[0], if exprs.len() > 1 { "..." } else { "" }),
             ExpressionData::FieldAccess { origin, field } => write!(f, "{}.{}", origin, field),
             ExpressionData::FunctionCall { function, arguments } => {
                 let mut fmt = String::from(&format!("{function}("));
