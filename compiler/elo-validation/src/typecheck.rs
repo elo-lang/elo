@@ -75,8 +75,8 @@ impl TypeChecker {
                 }
                 return Err(TypeError {
                     span: typ.span,
-                    case: TypeErrorCase::InvalidType {
-                        what: format!("{:?}", typ.typing),
+                    case: TypeErrorCase::UnresolvedName {
+                        name: name.clone(),
                     },
                 });
             }
@@ -86,12 +86,7 @@ impl TypeChecker {
                     typ: Box::new(inner_typing),
                 });
             }
-            x => Err(TypeError {
-                span: typ.span,
-                case: TypeErrorCase::InvalidType {
-                    what: format!("{:?}", x),
-                },
-            }),
+            _ => todo!("implement other types"),
         }
     }
 
