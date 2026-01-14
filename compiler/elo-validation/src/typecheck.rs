@@ -757,6 +757,16 @@ impl TypeChecker {
                     );
                 }
 
+                let head = cir::FunctionHead {
+                    name: stmt.name.clone(),
+                    ret: validated_ret_type.clone(),
+                    arguments: validated_args,
+                    variadic: false, // In this case, variadic is ALWAYS false
+                                     // Because Elo is not meant to support variadic functions at all.
+                };
+                // Insert the function into the namespace
+                self.namespace.functions.insert(stmt.name.clone(), head.clone());
+
                 let validated_block = self.typecheck_function_block(node.span, stmt.block.content, &stmt.name, &validated_ret_type)?;
 
                 // Add extra return to the end in case of a function that returns void, or it will segfault
@@ -773,21 +783,11 @@ impl TypeChecker {
                 // Pop the scope
                 self.namespace.locals.pop();
 
-                let head = cir::FunctionHead {
-                    name: stmt.name.clone(),
-                    ret: validated_ret_type,
-                    arguments: validated_args,
-                    variadic: false, // In this case, variadic is ALWAYS false
-                                     // Because Elo is not meant to support variadic functions at all.
-                };
-
                 let validated = cir::Function {
                     head: head.clone(),
                     block: validated_block,
                 };
 
-                // Insert the function into the namespace
-                self.namespace.functions.insert(stmt.name, head);
 
                 return Ok(cir::Statement {
                     span: node.span,
