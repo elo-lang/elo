@@ -4,7 +4,6 @@ use elo_ir::cir;
 use elo_lexer::span::Span;
 use std::collections::HashMap;
 
-#[derive(Debug)]
 pub struct Namespace {
     pub name: Option<String>,
     pub constants: HashMap<String, cir::Typing>,
@@ -14,7 +13,6 @@ pub struct Namespace {
     pub locals: Vec<Scope>,
 }
 
-#[derive(Debug)]
 pub struct Variable {
     pub name: String,
     pub mutable: bool,
@@ -29,6 +27,15 @@ pub type Scope = HashMap<String, Variable>;
 enum ExpressionIdentity {
     Locatable(bool), // bool: mutable
     Immediate,
+}
+
+impl std::fmt::Display for ExpressionIdentity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExpressionIdentity::Locatable(mutable) => write!(f, "{} locatable", if *mutable { "mutable" } else { "immutable "}),
+            ExpressionIdentity::Immediate => write!(f, "immediate"),
+        }
+    }
 }
 
 type ExpressionMetadata = (cir::Expression, cir::Typing, ExpressionIdentity);
@@ -100,8 +107,8 @@ impl TypeChecker {
             return Err(TypeError {
                 span: span,
                 case: TypeErrorCase::TypeMismatch {
-                    got: format!("{:?}", rhs.1),
-                    expected: format!("{:?}", lhs.1),
+                    got: format!("{}", rhs.1),
+                    expected: format!("{}", lhs.1),
                 },
             });
         }
@@ -138,7 +145,7 @@ impl TypeChecker {
                         return Err(TypeError {
                             span: span,
                             case: TypeErrorCase::AssignImmutable {
-                                expression: format!("{:?}", lhs.0),
+                                expression: format!("{}", lhs.0),
                             },
                         });
                     }
@@ -146,7 +153,7 @@ impl TypeChecker {
                         return Err(TypeError {
                             span: span,
                             case: TypeErrorCase::InvalidExpression {
-                                what: format!("{:?}", lhs.0),
+                                what: format!("{}", lhs.0),
                                 should: "valid left-hand-side operand".to_string(),
                             },
                         });
@@ -203,8 +210,8 @@ impl TypeChecker {
                 return Err(TypeError {
                     span: expression.span,
                     case: TypeErrorCase::TypeMismatch {
-                        got: format!("{:?}", got_type),
-                        expected: format!("{:?}", expected_type),
+                        got: format!("{}", got_type),
+                        expected: format!("{}", expected_type),
                     },
                 });
             }
@@ -266,7 +273,7 @@ impl TypeChecker {
                             return Err(TypeError {
                                 span: expr.span,
                                 case: TypeErrorCase::InvalidExpression {
-                                    what: format!("{:?}", operand),
+                                    what: format!("{}", operand),
                                     should: "valid value to reference".to_string(),
                                 },
                             });
@@ -287,7 +294,7 @@ impl TypeChecker {
                             return Err(TypeError {
                                 span: expr.span,
                                 case: TypeErrorCase::InvalidExpression {
-                                    what: format!("{:?}", operand),
+                                    what: format!("{}", operand),
                                     should: "valid value to dereference".to_string(),
                                 },
                             });
@@ -299,7 +306,7 @@ impl TypeChecker {
                                 return Err(TypeError {
                                     span: expr.span,
                                     case: TypeErrorCase::TypeMismatch {
-                                        got: format!("{:?}", operand_type),
+                                        got: format!("{}", operand_type),
                                         expected: "pointer".to_string(),
                                     },
                                 });
@@ -362,8 +369,8 @@ impl TypeChecker {
                             return Err(TypeError {
                                 span: span,
                                 case: TypeErrorCase::TypeMismatch {
-                                    got: format!("{:?}", expr_typing),
-                                    expected: format!("{:?}", expected),
+                                    got: format!("{}", expr_typing),
+                                    expected: format!("{}", expected),
                                 },
                             });
                         }
@@ -394,7 +401,7 @@ impl TypeChecker {
                     return Err(TypeError {
                         span: origin.span,
                         case: TypeErrorCase::InvalidExpression {
-                            what: format!("{:?} expression", id),
+                            what: format!("{} expression", id),
                             should: String::from("locatable expression"),
                         },
                     });
@@ -434,7 +441,7 @@ impl TypeChecker {
                         return Err(TypeError {
                             span: origin.span,
                             case: TypeErrorCase::NonAggregateMemberAccess {
-                                typ: format!("{:?}", typing),
+                                typ: format!("{}", typing),
                                 member: field.clone(),
                             },
                         });
@@ -486,8 +493,8 @@ impl TypeChecker {
                         return Err(TypeError {
                             span: field_value_span,
                             case: TypeErrorCase::TypeMismatch {
-                                got: format!("{:?}", typing),
-                                expected: format!("{:?}", expected_typing),
+                                got: format!("{}", typing),
+                                expected: format!("{}", expected_typing),
                             },
                         });
                     }
@@ -617,7 +624,7 @@ impl TypeChecker {
         if is_top_level && return_type != &cir::Typing::Void {
             return Err(TypeError { span: last_span, case: TypeErrorCase::NoReturn {
                 function: function_name.to_string(),
-                returns: format!("{:?}", return_type)
+                returns: format!("{}", return_type)
             }});
         }
         Ok((false, last_span))
@@ -689,8 +696,8 @@ impl TypeChecker {
                     return Err(TypeError {
                         span: stmt.typing.span,
                         case: TypeErrorCase::TypeMismatch {
-                            got: format!("{:?}", typ),
-                            expected: format!("{:?}", annotated),
+                            got: format!("{}", typ),
+                            expected: format!("{}", annotated),
                         },
                     });
                 }
@@ -713,8 +720,8 @@ impl TypeChecker {
                     if &typ != expects_return.unwrap() {
                         return Err(TypeError { span: node.span, case: TypeErrorCase::MismatchedReturnType {
                             function: self.current_function.clone(),
-                            got: format!("{:?}", typ),
-                            expected: format!("{:?}", expects_return.unwrap()),
+                            got: format!("{}", typ),
+                            expected: format!("{}", expects_return.unwrap()),
                         }});
                     }
                     return Ok(cir::Statement {
@@ -860,8 +867,8 @@ impl TypeChecker {
                     return Err(TypeError {
                         span: stmt.condition.span,
                         case: TypeErrorCase::TypeMismatch {
-                            got: format!("{:?}", typing),
-                            expected: format!("{:?}", cir::Typing::Primitive(cir::Primitive::Bool)),
+                            got: format!("{}", typing),
+                            expected: format!("{}", cir::Typing::Primitive(cir::Primitive::Bool)),
                         },
                     });
                 }
@@ -895,8 +902,8 @@ impl TypeChecker {
                     return Err(TypeError {
                         span: stmt.condition.span,
                         case: TypeErrorCase::TypeMismatch {
-                            got: format!("{:?}", typing),
-                            expected: format!("{:?}", cir::Typing::Primitive(cir::Primitive::Bool)),
+                            got: format!("{}", typing),
+                            expected: format!("{}", cir::Typing::Primitive(cir::Primitive::Bool)),
                         },
                     });
                 }

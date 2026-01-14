@@ -91,7 +91,7 @@ impl<'a> Parser<'a> {
             Some(Lexem { token: other, span }) => Err(ParseError {
                 span: span,
                 case: ParseErrorCase::UnexpectedToken {
-                    got: format!("{:?}", other),
+                    got: format!("{}", other),
                     expected: "numeric".to_string(),
                 },
             }),
@@ -192,7 +192,7 @@ impl<'a> Parser<'a> {
                     return Err(ParseError {
                         span: lexem.span,
                         case: ParseErrorCase::UnexpectedToken {
-                            got: format!("{:?}", x),
+                            got: format!("{}", x),
                             expected: "type".to_string(),
                         },
                     });
@@ -420,8 +420,8 @@ impl<'a> Parser<'a> {
                     Err(ParseError {
                         span: lexem.span,
                         case: ParseErrorCase::UnexpectedToken {
-                            got: format!("{:?}", token),
-                            expected: format!("{:?}", expect),
+                            got: format!("{}", token),
+                            expected: format!("{}", expect),
                         },
                     })
                 }
@@ -430,7 +430,7 @@ impl<'a> Parser<'a> {
                 span: self.current_span,
                 case: ParseErrorCase::UnexpectedToken {
                     got: EOF.to_string(),
-                    expected: format!("{:?}", expect),
+                    expected: format!("{}", expect),
                 },
             }),
         }
@@ -456,7 +456,7 @@ impl<'a> Parser<'a> {
             Some(Lexem { token: other, span }) => Err(ParseError {
                 span: *span,
                 case: ParseErrorCase::UnexpectedToken {
-                    got: format!("{:?}", other),
+                    got: format!("{}", other),
                     expected: "identifier".to_string(),
                 },
             }),
@@ -486,7 +486,7 @@ impl<'a> Parser<'a> {
             Some(Lexem { token: other, span }) => Err(ParseError {
                 span: *span,
                 case: ParseErrorCase::UnexpectedToken {
-                    got: format!("{:?}", other),
+                    got: format!("{}", other),
                     expected: "end of statement".to_string(),
                 },
             }),
@@ -649,7 +649,7 @@ impl<'a> Parser<'a> {
                     return Err(ParseError {
                         span: lexem.span,
                         case: ParseErrorCase::UnexpectedToken {
-                            got: format!("{:?}", token),
+                            got: format!("{}", token),
                             expected: "primary expression".to_string(),
                         },
                     });
@@ -658,7 +658,7 @@ impl<'a> Parser<'a> {
                     return Err(ParseError {
                         span: lexem.span,
                         case: ParseErrorCase::UnexpectedToken {
-                            got: format!("{:?}", other),
+                            got: format!("{}", other),
                             expected: "primary expression".to_string(),
                         },
                     });
@@ -909,7 +909,7 @@ impl<'a> Parser<'a> {
                 kw if !inside_block => Err(ParseError {
                     span: span,
                     case: ParseErrorCase::UnexpectedToken {
-                        got: format!("{kw:?}"),
+                        got: format!("{kw}"),
                         expected: "valid statement".to_string(),
                     },
                 }),
