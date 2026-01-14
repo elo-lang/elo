@@ -19,7 +19,6 @@ pub enum BinaryOperation {
     Or,
     BAnd,
     BOr,
-    BNot,
     BXor,
     LShift,
     RShift,
@@ -32,7 +31,6 @@ pub enum BinaryOperation {
     AssignBAnd,
     AssignBOr,
     AssignBXor,
-    AssignBNot,
 }
 
 impl BinaryOperation {
@@ -48,7 +46,6 @@ impl BinaryOperation {
             crate::ast::BinaryOperation::BAnd => BinaryOperation::BAnd,
             crate::ast::BinaryOperation::BOr => BinaryOperation::BOr,
             crate::ast::BinaryOperation::BXor => BinaryOperation::BXor,
-            crate::ast::BinaryOperation::BNot => BinaryOperation::BNot,
             crate::ast::BinaryOperation::Assign => BinaryOperation::Assign,
             crate::ast::BinaryOperation::Eq => BinaryOperation::Eq,
             crate::ast::BinaryOperation::Ne => BinaryOperation::Ne,

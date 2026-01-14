@@ -113,7 +113,6 @@ impl TypeChecker {
             | cir::BinaryOperation::Mod
             | cir::BinaryOperation::BAnd
             | cir::BinaryOperation::BOr
-            | cir::BinaryOperation::BNot
             | cir::BinaryOperation::BXor
             | cir::BinaryOperation::LShift
             | cir::BinaryOperation::RShift => lhs.1.clone(),
@@ -133,8 +132,7 @@ impl TypeChecker {
             | cir::BinaryOperation::AssignMod
             | cir::BinaryOperation::AssignBAnd
             | cir::BinaryOperation::AssignBOr
-            | cir::BinaryOperation::AssignBXor
-            | cir::BinaryOperation::AssignBNot => {
+            | cir::BinaryOperation::AssignBXor => {
                 match lhs.2 {
                     ExpressionIdentity::Locatable(false) => {
                         return Err(TypeError {

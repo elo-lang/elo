@@ -25,7 +25,6 @@ pub enum BinaryOperation {
     Or,
     BAnd,
     BOr,
-    BNot,
     BXor,
     LShift,
     RShift,
@@ -38,7 +37,6 @@ pub enum BinaryOperation {
     AssignBAnd,
     AssignBOr,
     AssignBXor,
-    AssignBNot,
 }
 
 impl BinaryOperation {

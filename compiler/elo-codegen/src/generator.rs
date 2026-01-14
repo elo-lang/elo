@@ -63,8 +63,7 @@ impl Generator {
             cir::Typing::Struct(cir::Struct { name, .. }) => format!("struct {name}"),
             cir::Typing::Enum(cir::Enum { name, .. }) => format!("enum {name}"),
             cir::Typing::Void => "void".to_string(),
-            e => {
-                dbg!(e);
+            _ => {
                 todo!()
             }
         };
