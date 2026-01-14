@@ -63,7 +63,40 @@ impl BinaryOperation {
             crate::ast::BinaryOperation::AssignBAnd => BinaryOperation::AssignBAnd,
             crate::ast::BinaryOperation::AssignBOr => BinaryOperation::AssignBOr,
             crate::ast::BinaryOperation::AssignBXor => BinaryOperation::AssignBXor,
-            crate::ast::BinaryOperation::AssignBNot => BinaryOperation::AssignBNot,
+        }
+    }
+}
+
+impl std::fmt::Display for BinaryOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BinaryOperation::Add => write!(f, "+"),
+            BinaryOperation::Sub => write!(f, "-"),
+            BinaryOperation::Mul => write!(f, "*"),
+            BinaryOperation::Div => write!(f, "/"),
+            BinaryOperation::Mod => write!(f, "%"),
+            BinaryOperation::Eq => write!(f, "=="),
+            BinaryOperation::Ne => write!(f, "!="),
+            BinaryOperation::Lt => write!(f, "<"),
+            BinaryOperation::Le => write!(f, "<="),
+            BinaryOperation::Gt => write!(f, ">"),
+            BinaryOperation::Ge => write!(f, ">="),
+            BinaryOperation::And => write!(f, "&&"),
+            BinaryOperation::Or => write!(f, "||"),
+            BinaryOperation::BAnd => write!(f, "&"),
+            BinaryOperation::BOr => write!(f, "|"),
+            BinaryOperation::BXor => write!(f, "^"),
+            BinaryOperation::LShift => write!(f, "<<"),
+            BinaryOperation::RShift => write!(f, ">>"),
+            BinaryOperation::Assign => write!(f, "="),
+            BinaryOperation::AssignAdd => write!(f, "+="),
+            BinaryOperation::AssignSub => write!(f, "-="),
+            BinaryOperation::AssignMul => write!(f, "*="),
+            BinaryOperation::AssignDiv => write!(f, "/="),
+            BinaryOperation::AssignMod => write!(f, "%="),
+            BinaryOperation::AssignBAnd => write!(f, "&="),
+            BinaryOperation::AssignBOr => write!(f, "|="),
+            BinaryOperation::AssignBXor => write!(f, "^="),
         }
     }
 }
@@ -75,6 +108,18 @@ pub enum UnaryOperation {
     BNot,
     Addr,
     Deref,
+}
+
+impl std::fmt::Display for UnaryOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UnaryOperation::Neg => write!(f, "-"),
+            UnaryOperation::Not => write!(f, "!"),
+            UnaryOperation::BNot => write!(f, "~"),
+            UnaryOperation::Addr => write!(f, "&"),
+            UnaryOperation::Deref => write!(f, "*"),
+        }
+    }
 }
 
 impl UnaryOperation {
@@ -93,6 +138,12 @@ impl UnaryOperation {
 pub struct Expression {
     pub span: Span,
     pub data: ExpressionData,
+}
+
+impl std::fmt::Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", self.data)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -137,6 +188,42 @@ pub enum ExpressionData {
     Identifier {
         name: String,
     },
+}
+
+impl std::fmt::Display for ExpressionData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            ExpressionData::BinaryOperation { operator, left, right } => write!(f, "{left} {operator} {right}"),
+            ExpressionData::UnaryOperation { operator, operand } => write!(f, "{operator}{operand}"),
+            ExpressionData::StringLiteral { value } => write!(f, "\"{value}\""),
+            ExpressionData::ArrayLiteral { exprs, typ } => write!(f, "{{{}{}}}", exprs[0], if exprs.len() > 1 { "..." } else { "" }),
+            ExpressionData::FieldAccess { origin, field } => write!(f, "{}.{}", origin, field),
+            ExpressionData::FunctionCall { function, arguments } => {
+                let mut fmt = String::from(&format!("{function}("));
+                if arguments.len() == 1 {
+                    fmt.push_str(&format!("{}", arguments[0]))
+                } else if arguments.len() >= 2 {
+                    fmt.push_str(&format!("{}, ...", arguments[0]))
+                }
+                fmt.push(')');
+                write!(f, "{fmt}")
+            }
+            ExpressionData::StructInit { origin, fields } => {
+                let mut fmt = String::from(&format!("{} {{", origin.name));
+                if fields.len() == 1 {
+                    fmt.push_str(&format!("{}: {}", fields[0].0, fields[0].1))
+                } else if fields.len() >= 2 {
+                    fmt.push_str(&format!("{}: {}, ...", fields[0].0, fields[0].1))
+                }
+                fmt.push_str(" }");
+                write!(f, "{fmt}")
+            }
+            ExpressionData::Integer { value } => write!(f, "{}", value),
+            ExpressionData::Float { value } => write!(f, "{}", value),
+            ExpressionData::Bool { value } => write!(f, "{}", value),
+            ExpressionData::Identifier { name } => write!(f, "{}", name),
+        }
+    }
 }
 
 pub type Block = Vec<Statement>;
@@ -217,6 +304,30 @@ impl Primitive {
     }
 }
 
+
+impl std::fmt::Display for Primitive {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Primitive::F32 => write!(f, "f32"),
+            Primitive::F64 => write!(f, "f64"),
+            Primitive::Float => write!(f, "float"),
+            Primitive::Int => write!(f, "int"),
+            Primitive::UInt => write!(f, "uint"),
+            Primitive::I8 => write!(f, "i8"),
+            Primitive::I16 => write!(f, "i16"),
+            Primitive::I32 => write!(f, "i32"),
+            Primitive::I64 => write!(f, "i64"),
+            Primitive::U8 => write!(f, "u8"),
+            Primitive::U16 => write!(f, "u16"),
+            Primitive::U32 => write!(f, "u32"),
+            Primitive::U64 => write!(f, "u64"),
+            Primitive::Bool => write!(f, "bool"),
+            Primitive::Str => write!(f, "str"),
+            Primitive::Char => write!(f, "char"),
+        }
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Typing {
     Void,
@@ -237,6 +348,44 @@ pub enum Typing {
         args: Vec<Typing>,
         ret: Box<Option<Typing>>,
     },
+}
+
+impl std::fmt::Display for Typing {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Typing::Void => unreachable!("format void type is not allowed"),
+            Typing::Primitive(p) => write!(f, "{}", p),
+            Typing::Struct(s) => write!(f, "struct {}", s.name),
+            Typing::Enum(e) => write!(f, "enum {}", e.name),
+            Typing::Array { typ, amount } => write!(f, "{{{}; {}}}", typ, amount),
+            Typing::Tuple { types } => {
+                let mut fmt = String::from("(");
+                for (i, typ) in types.iter().enumerate() {
+                    fmt.push_str(&format!("{}", typ));
+                    if i < types.len()-1 {
+                        fmt.push_str(", ");
+                    }
+                }
+                fmt.push(')');
+                write!(f, "{}", fmt)
+            }
+            Typing::Pointer { typ } => write!(f, "*{}", typ),
+            Typing::FunctionPointer { args, ret } => {
+                let mut fmt = String::from("fn");
+                if let Some(ret) = ret.as_ref() {
+                    fmt.push_str(&format!(" {ret}"))
+                }
+                for (i, typ) in args.iter().enumerate() {
+                    fmt.push_str(&format!("{}", typ));
+                    if i < args.len()-1 {
+                        fmt.push_str(", ");
+                    }
+                }
+                fmt.push(')');
+                write!(f, "{}", fmt)
+            }
+        }
+    }
 }
 
 pub type TypedField = (String, Typing);

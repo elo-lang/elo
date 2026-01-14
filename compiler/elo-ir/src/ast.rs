@@ -57,7 +57,6 @@ impl BinaryOperation {
             "|" => Some(BinaryOperation::BOr),
             "^" => Some(BinaryOperation::BXor),
             "=" => Some(BinaryOperation::Assign),
-            "~" => Some(BinaryOperation::BNot),
             "==" => Some(BinaryOperation::Eq),
             "!=" => Some(BinaryOperation::Ne),
             "<=" => Some(BinaryOperation::Le),
@@ -74,7 +73,6 @@ impl BinaryOperation {
             "&=" => Some(BinaryOperation::AssignBAnd),
             "|=" => Some(BinaryOperation::AssignBOr),
             "^=" => Some(BinaryOperation::AssignBXor),
-            "~=" => Some(BinaryOperation::AssignBNot),
             _ => None,
         }
     }
