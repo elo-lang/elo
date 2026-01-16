@@ -176,6 +176,10 @@ pub enum ExpressionData {
         origin: Struct,
         fields: Vec<Field>,
     },
+    Tuple {
+        exprs: Vec<Expression>,
+        types: Vec<Typing>,
+    },
     Integer {
         value: i128,
     },
@@ -216,6 +220,16 @@ impl std::fmt::Display for ExpressionData {
                     fmt.push_str(&format!("{}: {}, ...", fields[0].0, fields[0].1))
                 }
                 fmt.push_str(" }");
+                write!(f, "{fmt}")
+            }
+            ExpressionData::Tuple { exprs, types: _ } => {
+                let mut fmt = String::from("(");
+                if exprs.len() == 1 {
+                    fmt.push_str(&format!("{}", exprs[0]))
+                } else if exprs.len() >= 2 {
+                    fmt.push_str(&format!("{}, ... {} more", exprs[0], exprs.len() - 1))
+                }
+                fmt.push_str(")");
                 write!(f, "{fmt}")
             }
             ExpressionData::Integer { value } => write!(f, "{}", value),
