@@ -86,6 +86,13 @@ impl TypeChecker {
                     typ: Box::new(inner_typing),
                 });
             }
+            ast::Typing::Tuple { types } => {
+                let mut checked_types = Vec::new();
+                for t in types {
+                    checked_types.push(self.check_type(t)?);
+                }
+                return Ok(cir::Typing::Tuple { types: checked_types })
+            }
             _ => todo!("implement other types"),
         }
     }
@@ -349,8 +356,25 @@ impl TypeChecker {
                     ExpressionIdentity::Immediate,
                 ));
             }
-            ast::ExpressionData::Tuple { exprs: _exprs } => {
-                todo!();
+            ast::ExpressionData::Tuple { exprs } => {
+                let mut validated_exprs = Vec::new();
+                let mut types = Vec::new();
+                for expr in exprs {
+                    let (e, t, _i) = self.typecheck_expr(expr)?;
+                    validated_exprs.push(e);
+                    types.push(t);
+                };
+                return Ok((
+                    cir::Expression {
+                        span: expr.span,
+                        data: cir::ExpressionData::Tuple {
+                            exprs: validated_exprs,
+                            types: types.clone(),
+                        }
+                    },
+                    cir::Typing::Tuple { types },
+                    ExpressionIdentity::Immediate,
+                ));
             }
             ast::ExpressionData::Array { exprs, amount } => {
                 let mut checked_exprs = Vec::new();
