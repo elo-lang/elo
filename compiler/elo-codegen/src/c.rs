@@ -102,18 +102,6 @@ pub fn statement_list(statements: &[String]) -> String {
     s
 }
 
-pub fn function_decl_stmt(
-    r#return: &str,
-    name: &str,
-    arguments: &str,
-    varargs: bool,
-) -> String {
-    return format!(
-        "{return} {name}({arguments}{})",
-        if varargs { ",..." } else { "" }
-    );
-}
-
 pub fn function_stmt(
     r#return: &str,
     name: &str,
@@ -123,6 +111,19 @@ pub fn function_stmt(
 ) -> String {
     return format!(
         "{return} {name}({arguments}{}){{\n{body}}}",
+        if varargs { ",..." } else { "" }
+    );
+}
+
+
+pub fn function_decl(
+    r#return: &str,
+    name: &str,
+    arguments: &str,
+    varargs: bool,
+) -> String {
+    return format!(
+        "{return} {name}({arguments}{})",
         if varargs { ",..." } else { "" }
     );
 }

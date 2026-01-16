@@ -13,5 +13,5 @@ fn test_file() {
     let val = Validator::new().go(prog.nodes).unwrap();
     let mut r#gen = crate::generator::Generator::new(val);
     r#gen.go();
-    println!("{}", r#gen.output);
+    println!("{}{}", r#gen.head, r#gen.body);
 }

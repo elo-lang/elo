@@ -32,7 +32,7 @@ enum ExpressionIdentity {
 impl std::fmt::Display for ExpressionIdentity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExpressionIdentity::Locatable(mutable) => write!(f, "{} locatable", if *mutable { "mutable" } else { "immutable "}),
+            ExpressionIdentity::Locatable(mutable) => write!(f, "{} locatable", if *mutable { "mutable" } else { "immutable" }),
             ExpressionIdentity::Immediate => write!(f, "immediate"),
         }
     }
