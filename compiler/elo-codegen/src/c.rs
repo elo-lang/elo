@@ -174,3 +174,12 @@ pub fn struct_expr(name: &str, fields: &[(String, String)]) -> String {
     xs.push('}');
     xs
 }
+
+pub fn struct_expr_ordered(name: &str, fields: &[String]) -> String {
+    let mut xs = format!("(struct {name}){{");
+    for value in fields {
+        xs.push_str(&format!("{value},"));
+    }
+    xs.push('}');
+    xs
+}
