@@ -28,7 +28,7 @@ fn validate_program(prog: ast::Program) -> Result<cir::Program, Vec<validation::
 fn generate_program(prog: cir::Program) -> String {
     let mut r#gen = Generator::new(prog);
     r#gen.go();
-    return r#gen.output;
+    return r#gen.head + &r#gen.body;
 }
 
 fn strip_extension(path: &str) -> String {
@@ -76,19 +76,30 @@ fn main() {
     let mut tcc = tcc::TCCState::new();
 
     match comm {
-        Command::Build { input, output, c } => {
+        Command::Build { input, output, c, h } => {
             if let Some(content) = std::fs::read_to_string(&input).ok() {
                 let input_name = strip_extension(&input);
-                let output = output.unwrap_or(format!("{}.out", input_name));
+                let output_exe = output.unwrap_or(format!("{}.out", input_name));
+                let output_c = format!("{}.c", input_name);
+                let output_h = format!("{}.h", input_name);
                 parse_and_validate(input.as_str(), content.as_str(), |validated_program| {
                     tcc.set_output_type(tcc::OutputType::Executable);
                     let mut r#gen = Generator::new(validated_program);
                     r#gen.go();
-                    if !c {
-                        tcc.compile_string(&r#gen.output).unwrap();
-                        tcc.output_file(&output);
-                    } else {
-                        std::fs::write(&output, &r#gen.output).unwrap();
+                    let generated_output = &format!("{}{}", r#gen.head, r#gen.body);
+                    if c {
+                        if h {
+                            std::fs::write(&output_c, r#gen.body).unwrap();
+                        } else {
+                            std::fs::write(&output_c, generated_output).unwrap();
+                        }
+                    }
+                    if h {
+                        std::fs::write(&output_h, r#gen.head).unwrap();
+                    }
+                    if !c && !h {
+                        tcc.compile_string(generated_output).unwrap();
+                        tcc.output_file(&output_exe);
                     }
                 });
             } else {
