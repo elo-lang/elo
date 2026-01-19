@@ -615,11 +615,6 @@ impl TypeChecker {
             last_span = i.span;
             match &i.kind {
                 cir::StatementKind::ReturnStatement { value, .. } => {
-                    if value.is_some() && return_type == &cir::Typing::Void {
-                        return Err(TypeError { span: i.span, case: TypeErrorCase::ReturnValueOnVoidFunction {
-                            function: function_name.to_string(),
-                        }})
-                    }
                     return Ok((true, i.span));
                 }
                 cir::StatementKind::IfStatement { block_true, block_false, .. } => {
@@ -732,6 +727,11 @@ impl TypeChecker {
                 if let Some(expr) = &stmt.expr {
                     let (expr, typ, _) = self.typecheck_expr(expr)?;
                     if &typ != expects_return.unwrap() {
+                        if expects_return.unwrap() == &cir::Typing::Void {
+                            return Err(TypeError { span: node.span, case: TypeErrorCase::ReturnValueOnVoidFunction {
+                                function: self.current_function.clone(),
+                            }})
+                        }
                         return Err(TypeError { span: node.span, case: TypeErrorCase::MismatchedReturnType {
                             function: self.current_function.clone(),
                             got: format!("{}", typ),
