@@ -23,18 +23,17 @@ pub fn error(
     let span_length = filespan.end - filespan.start;
 
     let line_number_digits = filespan.line.to_string().len();
-    let indent_n = line_number_digits + 2;
     let indent = " ".repeat(line_number_digits + 2);
 
     eprintln!("{RED_BOLD}{error}{RESET}: {message}");
     eprintln!(
-        "{indent}{CYAN_BOLD}+--- {BLUE_BOLD}{}:{}:{}",
+        "{indent}{CYAN_BOLD}-> {BLUE_BOLD}{}:{}:{}",
         filespan.input_file.filename, filespan.line, filespan.start
     );
     eprintln!("{indent}{CYAN_BOLD}|{RESET}");
     eprintln!(" {} {CYAN_BOLD}|{RESET} {line}", filespan.line);
     eprintln!(
-        "{indent}{CYAN_BOLD}:{RESET}{}{GREEN_BOLD} ^{} {RESET}",
+        "{indent}{CYAN_BOLD} {RESET}{}{GREEN_BOLD} ^{} {RESET}",
         " ".repeat(filespan.start),
         "-".repeat(
             if span_length == 0 { 0 } else { span_length - 1 }
@@ -42,14 +41,14 @@ pub fn error(
     );
     if submessage.is_some() {
         eprintln!(
-            "{indent}{CYAN_BOLD}:{RESET}{}{GREEN_BOLD}{RESET} {}",
+            "{indent}{CYAN_BOLD} {RESET}{}{GREEN_BOLD}{RESET} {}",
             " ".repeat(filespan.start),
             submessage.unwrap()
         );
     }
     if let Some(h) = help {
-        eprintln!("{indent}{CYAN_BOLD}:{RESET}",);
-        eprintln!("{indent}{CYAN_BOLD}:{RESET}{GREEN_BOLD} Help{RESET}: {h}",);
+        eprintln!("{indent}{CYAN_BOLD} {RESET}",);
+        eprintln!("{indent}{CYAN_BOLD} {RESET}{GREEN_BOLD} Help{RESET}: {h}",);
     }
-    eprintln!("{CYAN_BOLD}{}+{RESET}", "-".repeat(indent_n));
+    eprintln!();
 }
