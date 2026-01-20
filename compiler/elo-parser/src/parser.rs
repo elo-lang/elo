@@ -14,10 +14,6 @@ use elo_ir::ast::*;
 
 pub type Precedence = u8;
 
-fn toint(literal: &str, radix: u32) -> i128 {
-    i128::from_str_radix(literal, radix).unwrap()
-}
-
 fn binop_precedence(token: &Token) -> Precedence {
     match token {
         Token::Op('=', None)      => 1,
@@ -78,12 +74,16 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expect_numeric(&mut self) -> Result<(String, u32), ParseError> {
+    fn expect_numeric(&mut self) -> Result<Token, ParseError> {
         match self.next() {
             Some(Lexem {
-                token: Token::Numeric(num, base),
+                token: token@Token::Integer(..),
                 ..
-            }) => Ok((num, base)),
+            }) => Ok(token),
+            Some(Lexem {
+                token: token@Token::Float(..),
+                ..
+            }) => Ok(token),
             Some(Lexem {
                 token: Token::Newline,
                 ..
@@ -146,13 +146,12 @@ impl<'a> Parser<'a> {
                     self.expect_token(Token::Delimiter(';'))?;
                     match self.parse_number()?.data {
                         ExpressionData::IntegerLiteral { value: x } => {
-                            let x = toint(&x.0, x.1) as usize;
                             self.expect_token(Token::Delimiter('}'))?;
                             return Ok(Type {
                                 span: lexem.span.merge(self.current_span),
                                 typing: Typing::Array {
                                     typ: Box::new(typ),
-                                    amount: x,
+                                    amount: x as usize,
                                 },
                             });
                         }
@@ -347,31 +346,28 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_number(&mut self) -> Result<Expression, ParseError> {
-        let int = self.expect_numeric()?;
-        let span = self.current_span;
-        if let Some(lexem) = self.lexer.peek() {
-            return match &lexem.token {
-                Token::Delimiter('.') => {
-                    self.next();
-                    let float = self.expect_numeric()?;
-                    Ok(Expression {
-                        span: span.merge(self.current_span),
-                        data: ExpressionData::FloatLiteral {
-                            int: int,
-                            float: float,
-                        },
-                    })
-                }
-                _ => Ok(Expression {
-                    span: span,
-                    data: ExpressionData::IntegerLiteral { value: int },
-                }),
-            };
+        let token = self.expect_numeric()?;
+        match token {
+            Token::Integer(value, base) => {
+                let value = i128::from_str_radix(&value, base).unwrap();
+                return Ok(Expression {
+                    span: self.current_span,
+                    data: ExpressionData::IntegerLiteral {
+                        value
+                    },
+                });
+            }
+            Token::Float(value) => {
+                let value = value.parse::<f64>().unwrap();
+                return Ok(Expression {
+                    span: self.current_span,
+                    data: ExpressionData::FloatLiteral {
+                        value
+                    },
+                });
+            }
+            _ => unreachable!("expect_numeric function returned non-numeric token"),
         }
-        Ok(Expression {
-            span: span,
-            data: ExpressionData::IntegerLiteral { value: int },
-        })
     }
 
     fn parse_identifier(&mut self) -> Result<Expression, ParseError> {
@@ -516,7 +512,7 @@ impl<'a> Parser<'a> {
                     self.next();
                     return self.parse_primary(struct_allowed);
                 }
-                Token::Numeric(..) => return Ok(self.parse_number()?),
+                Token::Integer(..) | Token::Float(..) => return Ok(self.parse_number()?),
                 Token::Identifier(_) => {
                     let i = self.parse_identifier()?;
 

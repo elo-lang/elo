@@ -148,11 +148,10 @@ pub enum ExpressionData {
         fields: Vec<Field>,
     },
     IntegerLiteral {
-        value: (String, u32),
+        value: i128,
     },
     FloatLiteral {
-        int: (String, u32),
-        float: (String, u32),
+        value: f64,
     },
     BooleanLiteral {
         value: bool,
