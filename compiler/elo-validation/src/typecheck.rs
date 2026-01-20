@@ -527,27 +527,22 @@ impl TypeChecker {
                 ))
             }
             ast::ExpressionData::IntegerLiteral { value } => {
-                let (lit, radix) = value;
                 Ok((
                     cir::Expression {
                         span: expr.span,
                         data: cir::ExpressionData::Integer {
-                            value: i128::from_str_radix(lit, *radix).unwrap(),
+                            value: *value,
                         }
                     },
                     cir::Typing::Primitive(cir::Primitive::Int),
                     ExpressionIdentity::Immediate,
                 ))
             }
-            ast::ExpressionData::FloatLiteral { int, float } => {
-                let integer = u64::from_str_radix(&int.0, int.1).unwrap();
-                let fractional = u64::from_str_radix(&float.0, float.1).unwrap();
-                let mut value = integer as f64;
-                value += (fractional as f64)/float.1.pow(float.0.len() as u32) as f64;
+            ast::ExpressionData::FloatLiteral { value } => {
                 Ok((
                     cir::Expression {
                         span: expr.span,
-                        data: cir::ExpressionData::Float { value }
+                        data: cir::ExpressionData::Float { value: *value }
                     },
                     cir::Typing::Primitive(cir::Primitive::Float),
                     ExpressionIdentity::Immediate,
