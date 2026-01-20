@@ -38,12 +38,12 @@ fn test_integers() {
     assert_eq!(
         xs,
         vec![
-            Token::Numeric(String::from("69"), 10),
-            Token::Numeric(String::from("420"), 10),
-            Token::Numeric(String::from("1_000_000"), 10),
-            Token::Numeric(String::from("01101"), 2),
-            Token::Numeric(String::from("Ff"), 16),
-            Token::Numeric(String::from("07"), 8),
+            Token::Integer(String::from("69"), 10),
+            Token::Integer(String::from("420"), 10),
+            Token::Integer(String::from("1_000_000"), 10),
+            Token::Integer(String::from("01101"), 2),
+            Token::Integer(String::from("Ff"), 16),
+            Token::Integer(String::from("07"), 8),
         ]
     );
 }
@@ -56,12 +56,8 @@ fn test_floats() {
     assert_eq!(
         xs,
         vec![
-            Token::Numeric(String::from("6"), 10),
-            Token::Delimiter('.'),
-            Token::Numeric(String::from("9"), 10),
-            Token::Numeric(String::from("4"), 10),
-            Token::Delimiter('.'),
-            Token::Numeric(String::from("20"), 10),
+            Token::Float(String::from("6.9")),
+            Token::Float(String::from("4.20")),
         ]
     );
 }
@@ -96,12 +92,11 @@ fn test_dot() {
     assert_eq!(
         xs,
         vec![
-            Token::Numeric(String::from("1"), 10),
-            Token::Delimiter('.'),
+            Token::Float(String::from("1.0")),
             Token::Identifier(String::from("abc")),
             Token::Identifier(String::from("abc")),
             Token::Delimiter('.'),
-            Token::Numeric(String::from("1"), 10),
+            Token::Integer(String::from("1"), 10),
         ]
     );
 }
@@ -115,8 +110,8 @@ fn test_whitespaces() {
         xs,
         vec![
             Token::Newline,
-            Token::Numeric(String::from("69"), 10),
-            Token::Numeric(String::from("420"), 10),
+            Token::Integer(String::from("69"), 10),
+            Token::Integer(String::from("420"), 10),
             Token::Identifier(String::from("foo")),
             Token::Identifier(String::from("bar")),
             Token::Newline,

@@ -147,7 +147,7 @@ impl<'a> Lexer<'a> {
                         let (number, _) =
                             self.consume_while(None, |c| matches!(c, numeric_binary!()));
                         self.span.end += number.len();
-                        return Token::Numeric(number, 2);
+                        return Token::Integer(number, 2);
                     }
                     'o' => {
                         self.chars.next();
@@ -155,24 +155,36 @@ impl<'a> Lexer<'a> {
                         let (number, _) =
                             self.consume_while(None, |c| matches!(c, numeric_octal!()));
                         self.span.end += number.len();
-                        return Token::Numeric(number, 8);
+                        return Token::Integer(number, 8);
                     }
                     'x' => {
                         self.chars.next();
                         self.advance_span(2);
                         let (number, _) = self.consume_while(None, |c| matches!(c, numeric_hex!()));
                         self.span.end += number.len();
-                        return Token::Numeric(number, 16);
+                        return Token::Integer(number, 16);
                     }
                     _ => {}
                 }
             }
             self.advance_span(1);
-            return Token::Numeric(String::from("0"), 10);
+            return Token::Integer(String::from("0"), 10);
         }
         let (number, _) = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
+        if let Some(c) = self.chars.peek() {
+            if *c == '.' { // float literal
+                self.chars.next();
+                if !matches!(self.chars.peek(), Some(&numeric!())) {
+                    self.advance_span(number.len() + 1); // 1 for the '.'
+                    return Token::Float(format!("{number}.0"));
+                }
+                let (fractional, _) = self.consume_while(None, |c| matches!(c, numeric!()));
+                self.advance_span(number.len() + fractional.len() + 1); // 1 for the '.'
+                return Token::Float(format!("{number}.{fractional}"));
+            }
+        }
         self.advance_span(number.len());
-        return Token::Numeric(number, 10);
+        return Token::Integer(number, 10);
     }
 
     fn token_word(&mut self, ch: &char) -> Token {

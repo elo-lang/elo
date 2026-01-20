@@ -2,10 +2,11 @@ use crate::keyword::Keyword;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
-    Keyword(Keyword),     // if, else, while, etc
-    Identifier(String),   // any identifier
-    Numeric(String, u32), // Any number literal
-    Newline,              // \n
+    Keyword(Keyword),       // if, else, while, etc
+    Identifier(String),     // any identifier
+    Integer(String, u32),   // Any integer literal + its base (decimal: 10, hex: 16, octal: 8, etc.)
+    Float(String),          // Any floating-point literal, always decimal
+    Newline,                // \n
     // This option is for the second character like in ==, <=, >=, etc
     // e.g. Token::Op('=', Some('=')) is "=="
     Op(char, Option<char>), // +, -, *, /, ==, etc
@@ -22,7 +23,8 @@ impl std::fmt::Display for Token {
         match self {
             Token::Keyword(kw) => write!(f, "{}", kw),
             Token::Identifier(name) => write!(f, "{}", name),
-            Token::Numeric(s, _) => write!(f, "{}", s),
+            Token::Integer(s, _) => write!(f, "{}", s),
+            Token::Float(s) => write!(f, "{}", s),
             Token::Newline => write!(f, "newline"),
             Token::Op(a, b) => {
                 if let Some(b) = b {
