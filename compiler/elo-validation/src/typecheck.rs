@@ -413,6 +413,40 @@ impl TypeChecker {
                     ExpressionIdentity::Immediate,
                 ));
             }
+            ast::ExpressionData::TupleAccess { origin, field } => {
+                let (tuple, typ, id) = self.typecheck_expr(origin)?;
+                if let cir::Typing::Tuple { ref types } = typ {
+                    if *field >= types.len() {
+                        return Err(TypeError {
+                            span: expr.span,
+                            case: TypeErrorCase::InvalidTupleIndex {
+                                tried_to: *field,
+                                tuple: format!("{}", &typ),
+                                items_count: types.len(),
+                            }
+                        });
+                    }
+                    return Ok((
+                        cir::Expression {
+                            span: expr.span,
+                            data: cir::ExpressionData::TupleAccess {
+                                origin: Box::new(tuple),
+                                field: *field,
+                            }
+                        },
+                        types.get(*field).unwrap().clone(),
+                        id,
+                    ));
+                } else {
+                    return Err(TypeError {
+                        span: expr.span,
+                        case: TypeErrorCase::TypeMismatch {
+                            got: format!("{}", typ),
+                            expected: format!("tuple")
+                        }
+                    })
+                }
+            }
             ast::ExpressionData::FieldAccess { origin, field } => {
                 let (expression, typing, id) = self.typecheck_expr(origin)?;
                 if let ExpressionIdentity::Locatable(..) = id {
