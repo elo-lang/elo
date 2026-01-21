@@ -380,8 +380,7 @@ impl<'a> Parser<'a> {
 
     // Check if a token is present at the next iteration. Only consumes if the condition is met.
     // Does not ignore newlines by default, unless `lazy` argument is set to true.
-    // If you put a Token::Newline in the `expect` argument and `lazy` is true,
-    // it will skip all newlines until it finds the expected token, it will always return None.
+    // If you put a Token::Newline in the `expect` argument and `lazy` is true, it will always return None.
     pub fn test_token(&mut self, expect: Token, lazy: bool) -> Option<Lexem> {
         match self.lexer.peek() {
             Some(lexem) if lexem.token == expect => {
@@ -395,6 +394,26 @@ impl<'a> Parser<'a> {
             }) if lazy => {
                 self.next();
                 self.test_token(expect, lazy)
+            }
+            _ => None,
+        }
+    }
+
+    // Check if a Token::Integer token is present at the next iteration. Only consumes if the condition is met.
+    // Does not ignore newlines by default, unless `lazy` argument is set to true.
+    // If you put a Token::Newline in the `expect` argument and `lazy` is true, it will always return None.
+    pub fn test_integer(&mut self, lazy: bool) -> Option<Token> {
+        match self.lexer.peek() {
+            Some(Lexem { token: Token::Integer(..), .. }) => {
+                let x = self.next().unwrap();
+                Some(x.token)
+            }
+            Some(Lexem {
+                token: Token::Newline,
+                ..
+            }) if lazy => {
+                self.next();
+                self.test_integer(lazy)
             }
             _ => None,
         }
@@ -685,6 +704,18 @@ impl<'a> Parser<'a> {
             //        the newline token that is needed to ensure proper statement termination.
             //        Possible Fix: only allow "lazy" parsing of expressions inside ()
             if let Some(_) = self.test_token(Token::Delimiter('.'), false) {
+                // First we check for an integer after the '.' to see if it's a tuple index access
+                // instead of a field access
+                if let Some(Token::Integer(value, base)) = self.test_integer(false) {
+                    left = Expression {
+                        span: left.span.merge(self.current_span),
+                        data: ExpressionData::TupleAccess {
+                            origin: Box::new(left),
+                            field: usize::from_str_radix(&value, base).unwrap(),
+                        },
+                    };
+                    continue;
+                }
                 // Field access (e.g. instance.method(), foo.bar)
                 let field = self.expect_identifier()?;
                 left = Expression {
