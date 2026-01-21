@@ -680,6 +680,16 @@ impl TypeChecker {
             ast::Statement::LetStatement(stmt) => {
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
+
+                for i in self.namespace.locals.iter().rev() {
+                    if let Some(var) = i.get(name) {
+                        return Err(TypeError {
+                            span: node.span,
+                            case: TypeErrorCase::VariableRedefinition { name: var.name.clone() }
+                        });
+                    }
+                }
+
                 let (expr, typ, _) = self.typecheck_expr(assignment)?;
 
                 // Add the variable to the current scope
@@ -706,6 +716,15 @@ impl TypeChecker {
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
                 let (expr, typ, _) = self.typecheck_expr(assignment)?;
+
+                for i in self.namespace.locals.iter().rev() {
+                    if let Some(var) = i.get(name) {
+                        return Err(TypeError {
+                            span: node.span,
+                            case: TypeErrorCase::VariableRedefinition { name: var.name.clone() }
+                        });
+                    }
+                }
 
                 // Add the variable to the current scope
                 self.namespace.locals.last_mut().unwrap().insert(
