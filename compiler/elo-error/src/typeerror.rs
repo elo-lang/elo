@@ -8,6 +8,11 @@ pub enum TypeErrorCase {
         got: String,
         expected: String,
     },
+    InvalidTupleIndex {
+        tried_to: usize,
+        tuple: String,
+        items_count: usize,
+    },
     InvalidType {
         what: String,
     },
@@ -58,6 +63,15 @@ pub struct TypeError {
 
 pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
     match pe {
+        TypeErrorCase::InvalidTupleIndex { tried_to, tuple, items_count } => {
+            error(
+                "Type Check Error",
+                &format!("attempt to acess tuple index {tried_to} on {tuple}"),
+                filespan,
+                None,
+                Some(&format!("this tuple only contains {items_count} item(s) but used index {tried_to}")),
+            );
+        }
         TypeErrorCase::MisplacedReturn => {
             error(
                 "Type Check Error",
