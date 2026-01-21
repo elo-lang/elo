@@ -178,6 +178,10 @@ impl Generator {
                     .collect::<Vec<(String, String)>>();
                 return c::struct_expr(&name, &fields);
             }
+            cir::ExpressionData::TupleAccess { origin, field } => {
+                let field = &format!("t{field}");
+                return c::member_expr(&self.generate_expression(origin), field);
+            },
             cir::ExpressionData::FieldAccess { origin, field } => {
                 let lhs = self.generate_expression(origin);
                 let rhs = field.clone();
