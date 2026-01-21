@@ -168,6 +168,10 @@ pub enum ExpressionData {
         origin: Box<Expression>,
         field: String,
     },
+    TupleAccess {
+        origin: Box<Expression>,
+        field: usize,
+    },
     FunctionCall {
         function: String,
         arguments: Vec<Expression>,
@@ -202,6 +206,7 @@ impl std::fmt::Display for ExpressionData {
             ExpressionData::StringLiteral { value } => write!(f, "\"{value}\""),
             ExpressionData::ArrayLiteral { exprs, .. } => write!(f, "{{{}{}}}", exprs[0], if exprs.len() > 1 { "..." } else { "" }),
             ExpressionData::FieldAccess { origin, field } => write!(f, "{}.{}", origin, field),
+            ExpressionData::TupleAccess { origin, field } => write!(f, "{}.{}", origin, field),
             ExpressionData::FunctionCall { function, arguments } => {
                 let mut fmt = String::from(&format!("{function}("));
                 if arguments.len() == 1 {
