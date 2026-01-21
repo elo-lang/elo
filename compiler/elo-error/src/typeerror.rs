@@ -52,6 +52,9 @@ pub enum TypeErrorCase {
         typ: String,
         member: String,
     },
+    VariableRedefinition {
+        name: String,
+    },
     MisplacedReturn,
 }
 
@@ -63,6 +66,15 @@ pub struct TypeError {
 
 pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
     match pe {
+        TypeErrorCase::VariableRedefinition { name } => {
+            error(
+                "Type Check Error",
+                &format!("attempt to define already defined variable {name}"),
+                filespan,
+                None,
+                None,
+            );
+        }
         TypeErrorCase::InvalidTupleIndex { tried_to, tuple, items_count } => {
             error(
                 "Type Check Error",
