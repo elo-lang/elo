@@ -80,9 +80,10 @@ impl TypeChecker {
                     },
                 });
             }
-            ast::Typing::Pointer { typ } => {
+            ast::Typing::Pointer { typ, mutable } => {
                 let inner_typing = self.check_type(typ)?;
                 return Ok(cir::Typing::Pointer {
+                    mutable: *mutable,
                     typ: Box::new(inner_typing),
                 });
             }
@@ -271,7 +272,13 @@ impl TypeChecker {
                 let id;
                 match operator {
                     cir::UnaryOperation::Addr => {
-                        if let ExpressionIdentity::Immediate = operand_id {
+                        if let ExpressionIdentity::Locatable(mutable) = operand_id {
+                            operation_type = cir::Typing::Pointer {
+                                mutable,
+                                typ: Box::new(operand_type),
+                            };
+                            id = ExpressionIdentity::Immediate;
+                        } else {
                             return Err(TypeError {
                                 span: expr.span,
                                 case: TypeErrorCase::InvalidExpression {
@@ -280,10 +287,6 @@ impl TypeChecker {
                                 },
                             });
                         }
-                        operation_type = cir::Typing::Pointer {
-                            typ: Box::new(operand_type),
-                        };
-                        id = ExpressionIdentity::Immediate;
                     }
                     cir::UnaryOperation::Neg
                     | cir::UnaryOperation::Not
@@ -301,9 +304,10 @@ impl TypeChecker {
                                 },
                             });
                         }
-                        e => {
-                            if let cir::Typing::Pointer { typ } = operand_type {
+                        _ => {
+                            if let cir::Typing::Pointer { typ, mutable } = operand_type {
                                 operation_type = *typ;
+                                id = ExpressionIdentity::Locatable(mutable);
                             } else {
                                 return Err(TypeError {
                                     span: expr.span,
@@ -313,7 +317,6 @@ impl TypeChecker {
                                     },
                                 });
                             }
-                            id = e;
                         }
                     },
                 };
@@ -352,6 +355,7 @@ impl TypeChecker {
                     // TODO: Change this to `str` type.
                     cir::Typing::Pointer {
                         typ: Box::new(cir::Typing::Primitive(cir::Primitive::U8)),
+                        mutable: false,
                     },
                     ExpressionIdentity::Immediate,
                 ));
@@ -820,11 +824,15 @@ impl TypeChecker {
                 // Add the arguments to the scope
                 for arg in validated_args.iter() {
                     let (name, typing) = arg;
+                    let mut mutable = false;
+                    if let cir::Typing::Pointer { mutable: true, .. } = typing {
+                        mutable = true;
+                    }
                     self.namespace.locals.last_mut().unwrap().insert(
                         name.clone(),
                         Variable {
                             name: name.clone(),
-                            mutable: false,
+                            mutable,
                             typing: typing.clone(),
                         },
                     );
