@@ -84,7 +84,7 @@ impl Generator {
             cir::Typing::Primitive(cir::Primitive::Float) => "float".to_string(),
             cir::Typing::Primitive(cir::Primitive::Str) => "char*".to_string(),
             cir::Typing::Primitive(cir::Primitive::Char) => "uint32_t".to_string(),
-            cir::Typing::Pointer { typ } => self.choose_type(typ) + "*",
+            cir::Typing::Pointer { typ, mutable: _ } => self.choose_type(typ) + "*",
             cir::Typing::Array { typ, .. } => self.choose_type(typ) + "*",
             cir::Typing::Struct(cir::Struct { name, .. }) => format!("struct {name}"),
             cir::Typing::Enum(cir::Enum { name, .. }) => format!("enum {name}"),
