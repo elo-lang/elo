@@ -1,28 +1,28 @@
-use crate::typecheck::*;
-use elo_error::typeerror::*;
+use crate::semcheck::*;
+use elo_error::semerror::*;
 use elo_ir::*;
 
 #[derive(Debug)]
 pub enum ValidationError {
-    TypeChecking(TypeError),
+    SemanticChecker(SemanticError),
 }
 
 pub struct Validator {
-    typechecker: TypeChecker,
+    semchecker: SemanticChecker,
 }
 
 impl Validator {
     pub fn new() -> Validator {
         Validator {
-            typechecker: TypeChecker::new(),
+            semchecker: SemanticChecker::new(),
         }
     }
 
     pub fn go(mut self, input: Vec<ast::Node>) -> Result<cir::Program, Vec<ValidationError>> {
-        let tc = self.typechecker.go(input);
+        let tc = self.semchecker.go(input);
         let mut errors = Vec::new();
-        for e in self.typechecker.errors {
-            errors.push(ValidationError::TypeChecking(e));
+        for e in self.semchecker.errors {
+            errors.push(ValidationError::SemanticChecker(e));
         }
         if !errors.is_empty() {
             return Err(errors);

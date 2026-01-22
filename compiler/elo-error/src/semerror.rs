@@ -3,7 +3,7 @@ use elo_lexer::span::{FileSpan, Span};
 use crate::error::error;
 
 #[derive(Debug)]
-pub enum TypeErrorCase {
+pub enum SemanticErrorCase {
     TypeMismatch {
         got: String,
         expected: String,
@@ -59,14 +59,14 @@ pub enum TypeErrorCase {
 }
 
 #[derive(Debug)]
-pub struct TypeError {
+pub struct SemanticError {
     pub span: Span,
-    pub case: TypeErrorCase,
+    pub case: SemanticErrorCase,
 }
 
-pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
+pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
-        TypeErrorCase::VariableRedefinition { name } => {
+        SemanticErrorCase::VariableRedefinition { name } => {
             error(
                 "Type Check Error",
                 &format!("attempt to define already defined variable {name}"),
@@ -75,7 +75,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        TypeErrorCase::InvalidTupleIndex { tried_to, tuple, items_count } => {
+        SemanticErrorCase::InvalidTupleIndex { tried_to, tuple, items_count } => {
             error(
                 "Type Check Error",
                 &format!("attempt to acess tuple index {tried_to} on {tuple}"),
@@ -84,7 +84,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 Some(&format!("this tuple only contains {items_count} item(s) but used index {tried_to}")),
             );
         }
-        TypeErrorCase::MisplacedReturn => {
+        SemanticErrorCase::MisplacedReturn => {
             error(
                 "Type Check Error",
                 &format!("attempt to use return statement outside of function block"),
@@ -93,16 +93,16 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        TypeErrorCase::NoReturn { function, returns } => {
+        SemanticErrorCase::NoReturn { function, returns } => {
             error(
-                "Type Check Error",
+                "Control-flow Analysis Error",
                 &format!("found path of {function} (which returns {returns}) that doesn't return a value"),
                 filespan,
                 None,
                 Some(&format!("ensure that the function returns {returns} after this")),
             );
         }
-        TypeErrorCase::ReturnValueOnVoidFunction { function } => {
+        SemanticErrorCase::ReturnValueOnVoidFunction { function } => {
             error(
                 "Type Check Error",
                 &format!("tried to return value out of function {function} that doesn't return anything"),
@@ -111,7 +111,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 Some(&format!("this return should not have a value")),
             );
         }
-        TypeErrorCase::MismatchedReturnType { function, expected, got } => {
+        SemanticErrorCase::MismatchedReturnType { function, expected, got } => {
             error(
                 "Type Check Error",
                 &format!("return type of {function} is expected to be {expected} but got {got}"),
@@ -120,7 +120,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 Some(&format!("the value of this return should be of type {expected}")),
             );
         }
-        TypeErrorCase::AssignImmutable { expression } => {
+        SemanticErrorCase::AssignImmutable { expression } => {
             error(
                 "Type Check Error",
                 &format!("tried to assign to immutable expresion {expression}"),
@@ -129,7 +129,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 Some("left-hand is immutable, but should be mutable to be assigned"),
             );
         }
-        TypeErrorCase::TypeMismatch { got, expected } => {
+        SemanticErrorCase::TypeMismatch { got, expected } => {
             error(
                 "Type Check Error",
                 &format!("type mismatch: expected {expected} but got {got}"),
@@ -138,7 +138,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        TypeErrorCase::InvalidType { what } => {
+        SemanticErrorCase::InvalidType { what } => {
             error(
                 "Type Check Error",
                 &format!("invalid type: {what}"),
@@ -147,7 +147,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        TypeErrorCase::InvalidExpression { what, should } => {
+        SemanticErrorCase::InvalidExpression { what, should } => {
             error(
                 "Type Check Error",
                 &format!("invalid expression: expression {what} is expected to be {should}"),
@@ -156,7 +156,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        TypeErrorCase::UnresolvedName { name } => {
+        SemanticErrorCase::UnresolvedName { name } => {
             error(
                 "Type Check Error",
                 &format!("unresolved name: could not find '{name}' in the current scope"),
@@ -165,7 +165,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        TypeErrorCase::UnmatchedArguments {
+        SemanticErrorCase::UnmatchedArguments {
             name,
             got,
             expected,
@@ -193,7 +193,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 );
             }
         }
-        TypeErrorCase::UnresolvedMember { name, from } => {
+        SemanticErrorCase::UnresolvedMember { name, from } => {
             error(
                 "Type Check Error",
                 &format!("unresolved member: {from} has no field named '{name}'"),
@@ -202,7 +202,7 @@ pub fn type_error(pe: TypeErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        TypeErrorCase::NonAggregateMemberAccess { typ, member } => {
+        SemanticErrorCase::NonAggregateMemberAccess { typ, member } => {
             error(
                 "Type Check Error",
                 &format!(

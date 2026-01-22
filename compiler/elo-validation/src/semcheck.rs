@@ -1,5 +1,5 @@
 use elo_ir::ast::{self, Expression, TypedField};
-use elo_error::typeerror::*;
+use elo_error::semerror::*;
 use elo_ir::cir;
 use elo_lexer::span::Span;
 use std::collections::HashMap;
@@ -40,13 +40,13 @@ impl std::fmt::Display for ExpressionIdentity {
 
 type ExpressionMetadata = (cir::Expression, cir::Typing, ExpressionIdentity);
 
-pub struct TypeChecker {
+pub struct SemanticChecker {
     namespace: Namespace,
     current_function: String,
-    pub errors: Vec<TypeError>,
+    pub errors: Vec<SemanticError>,
 }
 
-impl TypeChecker {
+impl SemanticChecker {
     pub fn new() -> Self {
         Self {
             errors: Vec::new(),
@@ -62,7 +62,7 @@ impl TypeChecker {
         }
     }
 
-    fn check_type(&mut self, typ: &ast::Type) -> Result<cir::Typing, TypeError> {
+    fn check_type(&mut self, typ: &ast::Type) -> Result<cir::Typing, SemanticError> {
         match &typ.typing {
             // TODO: Add generics
             ast::Typing::Named { name, .. } => {
@@ -73,9 +73,9 @@ impl TypeChecker {
                 } else if let Some(e) = self.namespace.structs.get(name) {
                     return Ok(cir::Typing::Struct(e.clone()));
                 }
-                return Err(TypeError {
+                return Err(SemanticError {
                     span: typ.span,
-                    case: TypeErrorCase::UnresolvedName {
+                    case: SemanticErrorCase::UnresolvedName {
                         name: name.clone(),
                     },
                 });
@@ -104,12 +104,12 @@ impl TypeChecker {
         rhs: &ExpressionMetadata,
         binop: &ast::BinaryOperation,
         span: elo_lexer::span::Span,
-    ) -> Result<(cir::BinaryOperation, cir::Typing, ExpressionIdentity), TypeError> {
+    ) -> Result<(cir::BinaryOperation, cir::Typing, ExpressionIdentity), SemanticError> {
         let ir_binop = cir::BinaryOperation::from_ast(&binop);
         if rhs.1 != lhs.1 {
-            return Err(TypeError {
+            return Err(SemanticError {
                 span: span,
-                case: TypeErrorCase::TypeMismatch {
+                case: SemanticErrorCase::TypeMismatch {
                     got: format!("{}", rhs.1),
                     expected: format!("{}", lhs.1),
                 },
@@ -145,17 +145,17 @@ impl TypeChecker {
             | cir::BinaryOperation::AssignBXor => {
                 match lhs.2 {
                     ExpressionIdentity::Locatable(false) => {
-                        return Err(TypeError {
+                        return Err(SemanticError {
                             span: span,
-                            case: TypeErrorCase::AssignImmutable {
+                            case: SemanticErrorCase::AssignImmutable {
                                 expression: format!("{}", lhs.0),
                             },
                         });
                     }
                     ExpressionIdentity::Immediate => {
-                        return Err(TypeError {
+                        return Err(SemanticError {
                             span: span,
-                            case: TypeErrorCase::InvalidExpression {
+                            case: SemanticErrorCase::InvalidExpression {
                                 what: format!("{}", lhs.0),
                                 should: "valid left-hand-side operand".to_string(),
                             },
@@ -174,10 +174,10 @@ impl TypeChecker {
         name: &str,
         arguments: &Vec<Expression>,
         span: Span,
-    ) -> Result<ExpressionMetadata, TypeError> {
-        let function = self.namespace.functions.get(name).ok_or(TypeError {
+    ) -> Result<ExpressionMetadata, SemanticError> {
+        let function = self.namespace.functions.get(name).ok_or(SemanticError {
             span: span,
-            case: TypeErrorCase::UnresolvedName {
+            case: SemanticErrorCase::UnresolvedName {
                 name: name.to_string(),
             },
         })?;
@@ -185,9 +185,9 @@ impl TypeChecker {
         let passed_length = arguments.len();
         let expected_len = function.arguments.len();
         if passed_length < expected_len {
-            return Err(TypeError {
+            return Err(SemanticError {
                 span: span,
-                case: TypeErrorCase::UnmatchedArguments {
+                case: SemanticErrorCase::UnmatchedArguments {
                     name: name.to_string(),
                     got: passed_length,
                     expected: expected_len,
@@ -195,9 +195,9 @@ impl TypeChecker {
                 },
             });
         } else if (passed_length > expected_len) && !function.variadic {
-            return Err(TypeError {
+            return Err(SemanticError {
                 span: span,
-                case: TypeErrorCase::UnmatchedArguments {
+                case: SemanticErrorCase::UnmatchedArguments {
                     name: name.to_string(),
                     got: passed_length,
                     expected: expected_len,
@@ -210,9 +210,9 @@ impl TypeChecker {
         for (expression, (_, expected_type)) in iter {
             let (checked, got_type, _) = self.typecheck_expr(expression)?;
             if got_type != expected_type {
-                return Err(TypeError {
+                return Err(SemanticError {
                     span: expression.span,
-                    case: TypeErrorCase::TypeMismatch {
+                    case: SemanticErrorCase::TypeMismatch {
                         got: format!("{}", got_type),
                         expected: format!("{}", expected_type),
                     },
@@ -241,7 +241,7 @@ impl TypeChecker {
         ));
     }
 
-    fn typecheck_expr(&mut self, expr: &ast::Expression) -> Result<ExpressionMetadata, TypeError> {
+    fn typecheck_expr(&mut self, expr: &ast::Expression) -> Result<ExpressionMetadata, SemanticError> {
         match &expr.data {
             ast::ExpressionData::BinaryOperation {
                 operator,
@@ -279,9 +279,9 @@ impl TypeChecker {
                             };
                             id = ExpressionIdentity::Immediate;
                         } else {
-                            return Err(TypeError {
+                            return Err(SemanticError {
                                 span: expr.span,
-                                case: TypeErrorCase::InvalidExpression {
+                                case: SemanticErrorCase::InvalidExpression {
                                     what: format!("{}", operand),
                                     should: "valid value to reference".to_string(),
                                 },
@@ -296,9 +296,9 @@ impl TypeChecker {
                     }
                     cir::UnaryOperation::Deref => match operand_id {
                         ExpressionIdentity::Immediate => {
-                            return Err(TypeError {
+                            return Err(SemanticError {
                                 span: expr.span,
-                                case: TypeErrorCase::InvalidExpression {
+                                case: SemanticErrorCase::InvalidExpression {
                                     what: format!("{}", operand),
                                     should: "valid value to dereference".to_string(),
                                 },
@@ -309,9 +309,9 @@ impl TypeChecker {
                                 operation_type = *typ;
                                 id = ExpressionIdentity::Locatable(mutable);
                             } else {
-                                return Err(TypeError {
+                                return Err(SemanticError {
                                     span: expr.span,
-                                    case: TypeErrorCase::TypeMismatch {
+                                    case: SemanticErrorCase::TypeMismatch {
                                         got: format!("{}", operand_type),
                                         expected: "pointer".to_string(),
                                     },
@@ -389,9 +389,9 @@ impl TypeChecker {
                     checked_exprs.push(expr);
                     if let Some(ref expected) = r#type {
                         if expected != &expr_typing {
-                            return Err(TypeError {
+                            return Err(SemanticError {
                                 span: span,
-                                case: TypeErrorCase::TypeMismatch {
+                                case: SemanticErrorCase::TypeMismatch {
                                     got: format!("{}", expr_typing),
                                     expected: format!("{}", expected),
                                 },
@@ -421,9 +421,9 @@ impl TypeChecker {
                 let (tuple, typ, id) = self.typecheck_expr(origin)?;
                 if let cir::Typing::Tuple { ref types } = typ {
                     if *field >= types.len() {
-                        return Err(TypeError {
+                        return Err(SemanticError {
                             span: expr.span,
-                            case: TypeErrorCase::InvalidTupleIndex {
+                            case: SemanticErrorCase::InvalidTupleIndex {
                                 tried_to: *field,
                                 tuple: format!("{}", &typ),
                                 items_count: types.len(),
@@ -442,9 +442,9 @@ impl TypeChecker {
                         id,
                     ));
                 } else {
-                    return Err(TypeError {
+                    return Err(SemanticError {
                         span: expr.span,
-                        case: TypeErrorCase::TypeMismatch {
+                        case: SemanticErrorCase::TypeMismatch {
                             got: format!("{}", typ),
                             expected: format!("tuple")
                         }
@@ -455,9 +455,9 @@ impl TypeChecker {
                 let (expression, typing, id) = self.typecheck_expr(origin)?;
                 if let ExpressionIdentity::Locatable(..) = id {
                 } else {
-                    return Err(TypeError {
+                    return Err(SemanticError {
                         span: origin.span,
-                        case: TypeErrorCase::InvalidExpression {
+                        case: SemanticErrorCase::InvalidExpression {
                             what: format!("{} expression", id),
                             should: String::from("locatable expression"),
                         },
@@ -474,9 +474,9 @@ impl TypeChecker {
                             }
                         }
                         if let None = typ {
-                            return Err(TypeError {
+                            return Err(SemanticError {
                                 span: expr.span,
-                                case: TypeErrorCase::UnresolvedMember {
+                                case: SemanticErrorCase::UnresolvedMember {
                                     name: format!("{field}"),
                                     from: format!("struct {}", st.name),
                                 },
@@ -495,9 +495,9 @@ impl TypeChecker {
                         ));
                     }
                     _ => {
-                        return Err(TypeError {
+                        return Err(SemanticError {
                             span: origin.span,
-                            case: TypeErrorCase::NonAggregateMemberAccess {
+                            case: SemanticErrorCase::NonAggregateMemberAccess {
                                 typ: format!("{}", typing),
                                 member: field.clone(),
                             },
@@ -521,9 +521,9 @@ impl TypeChecker {
                     .namespace
                     .structs
                     .get(name)
-                    .ok_or_else(|| TypeError {
+                    .ok_or_else(|| SemanticError {
                         span: span,
-                        case: TypeErrorCase::UnresolvedName {
+                        case: SemanticErrorCase::UnresolvedName {
                             name: format!("{}", &name),
                         },
                     })?
@@ -531,9 +531,9 @@ impl TypeChecker {
                 let mut checked_fields = Vec::new();
                 for field in fields {
                     let expected_typing =
-                        strukt.fields.get(&field.name).ok_or_else(|| TypeError {
+                        strukt.fields.get(&field.name).ok_or_else(|| SemanticError {
                             span: span,
-                            case: TypeErrorCase::UnresolvedMember {
+                            case: SemanticErrorCase::UnresolvedMember {
                                 name: format!("{}", &field.name),
                                 from: format!("struct {}", &strukt.name),
                             },
@@ -541,9 +541,9 @@ impl TypeChecker {
                     let field_value_span = field.value.span;
                     let (expr, typing, _) = self.typecheck_expr(&field.value)?;
                     if &typing != expected_typing {
-                        return Err(TypeError {
+                        return Err(SemanticError {
                             span: field_value_span,
-                            case: TypeErrorCase::TypeMismatch {
+                            case: SemanticErrorCase::TypeMismatch {
                                 got: format!("{}", typing),
                                 expected: format!("{}", expected_typing),
                             },
@@ -625,9 +625,9 @@ impl TypeChecker {
                             ));
                         }
                     }
-                    return Err(TypeError {
+                    return Err(SemanticError {
                         span: expr.span,
-                        case: TypeErrorCase::UnresolvedName { name: name.clone() },
+                        case: SemanticErrorCase::UnresolvedName { name: name.clone() },
                     });
                 }
             }
@@ -638,7 +638,7 @@ impl TypeChecker {
         &mut self,
         block: Vec<ast::Node>,
         expects_return: Option<&cir::Typing>
-    ) -> Result<Vec<cir::Statement>, TypeError> {
+    ) -> Result<Vec<cir::Statement>, SemanticError> {
         let mut blk = Vec::new();
         // Create a new scope for the function
         self.namespace.locals.push(HashMap::new());
@@ -661,7 +661,7 @@ impl TypeChecker {
         return_type: &cir::Typing,
         function_name: &str,
         function_arguments: HashMap<String, Variable>,
-    ) -> Result<Vec<cir::Statement>, TypeError> {
+    ) -> Result<Vec<cir::Statement>, SemanticError> {
         self.current_function = function_name.to_string();
         let mut blk = Vec::new();
 
@@ -684,7 +684,7 @@ impl TypeChecker {
         Ok(blk)
     }
 
-    fn controlcheck_inner_function_block(&mut self, span: Span, block: &Vec<cir::Statement>, is_top_level: bool, function_name: &str, return_type: &cir::Typing) -> Result<(bool, Span), TypeError> {
+    fn controlcheck_inner_function_block(&mut self, span: Span, block: &Vec<cir::Statement>, is_top_level: bool, function_name: &str, return_type: &cir::Typing) -> Result<(bool, Span), SemanticError> {
         let mut last_span = span;
         for i in block {
             last_span = i.span;
@@ -706,7 +706,7 @@ impl TypeChecker {
             }
         }
         if is_top_level && return_type != &cir::Typing::Void {
-            return Err(TypeError { span: last_span, case: TypeErrorCase::NoReturn {
+            return Err(SemanticError { span: last_span, case: SemanticErrorCase::NoReturn {
                 function: function_name.to_string(),
                 returns: format!("{}", return_type)
             }});
@@ -720,12 +720,12 @@ impl TypeChecker {
         block: &Vec<cir::Statement>,
         function_name: &str,
         return_type: &cir::Typing,
-    ) -> Result<(), TypeError> {
+    ) -> Result<(), SemanticError> {
         self.controlcheck_inner_function_block(span, block, true, function_name, return_type)?;
         Ok(())
     }
 
-    fn typecheck_node(&mut self, node: ast::Node, expects_return: Option<&cir::Typing>) -> Result<cir::Statement, TypeError> {
+    fn typecheck_node(&mut self, node: ast::Node, expects_return: Option<&cir::Typing>) -> Result<cir::Statement, SemanticError> {
         match node.stmt {
             ast::Statement::LetStatement(stmt) => {
                 let assignment = &stmt.assignment;
@@ -733,9 +733,9 @@ impl TypeChecker {
 
                 for i in self.namespace.locals.iter().rev() {
                     if i.get(name).is_some() {
-                        return Err(TypeError {
+                        return Err(SemanticError {
                             span: node.span,
-                            case: TypeErrorCase::VariableRedefinition { name: name.clone() }
+                            case: SemanticErrorCase::VariableRedefinition { name: name.clone() }
                         });
                     }
                 }
@@ -768,9 +768,9 @@ impl TypeChecker {
 
                 for i in self.namespace.locals.iter().rev() {
                     if i.get(name).is_some() {
-                        return Err(TypeError {
+                        return Err(SemanticError {
                             span: node.span,
-                            case: TypeErrorCase::VariableRedefinition { name: name.clone() }
+                            case: SemanticErrorCase::VariableRedefinition { name: name.clone() }
                         });
                     }
                 }
@@ -798,9 +798,9 @@ impl TypeChecker {
                 let (expr, typ, _) = self.typecheck_expr(assignment)?;
                 let annotated = self.check_type(&stmt.typing)?;
                 if annotated != typ {
-                    return Err(TypeError {
+                    return Err(SemanticError {
                         span: stmt.typing.span,
-                        case: TypeErrorCase::TypeMismatch {
+                        case: SemanticErrorCase::TypeMismatch {
                             got: format!("{}", typ),
                             expected: format!("{}", annotated),
                         },
@@ -818,17 +818,17 @@ impl TypeChecker {
             }
             ast::Statement::ReturnStatement(stmt) => {
                 if expects_return.is_none() && stmt.expr.is_some() {
-                    return Err(TypeError { span: node.span, case: TypeErrorCase::MisplacedReturn })
+                    return Err(SemanticError { span: node.span, case: SemanticErrorCase::MisplacedReturn })
                 }
                 if let Some(expr) = &stmt.expr {
                     let (expr, typ, _) = self.typecheck_expr(expr)?;
                     if &typ != expects_return.unwrap() {
                         if expects_return.unwrap() == &cir::Typing::Void {
-                            return Err(TypeError { span: node.span, case: TypeErrorCase::ReturnValueOnVoidFunction {
+                            return Err(SemanticError { span: node.span, case: SemanticErrorCase::ReturnValueOnVoidFunction {
                                 function: self.current_function.clone(),
                             }})
                         }
-                        return Err(TypeError { span: node.span, case: TypeErrorCase::MismatchedReturnType {
+                        return Err(SemanticError { span: node.span, case: SemanticErrorCase::MismatchedReturnType {
                             function: self.current_function.clone(),
                             got: format!("{}", typ),
                             expected: format!("{}", expects_return.unwrap()),
@@ -961,9 +961,9 @@ impl TypeChecker {
             ast::Statement::IfStatement(stmt) => {
                 let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
                 if typing != cir::Typing::Primitive(cir::Primitive::Bool) {
-                    return Err(TypeError {
+                    return Err(SemanticError {
                         span: stmt.condition.span,
-                        case: TypeErrorCase::TypeMismatch {
+                        case: SemanticErrorCase::TypeMismatch {
                             got: format!("{}", typing),
                             expected: format!("{}", cir::Typing::Primitive(cir::Primitive::Bool)),
                         },
@@ -996,9 +996,9 @@ impl TypeChecker {
                 // TODO: Remember to push a new scope to the namespace
                 let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
                 if typing != cir::Typing::Primitive(cir::Primitive::Bool) {
-                    return Err(TypeError {
+                    return Err(SemanticError {
                         span: stmt.condition.span,
-                        case: TypeErrorCase::TypeMismatch {
+                        case: SemanticErrorCase::TypeMismatch {
                             got: format!("{}", typing),
                             expected: format!("{}", cir::Typing::Primitive(cir::Primitive::Bool)),
                         },
@@ -1025,7 +1025,7 @@ impl TypeChecker {
         }
     }
 
-    // Type-check and transform the AST into the IR of Elo code
+    // Type-check, control-flow check and transform the AST into the IR of Elo code
     pub fn go(&mut self, input: Vec<ast::Node>) -> cir::Program {
         // This is why i'm making a language
         let mut stmts = Vec::new();

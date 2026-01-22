@@ -21,7 +21,7 @@ fn test_file() {
         {
             for e in e {
                 #[allow(irrefutable_let_patterns)]
-                if let ValidationError::TypeChecking(t) = e {
+                if let ValidationError::SemanticChecker(t) = e {
                     println!("{:?}", t);
                 }
             }

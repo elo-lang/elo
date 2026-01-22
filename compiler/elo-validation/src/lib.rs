@@ -1,3 +1,3 @@
 pub mod tests;
-pub mod typecheck;
+pub mod semcheck;
 pub mod validation;

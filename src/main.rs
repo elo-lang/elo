@@ -3,7 +3,7 @@ mod tcc;
 #[cfg(test)]
 mod tests;
 
-use elo_error::{parseerror, typeerror};
+use elo_error::{parseerror, semerror};
 use elo_ir::*;
 
 use elo_codegen::generator::*;
@@ -52,8 +52,8 @@ fn parse_and_validate(filename: &str, source: &str, mut callback: impl FnMut(cir
             Err(es) => {
                 for e in es {
                     match e {
-                        ValidationError::TypeChecking(e) => {
-                            typeerror::type_error(
+                        ValidationError::SemanticChecker(e) => {
+                            semerror::semantic_error(
                                 e.case,
                                 &e.span.into_filespan(input_file),
                             );
