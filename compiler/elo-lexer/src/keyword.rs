@@ -13,6 +13,7 @@ pub enum Keyword {
     Extern,
     True,
     False,
+    Mut,
 }
 
 impl Keyword {
@@ -32,6 +33,7 @@ impl Keyword {
             "extern" => Some(Keyword::Extern),
             "true" => Some(Keyword::True),
             "false" => Some(Keyword::False),
+            "mut" => Some(Keyword::Mut),
             _ => None,
         }
     }
@@ -53,6 +55,7 @@ impl std::fmt::Display for Keyword {
             Keyword::Extern => write!(f, "extern"),
             Keyword::True => write!(f, "true"),
             Keyword::False => write!(f, "false"),
+            Keyword::Mut => write!(f, "mut"),
         }
     }
 }
