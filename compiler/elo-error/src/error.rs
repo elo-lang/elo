@@ -27,10 +27,10 @@ pub fn error(
 
     eprintln!("{RED_BOLD}{error}{RESET}: {message}");
     eprintln!(
-        "{indent}{CYAN_BOLD}-> {BLUE_BOLD}{}:{}:{}",
-        filespan.input_file.filename, filespan.line, filespan.start
+        "{}{CYAN_BOLD}-> {BLUE_BOLD}{}:{}:{}",
+        &indent[..indent.len()-1], filespan.input_file.filename, filespan.line, filespan.start
     );
-    eprintln!("{indent}{CYAN_BOLD}|{RESET}");
+    eprintln!();
     eprintln!(" {} {CYAN_BOLD}|{RESET} {line}", filespan.line);
     eprintln!(
         "{indent}{CYAN_BOLD} {RESET}{}{GREEN_BOLD} ^{} {RESET}",
