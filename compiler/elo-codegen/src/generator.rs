@@ -190,29 +190,6 @@ impl Generator {
         }
     }
 
-    // pub fn generate_statement(&mut self, stmt: &mut cir::Statement) {
-    //     let generated = self.generate_statement(stmt);
-    //     match &mut stmt.kind {
-    //         cir::StatementKind::FnStatement(stmt) => {
-    //             let r#return = self.choose_type(&stmt.head.ret);
-    //             let name = stmt.head.name.clone();
-    //             let mut arguments = Vec::new();
-    //             for (name, typing) in &stmt.head.arguments {
-    //                 let t = self.choose_type(typing);
-    //                 arguments.push(c::field(&t, name));
-    //             }
-    //             let arguments = c::list(&arguments);
-    //             self.body.push_str(&(generated + "\n"));
-    //             self.head.push_str(&(c::function_decl(&r#return, &name, &arguments, false) + "\n"))
-    //         }
-    //         cir::StatementKind::Constant { .. } => self.head.push_str(&(generated + ";\n")),
-    //         cir::StatementKind::ExternFnStatement(..) => self.head.push_str(&(generated + ";\n")),
-    //         cir::StatementKind::StructStatement(..) => self.head.push_str(&(generated + ";\n")),
-    //         cir::StatementKind::EnumStatement(..) => self.head.push_str(&(generated + ";\n")),
-    //         _ => self.body.push_str(&(generated + "\n")),
-    //     }
-    // }
-
     pub fn generate_statement(&mut self, stmt: &mut cir::Statement) -> String {
         let mut output = String::new();
         match &mut stmt.kind {
@@ -221,14 +198,14 @@ impl Generator {
                 binding,
                 typing,
             } => {
-                self.head.push_str("static ");
+                self.head.push_str("static const ");
                 let x = self.choose_type(typing);
                 self.head.push_str(x.as_str());
                 self.head.push_str(&binding);
                 self.head.push('=');
                 let expr = self.generate_expression(&value);
                 self.head.push_str(&expr);
-                self.head.push(';');
+                self.head.push_str(";\n");
             }
             cir::StatementKind::FnStatement(stmt) => {
                 let r#return = self.choose_type(&stmt.head.ret);
@@ -277,11 +254,11 @@ impl Generator {
                     .map(|(k, v)| c::field(&self.choose_type(v), k));
                 let fields = fields.collect::<Vec<String>>();
                 let body = c::statement_list(&fields);
-                self.head.push_str(&c::struct_stmt(&stmt.name, &body));
+                self.head.push_str(&(c::struct_stmt(&stmt.name, &body) + ";\n"));
             }
             cir::StatementKind::EnumStatement(stmt) => {
                 let doby = c::list(&stmt.variants);
-                self.head.push_str(&c::enum_stmt(&stmt.name, &doby));
+                self.head.push_str(&(c::enum_stmt(&stmt.name, &doby) + ";\n"));
             }
             // BODY STATEMENTS //
             cir::StatementKind::Variable {
