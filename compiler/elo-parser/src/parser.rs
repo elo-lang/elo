@@ -135,10 +135,11 @@ impl<'a> Parser<'a> {
                     });
                 }
                 Token::Op('*', None) => {
+                    let mutable = self.test_token(Token::Keyword(Keyword::Mut), false).is_some();
                     let typ = self.parse_type()?;
                     return Ok(Type {
                         span: lexem.span.merge(self.current_span),
-                        typing: Typing::Pointer { typ: Box::new(typ) },
+                        typing: Typing::Pointer { typ: Box::new(typ), mutable },
                     });
                 }
                 Token::Delimiter('{') => {
@@ -944,15 +945,15 @@ impl<'a> Parser<'a> {
                 Keyword::Let => self.parse_let_stmt(),
                 Keyword::If => self.parse_if_stmt(),
                 Keyword::While => self.parse_while_stmt(),
-                Keyword::Else => Err(ParseError {
+                Keyword::True => unreachable!("asked to parse true keyword in statement"),
+                Keyword::False => unreachable!("asked to parse false keyword in statement"),
+                other => Err(ParseError {
                     span: span,
                     case: ParseErrorCase::UnexpectedToken {
-                        got: "else keyword".to_string(),
+                        got: other.to_string(),
                         expected: "valid statement".to_string(),
                     },
                 }),
-                Keyword::True => unreachable!("asked to parse true keyword in statement"),
-                Keyword::False => unreachable!("asked to parse false keyword in statement"),
             };
             return result;
         } else {
