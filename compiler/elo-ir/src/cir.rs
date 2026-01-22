@@ -361,6 +361,7 @@ pub enum Typing {
         types: Vec<Typing>,
     },
     Pointer {
+        mutable: bool,
         typ: Box<Typing>,
     },
     FunctionPointer {
@@ -388,7 +389,7 @@ impl std::fmt::Display for Typing {
                 fmt.push(')');
                 write!(f, "{}", fmt)
             }
-            Typing::Pointer { typ } => write!(f, "*{}", typ),
+            Typing::Pointer { typ, mutable } => write!(f, "*{}{}", if *mutable { "mut " } else { "" }, typ),
             Typing::FunctionPointer { args, ret } => {
                 let mut fmt = String::from("fn");
                 if let Some(ret) = ret.as_ref() {

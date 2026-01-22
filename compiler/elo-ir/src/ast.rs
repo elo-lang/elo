@@ -261,6 +261,7 @@ pub enum Typing {
         types: Vec<Type>,
     },
     Pointer {
+        mutable: bool,
         typ: Box<Type>,
     },
     FunctionPointer {
