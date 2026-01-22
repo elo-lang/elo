@@ -13,8 +13,8 @@ pub struct Namespace {
     pub locals: Vec<Scope>,
 }
 
+#[derive(Debug)]
 pub struct Variable {
-    pub name: String,
     pub mutable: bool,
     pub typing: cir::Typing,
 }
@@ -634,25 +634,67 @@ impl TypeChecker {
         }
     }
 
-    fn typecheck_generic_block(&mut self, block: Vec<ast::Node>, expects_return: Option<&cir::Typing>) -> Result<Vec<cir::Statement>, TypeError> {
+    fn typecheck_block(
+        &mut self,
+        block: Vec<ast::Node>,
+        expects_return: Option<&cir::Typing>
+    ) -> Result<Vec<cir::Statement>, TypeError> {
         let mut blk = Vec::new();
+        // Create a new scope for the function
+        self.namespace.locals.push(HashMap::new());
         for a in Box::new(block).into_iter() {
-            blk.push(self.typecheck_node(a, expects_return)?);
+            match self.typecheck_node(a, expects_return) {
+                Ok(x) => blk.push(x),
+                Err(e) => {
+                    self.namespace.locals.pop();
+                    return Err(e);
+                }
+            }
         }
+        self.namespace.locals.pop();
         Ok(blk)
     }
 
-    fn typecheck_inner_function_block(&mut self, span: Span, block: &Vec<cir::Statement>, is_top_level: bool, function_name: &str, return_type: &cir::Typing) -> Result<(bool, Span), TypeError> {
+    fn typecheck_function_block(
+        &mut self,
+        block: Vec<ast::Node>,
+        return_type: &cir::Typing,
+        function_name: &str,
+        function_arguments: HashMap<String, Variable>,
+    ) -> Result<Vec<cir::Statement>, TypeError> {
+        self.current_function = function_name.to_string();
+        let mut blk = Vec::new();
+
+        // Create a new scope for the function
+        let mut scope = HashMap::new();
+        scope.extend(function_arguments);
+        self.namespace.locals.push(scope);
+
+        for a in Box::new(block).into_iter() {
+            match self.typecheck_node(a, Some(return_type)) {
+                Ok(x) => blk.push(x),
+                Err(e) => {
+                    self.namespace.locals.pop();
+                    return Err(e);
+                }
+            }
+        }
+
+        self.namespace.locals.pop();
+        Ok(blk)
+    }
+
+    fn controlcheck_inner_function_block(&mut self, span: Span, block: &Vec<cir::Statement>, is_top_level: bool, function_name: &str, return_type: &cir::Typing) -> Result<(bool, Span), TypeError> {
         let mut last_span = span;
         for i in block {
             last_span = i.span;
             match &i.kind {
-                cir::StatementKind::ReturnStatement { value, .. } => {
+                cir::StatementKind::ReturnStatement { .. } => {
                     return Ok((true, i.span));
                 }
                 cir::StatementKind::IfStatement { block_true, block_false, .. } => {
-                    let (a, s1) = self.typecheck_inner_function_block(span, block_true, false, function_name, return_type)?;
-                    let (b, s2) = self.typecheck_inner_function_block(span, block_false, false, function_name, return_type)?;
+                    let (a, s1) = self.controlcheck_inner_function_block(span, block_true, false, function_name, return_type)?;
+                    let (b, s2) = self.controlcheck_inner_function_block(span, block_false, false, function_name, return_type)?;
                     if a && b {
                         return Ok((true, s2));
                     }
@@ -672,11 +714,15 @@ impl TypeChecker {
         Ok((false, last_span))
     }
 
-    fn typecheck_function_block(&mut self, span: Span, block: Vec<ast::Node>, function_name: &str, return_type: &cir::Typing) -> Result<Vec<cir::Statement>, TypeError> {
-        self.current_function = function_name.to_string();
-        let blk = self.typecheck_generic_block(block, Some(return_type))?;
-        self.typecheck_inner_function_block(span, &blk, true, function_name, return_type)?;
-        Ok(blk)
+    fn controlcheck_function_block(
+        &mut self,
+        span: Span,
+        block: &Vec<cir::Statement>,
+        function_name: &str,
+        return_type: &cir::Typing,
+    ) -> Result<(), TypeError> {
+        self.controlcheck_inner_function_block(span, block, true, function_name, return_type)?;
+        Ok(())
     }
 
     fn typecheck_node(&mut self, node: ast::Node, expects_return: Option<&cir::Typing>) -> Result<cir::Statement, TypeError> {
@@ -686,10 +732,10 @@ impl TypeChecker {
                 let name = &stmt.binding;
 
                 for i in self.namespace.locals.iter().rev() {
-                    if let Some(var) = i.get(name) {
+                    if i.get(name).is_some() {
                         return Err(TypeError {
                             span: node.span,
-                            case: TypeErrorCase::VariableRedefinition { name: var.name.clone() }
+                            case: TypeErrorCase::VariableRedefinition { name: name.clone() }
                         });
                     }
                 }
@@ -700,7 +746,6 @@ impl TypeChecker {
                 self.namespace.locals.last_mut().unwrap().insert(
                     name.clone(),
                     Variable {
-                        name: name.clone(),
                         mutable: false,
                         typing: typ.clone(),
                     },
@@ -722,10 +767,10 @@ impl TypeChecker {
                 let (expr, typ, _) = self.typecheck_expr(assignment)?;
 
                 for i in self.namespace.locals.iter().rev() {
-                    if let Some(var) = i.get(name) {
+                    if i.get(name).is_some() {
                         return Err(TypeError {
                             span: node.span,
-                            case: TypeErrorCase::VariableRedefinition { name: var.name.clone() }
+                            case: TypeErrorCase::VariableRedefinition { name: name.clone() }
                         });
                     }
                 }
@@ -734,7 +779,6 @@ impl TypeChecker {
                 self.namespace.locals.last_mut().unwrap().insert(
                     name.clone(),
                     Variable {
-                        name: name.clone(),
                         mutable: true,
                         typing: typ.clone(),
                     },
@@ -818,20 +862,17 @@ impl TypeChecker {
                     None => cir::Typing::Void,
                 };
 
-                // Create a new scope for the function
-                self.namespace.locals.push(HashMap::new());
-
                 // Add the arguments to the scope
+                let mut arguments = HashMap::new();
                 for arg in validated_args.iter() {
                     let (name, typing) = arg;
                     let mut mutable = false;
                     if let cir::Typing::Pointer { mutable: true, .. } = typing {
                         mutable = true;
                     }
-                    self.namespace.locals.last_mut().unwrap().insert(
+                    arguments.insert(
                         name.clone(),
                         Variable {
-                            name: name.clone(),
                             mutable,
                             typing: typing.clone(),
                         },
@@ -848,27 +889,13 @@ impl TypeChecker {
                 // Insert the function into the namespace
                 self.namespace.functions.insert(stmt.name.clone(), head.clone());
 
-                let validated_block = self.typecheck_function_block(node.span, stmt.block.content, &stmt.name, &validated_ret_type)?;
-
-                // Add extra return to the end in case of a function that returns void, or it will segfault
-                // NOTE: It would if we were still using llvm, but now with C backend this doesn't matter,
-                //       but it's good to keep it here anyways
-                // if validated_ret_type == cir::Typing::Void {
-                //     validated_block.push(cir::StatementKind::ReturnStatement {
-                //         value: None,
-                //         typing: cir::Typing::Void,
-                //     });
-                // }
-                // Removed this anyway because it would be hard to know the span for this return anyway
-
-                // Pop the scope
-                self.namespace.locals.pop();
+                let validated_block = self.typecheck_function_block(stmt.block.content, &validated_ret_type, &stmt.name, arguments)?;
+                self.controlcheck_function_block(node.span, &validated_block, &stmt.name, &validated_ret_type)?;
 
                 let validated = cir::Function {
                     head: head.clone(),
                     block: validated_block,
                 };
-
 
                 return Ok(cir::Statement {
                     span: node.span,
@@ -944,13 +971,13 @@ impl TypeChecker {
                 }
 
                 self.namespace.locals.push(HashMap::new());
-                let block_true_content = self.typecheck_generic_block(stmt.block_true.content, expects_return)?;
+                let block_true_content = self.typecheck_block(stmt.block_true.content, expects_return)?;
                 self.namespace.locals.pop(); // Pop the true block scope
 
                 self.namespace.locals.push(HashMap::new());
                 let mut block_false_content = vec![];
                 if let Some(block_false) = stmt.block_false {
-                    block_false_content = self.typecheck_generic_block(block_false.content, expects_return)?;
+                    block_false_content = self.typecheck_block(block_false.content, expects_return)?;
                 }
                 self.namespace.locals.pop(); // Pop the false block scope
 
@@ -978,7 +1005,7 @@ impl TypeChecker {
                     });
                 }
                 self.namespace.locals.push(HashMap::new());
-                let block = self.typecheck_generic_block(stmt.block.content, expects_return)?;
+                let block = self.typecheck_block(stmt.block.content, expects_return)?;
                 self.namespace.locals.pop();
                 return Ok(
                     cir::Statement {
