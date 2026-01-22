@@ -87,7 +87,12 @@ impl<'a> Parser<'a> {
             Some(Lexem {
                 token: Token::Newline,
                 ..
-            }) => return self.expect_numeric(),
+            }) => {
+                while let Some(Lexem { token: Token::Newline, .. }) = self.lexer.peek() {
+                    self.next();
+                }
+                return self.expect_numeric()
+            }
             Some(Lexem { token: other, span }) => Err(ParseError {
                 span: span,
                 case: ParseErrorCase::UnexpectedToken {
@@ -108,7 +113,12 @@ impl<'a> Parser<'a> {
     fn parse_type(&mut self) -> Result<Type, ParseError> {
         if let Some(lexem) = self.next() {
             match lexem.token {
-                Token::Newline => return self.parse_type(),
+                Token::Newline => {
+                    while let Some(Lexem { token: Token::Newline, .. }) = self.lexer.peek() {
+                        self.next();
+                    }
+                    return self.parse_type()
+                }
                 Token::Identifier(x) => {
                     if let Some(Lexem {
                         token: Token::Op('<', None),
@@ -393,7 +403,9 @@ impl<'a> Parser<'a> {
                 token: Token::Newline,
                 ..
             }) if lazy => {
-                self.next();
+                while let Some(Lexem { token: Token::Newline, .. }) = self.lexer.peek() {
+                    self.next();
+                }
                 self.test_token(expect, lazy)
             }
             _ => None,
@@ -413,7 +425,9 @@ impl<'a> Parser<'a> {
                 token: Token::Newline,
                 ..
             }) if lazy => {
-                self.next();
+                while let Some(Lexem { token: Token::Newline, .. }) = self.lexer.peek() {
+                    self.next();
+                }
                 self.test_integer(lazy)
             }
             _ => None,
@@ -427,7 +441,12 @@ impl<'a> Parser<'a> {
             Some(Lexem {
                 token: Token::Newline,
                 ..
-            }) => return self.expect_token(expect),
+            }) => {
+                while let Some(Lexem { token: Token::Newline, .. }) = self.lexer.peek() {
+                    self.next();
+                }
+                return self.expect_token(expect)
+            }
             Some(lexem) => {
                 let token = lexem.token;
                 if token == expect {
@@ -466,7 +485,9 @@ impl<'a> Parser<'a> {
                 token: Token::Newline,
                 ..
             }) => {
-                self.next();
+                while let Some(Lexem { token: Token::Newline, .. }) = self.lexer.peek() {
+                    self.next();
+                }
                 return self.expect_identifier();
             }
             Some(Lexem { token: other, span }) => Err(ParseError {
@@ -529,7 +550,9 @@ impl<'a> Parser<'a> {
         if let Some(lexem) = self.lexer.peek() {
             match &lexem.token {
                 Token::Newline => {
-                    self.next();
+                    while let Some(Lexem { token: Token::Newline, .. }) = self.lexer.peek() {
+                        self.next();
+                    }
                     return self.parse_primary(struct_allowed);
                 }
                 Token::Integer(..) | Token::Float(..) => return Ok(self.parse_number()?),
@@ -979,7 +1002,9 @@ impl<'a> Parser<'a> {
         if let Some(lexem) = self.lexer.peek() {
             x = Some(match lexem.token {
                 Token::Newline => {
-                    self.next();
+                    while let Some(Lexem { token: Token::Newline, .. }) = self.lexer.peek() {
+                        self.next();
+                    }
                     return self.parse_node(inside_block);
                 }
                 // Account for trailing } when terminating block
