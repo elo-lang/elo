@@ -181,6 +181,8 @@ impl SemanticChecker {
                 name: name.to_string(),
             },
         })?;
+        let extrn = function.extrn;
+
         let return_type = function.ret.clone();
         let passed_length = arguments.len();
         let expected_len = function.arguments.len();
@@ -221,6 +223,7 @@ impl SemanticChecker {
             checked_arguments.push(checked);
         }
 
+
         // get the remaining extra arguments if the fn is variadic
         for extra in arguments.iter().skip(expected_len) {
             // remaining if the function is variadic
@@ -234,6 +237,7 @@ impl SemanticChecker {
                 data: cir::ExpressionData::FunctionCall {
                     function: name.to_string(),
                     arguments: checked_arguments,
+                    extrn
                 }
             },
             return_type,
@@ -885,6 +889,7 @@ impl SemanticChecker {
                     arguments: validated_args,
                     variadic: false, // In this case, variadic is ALWAYS false
                                      // Because Elo is not meant to support variadic functions at all.
+                    extrn: false     // The same for extrn which is meant to flag if this function should be mangled
                 };
                 // Insert the function into the namespace
                 self.namespace.functions.insert(stmt.name.clone(), head.clone());
@@ -914,20 +919,16 @@ impl SemanticChecker {
                 };
                 let head = cir::FunctionHead {
                     name: stmt.name.clone(),
-                    ret: validated_ret_type.clone(),
-                    arguments: validated_args.clone(),
+                    ret: validated_ret_type,
+                    arguments: validated_args,
                     variadic: stmt.variadic,
+                    extrn: true,
                 };
-                self.namespace.functions.insert(stmt.name.clone(), head);
+                self.namespace.functions.insert(stmt.name.clone(), head.clone());
                 return Ok(
                     cir::Statement {
                         span: node.span,
-                        kind: cir::StatementKind::ExternFnStatement(cir::FunctionHead {
-                            name: stmt.name,
-                            ret: validated_ret_type,
-                            arguments: validated_args,
-                            variadic: stmt.variadic,
-                        })
+                        kind: cir::StatementKind::ExternFnStatement(head)
                     }
                 );
             }
