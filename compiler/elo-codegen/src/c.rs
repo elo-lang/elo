@@ -1,5 +1,3 @@
-const NL: &'static str = "\n";
-
 pub enum Binop {
     Add,
     Sub,
@@ -68,11 +66,11 @@ pub fn list(arguments: &[String]) -> String {
     s
 }
 
-pub fn binop(lhs: &str, rhs: &str, op: Binop) -> String {
+pub fn binop_expr(lhs: &str, rhs: &str, op: Binop) -> String {
     return format!("({}) {} ({})", lhs, op, rhs);
 }
 
-pub fn unop(lhs: &str, op: Unop) -> String {
+pub fn unop_expr(lhs: &str, op: Unop) -> String {
     return format!("{}({})", op, lhs);
 }
 
@@ -82,88 +80,6 @@ pub fn member_expr(origin: &str, member: &str) -> String {
 
 pub fn array_expr(typ: &str, items: &str) -> String {
     return format!("({typ}[]){{{items}}}");
-}
-
-
-pub fn function_call_expr(name: &str, arguments: &str) -> String {
-    return format!("{name}({arguments})");
-}
-
-pub fn statement(core: &str) -> String {
-    return format!("{core};{NL}");
-}
-
-pub fn statement_list(statements: &[String]) -> String {
-    let mut s = String::new();
-    for x in statements {
-        s.push_str(x);
-        s.push_str(&format!(";{NL}"));
-    }
-    s
-}
-
-pub fn function_stmt(
-    r#return: &str,
-    name: &str,
-    arguments: &str,
-    varargs: bool,
-    body: &str,
-) -> String {
-    return format!(
-        "{return} {name}({arguments}{}){{\n{body}}}",
-        if varargs { ",..." } else { "" }
-    );
-}
-
-
-pub fn function_decl(
-    r#return: &str,
-    name: &str,
-    arguments: &str,
-    varargs: bool,
-) -> String {
-    return format!(
-        "{return} {name}({arguments}{})",
-        if varargs { ",..." } else { "" }
-    );
-}
-
-pub fn if_stmt(condition: &str, r#true: &str, r#false: Option<String>) -> String {
-    return format!(
-        "if({condition})\n{{{true}}}{}",
-        if let Some(r#false) = r#false {
-            format!("else\n{{{false}}}")
-        } else {
-            String::new()
-        }
-    );
-}
-
-pub fn while_stmt(condition: &str, block: &str) -> String {
-    return format!("while({condition})\n{{{block}}}");
-}
-
-pub fn variable_stmt(r#type: &str, name: &str, value: &str) -> String {
-    return format!("{type} {name} = {value}");
-}
-
-pub fn return_stmt(value: Option<String>) -> String {
-    return format!(
-        "return{}",
-        if let Some(value) = value {
-            format!(" {value}")
-        } else {
-            String::new()
-        }
-    );
-}
-
-pub fn enum_stmt(name: &str, body: &str) -> String {
-    return format!("enum {name} {{ {body} }}");
-}
-
-pub fn struct_stmt(name: &str, body: &str) -> String {
-    return format!("struct {name} {{ {body} }}");
 }
 
 pub fn struct_expr(name: &str, fields: &[(String, String)]) -> String {
@@ -182,4 +98,83 @@ pub fn struct_expr_ordered(name: &str, fields: &[String]) -> String {
     }
     xs.push('}');
     xs
+}
+
+pub fn function_call_expr(name: &str, arguments: &str) -> String {
+    return format!("{name}({arguments})");
+}
+
+pub fn statement_list(statements: &[String]) -> String {
+    let mut s = String::new();
+    for x in statements {
+        s.push_str(x);
+    }
+    s
+}
+
+pub fn function_stmt(
+    r#return: &str,
+    name: &str,
+    arguments: &str,
+    varargs: bool,
+    body: &str,
+) -> String {
+    return format!(
+        "{return} {name}({arguments}{}){{\n{body}}};\n",
+        if varargs { ",..." } else { "" }
+    );
+}
+
+pub fn function_decl_stmt(
+    r#return: &str,
+    name: &str,
+    arguments: &str,
+    varargs: bool,
+) -> String {
+    return format!(
+        "{return} {name}({arguments}{});\n",
+        if varargs { ",..." } else { "" }
+    );
+}
+
+pub fn if_stmt(condition: &str, r#true: &str, r#false: Option<String>) -> String {
+    return format!(
+        "if({condition})\n{{{true}}}{};\n",
+        if let Some(r#false) = r#false {
+            format!("else\n{{{false}}}")
+        } else {
+            String::new()
+        }
+    );
+}
+
+pub fn while_stmt(condition: &str, block: &str) -> String {
+    return format!("while({condition})\n{{{block}}};\n");
+}
+
+pub fn variable_stmt(r#type: &str, name: &str, value: &str) -> String {
+    return format!("{type} {name} = {value};\n");
+}
+
+pub fn return_stmt(value: Option<String>) -> String {
+    return format!(
+        "return{};\n",
+        if let Some(value) = value {
+            format!(" {value}")
+        } else {
+            String::new()
+        }
+    );
+}
+
+pub fn enum_stmt(name: &str, body: &str) -> String {
+    return format!("enum {name} {{ {body} }};\n");
+}
+
+pub fn struct_stmt(name: &str, body: &str) -> String {
+    return format!("struct {name} {{ {body} }};\n");
+}
+
+pub fn expr_stmt(expr: &str) -> String {
+    return format!("{expr};\n")
 }
