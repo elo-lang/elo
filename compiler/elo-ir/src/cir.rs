@@ -175,6 +175,7 @@ pub enum ExpressionData {
     FunctionCall {
         function: String,
         arguments: Vec<Expression>,
+        extrn: bool,
     },
     StructInit {
         origin: Struct,
@@ -207,7 +208,7 @@ impl std::fmt::Display for ExpressionData {
             ExpressionData::ArrayLiteral { exprs, .. } => write!(f, "{{{}{}}}", exprs[0], if exprs.len() > 1 { "..." } else { "" }),
             ExpressionData::FieldAccess { origin, field } => write!(f, "{}.{}", origin, field),
             ExpressionData::TupleAccess { origin, field } => write!(f, "{}.{}", origin, field),
-            ExpressionData::FunctionCall { function, arguments } => {
+            ExpressionData::FunctionCall { function, arguments, extrn: _ } => {
                 let mut fmt = String::from(&format!("{function}("));
                 if arguments.len() == 1 {
                     fmt.push_str(&format!("{}", arguments[0]))
@@ -264,6 +265,7 @@ pub struct FunctionHead {
     pub ret: Typing,
     pub arguments: Vec<TypedField>,
     pub variadic: bool,
+    pub extrn: bool,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
