@@ -164,6 +164,10 @@ pub enum ExpressionData {
         exprs: Vec<Expression>,
         typ: Typing,
     },
+    ArraySubscript {
+        origin: Box<Expression>,
+        index: Box<Expression>,
+    },
     FieldAccess {
         origin: Box<Expression>,
         field: String,
@@ -205,6 +209,7 @@ impl std::fmt::Display for ExpressionData {
             ExpressionData::BinaryOperation { operator, left, right } => write!(f, "{left} {operator} {right}"),
             ExpressionData::UnaryOperation { operator, operand } => write!(f, "{operator}{operand}"),
             ExpressionData::StringLiteral { value } => write!(f, "\"{value}\""),
+            ExpressionData::ArraySubscript { origin, index } => write!(f, "\"{origin}[{index}]\""),
             ExpressionData::ArrayLiteral { exprs, .. } => write!(f, "{{{}{}}}", exprs[0], if exprs.len() > 1 { "..." } else { "" }),
             ExpressionData::FieldAccess { origin, field } => write!(f, "{}.{}", origin, field),
             ExpressionData::TupleAccess { origin, field } => write!(f, "{}.{}", origin, field),
