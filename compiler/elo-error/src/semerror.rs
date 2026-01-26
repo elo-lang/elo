@@ -48,6 +48,10 @@ pub enum SemanticErrorCase {
         got: String,
         expected: String,
     },
+    IndexNonIndexable {
+        thing: String,
+        got: String,
+    },
     NonAggregateMemberAccess {
         typ: String,
         member: String,
@@ -66,6 +70,15 @@ pub struct SemanticError {
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
+        SemanticErrorCase::IndexNonIndexable { thing, got } => {
+            error(
+                "Type Check Error",
+                &format!("attempt to index {thing}, of type {got}, but it is not indexable"),
+                filespan,
+                None,
+                Some(&format!("type {got} cannot be used with subscript syntax")),
+            );
+        }
         SemanticErrorCase::VariableRedefinition { name } => {
             error(
                 "Type Check Error",
