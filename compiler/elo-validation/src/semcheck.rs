@@ -455,6 +455,40 @@ impl SemanticChecker {
                     })
                 }
             }
+            ast::ExpressionData::Subscript { origin, inner } => {
+                let (origin, origin_type, origin_id) = self.typecheck_expr(origin)?;
+                let (inner, inner_type, _) = self.typecheck_expr(inner)?;
+                if let cir::Typing::Array { typ, .. } = origin_type {
+                    if inner_type != cir::Typing::Primitive(cir::Primitive::Int) {
+                        return Err(SemanticError {
+                            span: inner.span,
+                            case: SemanticErrorCase::TypeMismatch {
+                                got: format!("{}", inner_type),
+                                expected: format!("integer type")
+                            }
+                        })
+                    }
+                    return Ok((
+                        cir::Expression {
+                            span: expr.span,
+                            data: cir::ExpressionData::ArraySubscript {
+                                origin: Box::new(origin),
+                                index: Box::new(inner)
+                            }
+                        },
+                        *typ,
+                        origin_id
+                    ))
+                } else {
+                    return Err(SemanticError {
+                        span: origin.span,
+                        case: SemanticErrorCase::IndexNonIndexable {
+                            thing: format!("{origin}"),
+                            got: format!("{origin_type}"),
+                        }
+                    })
+                }
+            }
             ast::ExpressionData::FieldAccess { origin, field } => {
                 let (expression, typing, id) = self.typecheck_expr(origin)?;
                 if let ExpressionIdentity::Locatable(..) = id {
