@@ -751,6 +751,18 @@ impl<'a> Parser<'a> {
                 };
                 continue;
             }
+            if let Some(_) = self.test_token(Token::Delimiter('['), false) {
+                let inner = self.parse_expr(1, true)?;
+                self.expect_token(Token::Delimiter(']'))?;
+                left = Expression {
+                    span: left.span.merge(self.current_span),
+                    data: ExpressionData::Subscript {
+                        origin: Box::new(left),
+                        inner: Box::new(inner),
+                    },
+                };
+                continue;
+            }
 
             if limit > next_limit {
                 break;
