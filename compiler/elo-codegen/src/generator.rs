@@ -183,6 +183,11 @@ impl Generator {
                 let field = &format!("t{field}");
                 return c::member_expr(&self.generate_expression(origin), field);
             },
+            cir::ExpressionData::ArraySubscript { origin, index } => {
+                let origin = self.generate_expression(origin);
+                let index = self.generate_expression(index);
+                return c::subscript_expr(&origin, &index);
+            }
             cir::ExpressionData::FieldAccess { origin, field } => {
                 let lhs = self.generate_expression(origin);
                 let rhs = field.clone();

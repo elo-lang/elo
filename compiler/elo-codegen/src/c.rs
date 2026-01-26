@@ -78,6 +78,10 @@ pub fn member_expr(origin: &str, member: &str) -> String {
     return format!("({origin}).{member}");
 }
 
+pub fn subscript_expr(origin: &str, index: &str) -> String {
+    return format!("({origin})[{index}]")
+}
+
 pub fn array_expr(typ: &str, items: &str) -> String {
     return format!("({typ}[]){{{items}}}");
 }
