@@ -128,6 +128,10 @@ pub enum ExpressionData {
     CharacterLiteral {
         value: char,
     },
+    Subscript {
+        origin: Box<Expression>,
+        inner: Box<Expression>,
+    },
     FieldAccess {
         origin: Box<Expression>,
         field: String,
