@@ -535,9 +535,9 @@ impl SemanticChecker {
                     _ => {
                         return Err(SemanticError {
                             span: origin.span,
-                            case: SemanticErrorCase::NonAggregateMemberAccess {
+                            case: SemanticErrorCase::NonAggregateFieldAccess {
                                 typ: format!("{}", typing),
-                                member: field.clone(),
+                                field: field.clone(),
                             },
                         });
                     }

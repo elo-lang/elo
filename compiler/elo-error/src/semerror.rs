@@ -52,9 +52,9 @@ pub enum SemanticErrorCase {
         thing: String,
         got: String,
     },
-    NonAggregateMemberAccess {
+    NonAggregateFieldAccess {
         typ: String,
-        member: String,
+        field: String,
     },
     VariableRedefinition {
         name: String,
@@ -215,11 +215,11 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        SemanticErrorCase::NonAggregateMemberAccess { typ, member } => {
+        SemanticErrorCase::NonAggregateFieldAccess { typ, field } => {
             error(
                 "Type Check Error",
                 &format!(
-                    "non aggregate member access: attempt to access member {member} from non-aggregate type {typ}"
+                    "non aggregate member access: attempt to access field {field} from non-aggregate type {typ}"
                 ),
                 filespan,
                 None,
