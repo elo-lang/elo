@@ -427,10 +427,10 @@ impl SemanticChecker {
                     if *field >= types.len() {
                         return Err(SemanticError {
                             span: expr.span,
-                            case: SemanticErrorCase::InvalidTupleIndex {
-                                tried_to: *field,
+                            case: SemanticErrorCase::InvalidTupleMember {
+                                member: *field,
                                 tuple: format!("{}", &typ),
-                                items_count: types.len(),
+                                member_count: types.len(),
                             }
                         });
                     }

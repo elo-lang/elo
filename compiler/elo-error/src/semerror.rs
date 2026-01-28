@@ -8,10 +8,10 @@ pub enum SemanticErrorCase {
         got: String,
         expected: String,
     },
-    InvalidTupleIndex {
-        tried_to: usize,
+    InvalidTupleMember {
+        member: usize,
         tuple: String,
-        items_count: usize,
+        member_count: usize,
     },
     InvalidType {
         what: String,
@@ -92,13 +92,13 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
                 None,
             );
         }
-        SemanticErrorCase::InvalidTupleIndex { tried_to, tuple, items_count } => {
+        SemanticErrorCase::InvalidTupleMember { member, tuple, member_count } => {
             error(
                 "Type Check Error",
-                &format!("attempt to acess tuple index {tried_to} on {tuple}"),
+                &format!("attempt to acess tuple member {member} on {tuple}"),
                 filespan,
                 None,
-                Some(&format!("this tuple only contains {items_count} item(s) but used index {tried_to}")),
+                Some(&format!("this tuple only contains only {member_count} member(s) but used {member}")),
             );
         }
         SemanticErrorCase::MisplacedReturn => {
