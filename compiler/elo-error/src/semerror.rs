@@ -56,6 +56,10 @@ pub enum SemanticErrorCase {
         typ: String,
         field: String,
     },
+    NonTupleMemberAccess {
+        thing: String,
+        typ: String,
+    },
     VariableRedefinition {
         name: String,
     },
@@ -213,6 +217,17 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
                 filespan,
                 None,
                 None,
+            );
+        }
+        SemanticErrorCase::NonTupleMemberAccess { thing, typ } => {
+            error(
+                "Type Check Error",
+                &format!(
+                    "attempt to access member from non-tuple value {thing}"
+                ),
+                filespan,
+                None,
+                Some(&format!("expected a tuple here, but got {typ}")),
             );
         }
         SemanticErrorCase::NonAggregateFieldAccess { typ, field } => {
