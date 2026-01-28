@@ -447,10 +447,10 @@ impl SemanticChecker {
                     ));
                 } else {
                     return Err(SemanticError {
-                        span: expr.span,
-                        case: SemanticErrorCase::TypeMismatch {
-                            got: format!("{}", typ),
-                            expected: format!("tuple")
+                        span: tuple.span,
+                        case: SemanticErrorCase::NonTupleMemberAccess {
+                            thing: format!("{}", tuple),
+                            typ: format!("{}", typ)
                         }
                     })
                 }
