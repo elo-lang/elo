@@ -32,7 +32,7 @@ pub enum SemanticErrorCase {
         expected: usize,
         too_much: bool,
     },
-    UnresolvedMember {
+    UnresolvedField {
         name: String,
         from: String,
     },
