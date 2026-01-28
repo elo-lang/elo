@@ -206,10 +206,10 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
                 );
             }
         }
-        SemanticErrorCase::UnresolvedMember { name, from } => {
+        SemanticErrorCase::UnresolvedField { name, from } => {
             error(
                 "Type Check Error",
-                &format!("unresolved member: {from} has no field named '{name}'"),
+                &format!("{from} has no field named '{name}'"),
                 filespan,
                 None,
                 None,
@@ -219,11 +219,11 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
             error(
                 "Type Check Error",
                 &format!(
-                    "non aggregate member access: attempt to access field {field} from non-aggregate type {typ}"
+                    "attempt to access field {field} from non-aggregate type {typ}"
                 ),
                 filespan,
                 None,
-                Some(&format!("you can't get members from {typ}")),
+                Some(&format!("you can't get fields from {typ}")),
             );
         }
     }

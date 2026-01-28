@@ -514,7 +514,7 @@ impl SemanticChecker {
                         if let None = typ {
                             return Err(SemanticError {
                                 span: expr.span,
-                                case: SemanticErrorCase::UnresolvedMember {
+                                case: SemanticErrorCase::UnresolvedField {
                                     name: format!("{field}"),
                                     from: format!("struct {}", st.name),
                                 },
@@ -571,7 +571,7 @@ impl SemanticChecker {
                     let expected_typing =
                         strukt.fields.get(&field.name).ok_or_else(|| SemanticError {
                             span: span,
-                            case: SemanticErrorCase::UnresolvedMember {
+                            case: SemanticErrorCase::UnresolvedField {
                                 name: format!("{}", &field.name),
                                 from: format!("struct {}", &strukt.name),
                             },
