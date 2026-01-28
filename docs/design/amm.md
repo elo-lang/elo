@@ -1,38 +1,101 @@
 ## Elo's memory management
 
-Elo provides **manual memory management** with **compiler-assisted safety**.
-The goal is to give programmers full control over dynamic memory while
-preventing common mistakes like leaks, double-frees, and
-use-after-free — all without introducing complex logic or implicit deallocation.
+### Introduction
+In this language, we are introducing a new memory management system called
+AMM as an attempt to minimize the DX harms that the Ownership model from Rust
+and the new programming language
+[Dada](https://dada-lang.org) (which are one of the inspirations for Elo, see the [Introduction](./introduction.md)).
+
+AMM stands for Assisted Memory Management.
+
+Basically, AMM is manual memory management. But the compiler assists you
+to not commit any harmful mistakes.
+
+The compiler keeps track of all the dynamic memory you allocate in the code
+and enforces you to get rid of its allocation at some point.
+
+### Problems
+But this system comes with a cost, since the compiler should know what is dynamic memory
+so it keeps track of it properly, that means the language itself should contain
+the necessary information about if the value you're creating is dynamically allocated
+or static (stack-allocated).
+
+In contrast, Ownership model is more generic. Every value contains an ownership
+that is passed or borrowed. Then finally deleted at the end of its scope. And can only be
+fully shallow-copied with an implementation of `Clone` and `Copy` in case of Rust.
+This way it's very simple to know which values are borrowed or moved where since
+the rule is applied to every type and with these special `trait`s that allow
+full cheap copy or not.
+
+This is why Rust nor Dada needs information about if that value
+has ownership or not. The compiler determines that all values have ownership
+and what makes them copiable is just a `trait`.
+
+Clearly, this system is not intuitive in a lot of ways for being too generic and
+restricting how the program's logic should flow to ensure the ownership is not
+violated. Even in the most stupid and nonsensical cases.
+
+Dada tried to solve this trying to make these rules less rigid and changing
+how the ownership is passed to be clearer for the user to understand what is
+happening. For example:
+- In Rust, move is done by default when passed by value
+- In Dada, move is only done with a specific operator.
+  Otherwise, it's always shallow copy.
+
+Dada got really close with these solutions to ownership, but there are still
+some flaws and it seems like this part of Dada's compiler is not even implemented
+yet...
+
+### How we try to solve them
+Anyways, the way we figured out (for now) how the AMM system would work reasonably
+better in terms of DX than Ownership was making this "flag" for dynamic
+memory the types themselves, as part of the language's syntax.
+The language comes with types like `Vec`, `String`, or even `HashMap`
+as part of its core type system, not as an external structure implemented
+somewhere else.
+
+This is similar to scripting languages like Lua or JavaScript that have similar
+types like `table` or `Object` in the same "primitive type" scope as
+integers, floats, or strings so the garbage collector is able
+to track them properly.
+
+If this was implemented in C, we would have to track what pointers are pointing
+to Heap and where they came from so the compiler knows you need to call `free()`
+to this pointer. To do that we would have to mark `malloc` and all other functions
+that return a pointer to heap as "special" with a magical check by the compiler,
+which clearly is very inconsistent and counter-intuitive.  
+
+The `free()` is also another problem. Just like `malloc`, we can't just make `free` a special function
+that the compiler considers as a deallocator for the dynamic memory or that would
+destroy the consistency of a normal function call.
+
+To the `free` problem, we propose a new keyword/statement that has a specific behavior.
+We called this `drop`, just like Rust. 
+
+So, in a nutshell, the types like dynamic arrays, string builders or dynamic hashmaps are
+just like normal types like `int`, `i32`, `size_t`, `double` etc. But they are tracked by the
+compiler so you use this specific statement with the `drop` keyword so you ensure the
+dynamic memory allocated for that type is deallocated.
 
 ### Core Principles
+Now that you understand what this system is about and what it is trying to solve. Let's go through the details
+of how this system is going to work.
 
-- **Manual deallocation**:
-  All dynamic memory must be explicitly freed by the programmer.
+AMM is basically RAII, but with manual lifetime control.
 
-- **Heap is constructed, not allocated**:
-  Heap memory is created automatically when a value of a dynamic
-  type is instantiated. There is no `malloc()` in Elo.
+As described earlier, this is possible because you are limited to built-in dynamic types
+that are tracked by the compiler all the time. You can't create custom dynamic types
+without using the built-in ones. This way the compiler always knows about all the
+dynamic allocation in the program.
 
-- **No implicit dynamic deallocations**:
-  The compiler never inserts automatic deallocation. Every "free" is explicit.
-
-- **Safety enforcement**:
-  The compiler tracks heap allocations and their aliases,
-  issuing errors if misuse is detected.
-
-This is possible because you are limited to built-in dynamic types that are tracked by the compiler all the time.
-You can't create custom dynamic types without using the built-in ones. This way the compiler always knows
-about all the dynamic allocation in the program.
-
-### Dynamic Types & Heap construction
+### Dynamic Types and Initialization
 As mentioned before, you are limited to a list of useful dynamic types that come with the language:
 
-|Name|Type syntax|Construction syntax (example)|
-|---|---|---|
-|Dynamic Array|`[T]`|`[a, b, c, ...]`|
-|Dynamic Hashmap|`[K:V]`|`[k: v, k: v, ...]`|
-|Dynamic String|`string`|`"lorem ipsum"` *|
+|Name|Type syntax|Initialization syntax (example)|Description|
+|---|---|---|---|
+|List|`[T]`|`[a, b, c, ...]`|Growable array|
+|Map|`[K:V]`|`[k: v, k: v, ...]`|Growable dynamic hash-map|
+|String|`string`|`"lorem ipsum"` *|String builder|
 
 > \* Do not confuse the double quotes (`"`) and the single quotes (`'`). In Elo, double quoted string means a dynamic string and single quoted strings mean static strings.
 
@@ -41,12 +104,12 @@ When you construct any dynamic type, for example:
 let x = [1, 2, 3]
 ```
 
-What is happening is a heap allocation for the dynamic array (or other dynamic type) you're creating.
+What is happening is an allocation for the list (or other dynamic type) you're creating.
 
 If you just instantiate this array and do nothing else. The compiler should raise an error telling you something like this:
 ```
-dynamic instance 'x' is never dropped.
-please deallocate the memory using `drop` keyword.
+list 'x' is never dropped.
+please drop 'x' using `drop` statement.
 ```
 
 Then, to make the code compile (with the _safecheck_ enabled), you must 'drop' the dynamic array:
@@ -58,17 +121,23 @@ drop x;
 But if, after you used `drop`, you try to refer to that same variable:
 ```
 let x = [1, 2, 3]
-drop x;
-print(x) # possible dangling pointer
+drop x; // error: x is used after drop
+print(x) // possible dangling pointer
 ```
 
 the compiler should raise another error telling you something like this:
 ```
-dynamic instance 'x' referenced after being dropped.
+dynamic instance 'x' used after being dropped.
 please modify instance's lifetime (delay the `drop`).
 ```
 
-This is the main concept around AMM.
+If you want to guarantee this dynamic instance is dropped at the exit of the scope,
+use the `defer` keyword with the drop statement:
+
+```
+let list = [1, 2, 3]; // initialization
+defer drop list; // delays the deallocation to the scope's exit
+```
 
 ### Main Rules
 
@@ -78,7 +147,7 @@ This is the main concept around AMM.
 
 1. 'Dropping' a dynamic instance for the second time is not allowed.
 
-1. Composite types containing fields with dynamic types are themselves dynamic types as well.
+1. Aggregate types containing fields with dynamic types are themselves dynamic types as well.
     ```
     struct Person { name: string, age: int }
     //                    ^^^^^^ dynamic type
@@ -86,14 +155,15 @@ This is the main concept around AMM.
     let p = Person { name: "John", age: 30 }  // Person is a dynamic type
     ```
 
-1. Any reference or direct copy creates a shallow alias; all copies refer to the same underlying allocation. ([**shallow copy**](https://en.wikipedia.org/wiki/Object_copying#Shallow_copy))
+1. Any pointer to or direct assignment to a dynamic type makes a shallow copy;
+   all copies refer to the same underlying allocation. ([**shallow copy**](https://en.wikipedia.org/wiki/Object_copying#Shallow_copy))
 
-1. Dropping aliases to dynamic instance is not allowed, but dropping the original object invalidates all aliases:
+1. Dropping aliases to dynamic instance is not allowed, but dropping the original object must guarantee their references are never used after that:
     ```
     let a = "foo"
     let b = a
-    drop a       // invalidates both a and b
-    print(b)     // error
+    drop a       // error, b is used after this drop
+    print(b)     // here
     ```
 
 1. Pointers to dynamic instances are allowed:
@@ -110,15 +180,13 @@ This is the main concept around AMM.
     }
     ```
 
-1. Pointers to dynamic types aren't considered dynamic types themselves. That's why they can't be dropped even when dereferenced.
+1. Pointers to dynamic types do not own the original memory. That's why they can't be dropped even when dereferenced.
 
 1. When dereferencing pointers to dynamic instances, the operation returns a **shallow copy** of the original instance.
 
-### Drop permission
-
-Elo introduces an analogue to the **ownership** model. But instead of ownership of the object itself, it's the ownership of the raw memory allocation.
-
-Owning a dynamic object in Elo means you have **drop permission**, that means you are able to use the `drop` keyword on it (deallocate the underlying heap memory).
+### Permission
+Owning a dynamic object in Elo means you have **permission**, that means the
+compiler is going to check if the owner scope handles the dynamic object until the end of it.
 
 Before anything else, let's undestand the possible states of a dynamic instance in Elo:
 - **Valid**: Normal dynamic value, can be used and abused.
@@ -134,67 +202,17 @@ To turn that **valid** instance into an **invalid** instance, it's very easy as 
 drop valid; // from now on, `valid` is invalid.
 ```
 
-Now that you understand the basics of the possible states, let's introduce a new state for the **drop permission transfer**:
+Now that you understand the basics of the possible states, let's introduce a new state for the **permission transfer**:
 
-- **Escaped**: Dynamic instance that got its drop permission transferred somewhere else.
+- **Escaped**: Dynamic instance that got its permission transferred somewhere else.
 
-Now, to transfer the drop permission to another reference (escape a variable), you use **functions**.
-
-To get a variable's permission to get transferred into another variable, use the function arguments with the `!` syntax:
-```
-fn transfer_into_param(!param: [int]) {
-    print(param);
-    drop param;
-}
-
-fn main() {
-    let x = [1, 2, 3];
-    // Here I lose the drop permision to the original 'x'
-    transfer_into_param(x);
-    // And transfer it to the 'param' parameter inside the function.
-}
-```
-
-After a permission transfer into a function, you don't need to 'care' about the variable anymore. The function is now in charge of handling it.
-
-Following the normal AMM rules, inside the function you must deallocate it at some point of the execution of the function or you will potentially cause a memory leak.
-
-But instead of 'dropping' the transferred variable you can escape it again into another function as well:
-
-```
-fn transfer_into_param2(!param: [int]) {
-    print(param);
-    drop param;
-}
-
-fn transfer_into_param(!param: [int]) {
-    transfer_into_param2(param);
-    // now I don't need to do "drop" here anymore
-}
-
-fn main() {
-    let x = [1, 2, 3];
-    transfer_into_param(x);
-    // Here i still don't care anymore, permission was transferred.
-}
-```
-
-Since at some point after the transfer the `drop` must happen, it's safe to assume that after the function call to `transfer_into_param`, the variable x is not valid anymore:
-
-```
-fn main() {
-    let x = [1, 2, 3];
-    transfer_into_param(x);
-    print(x) // error: at this point, 'x' must be dropped
-}
-```
+Now, to transfer the drop permission to another reference (escape a variable), you use the **return** statement.
 
 To transfer an object created inside a function to its outer context, you just return it:
 ```
-
 fn get_array(): [int] {
     let a = [1, 2, 3]; // for now, 'a' owns the memory.
-    ret a;
+    return a;
     // after the return, 'a' gets its drop permission transferred to the caller
 }
 
@@ -202,6 +220,37 @@ fn main() {
     let x = get_array();
     print(x)
     // must do the `drop` now because permission was transferred upward toward main function ('x' variable)
+    drop x;
+}
+```
+
+Permission transfer only happens by extending the dynamic object's lifetime.
+This is why you cannot transfer permission **into** something, or that would
+cause its lifetime to implicitly get shorter, which may cause confusion in most cases.
+
+Following the normal AMM rules, outside the function you must deallocate it at
+some point of the owner scope or the compilation will not succeed.
+
+But instead of 'dropping' the transferred variable you can escape it again:
+
+```
+fn get_array(): [int] {
+    let a = [1, 2, 3]; // for now, 'a' owns the memory.
+    return a;
+    // after the return, 'a' gets its drop permission transferred to get_array2
+}
+
+fn get_array2(): [int] {
+    let a = get_array(); // the original array gets transferred to this scope
+    return a;
+    // after the return, the original gets its drop permission transferred again,
+    // but now to main
+}
+
+
+fn main() {
+    let x = get_array();
+    // Must handle it somehow
     drop x;
 }
 ```
