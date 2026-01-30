@@ -95,6 +95,34 @@ macro_rules! identifier {
     };
 }
 
+fn unescape(value: &str) -> String {
+    let mut s = String::new();
+    let mut escape = false;
+    for c in value.chars() {
+        if c == '\\' {
+            escape = true;
+            continue;
+        }
+        if escape {
+            s.push(match c {
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                'v' => '\x0B',
+                'f' => '\x0C',
+                '\\' => '\\',
+                '\'' => '\'',
+                '"' => '\"',
+                other => other
+            });
+            escape = false;
+        } else {
+            s.push(c)
+        }
+    }
+    s
+}
+
 impl<'a> Lexer<'a> {
     pub fn new(input_file: InputFile<'a>) -> Lexer<'a> {
         Lexer {
@@ -265,7 +293,7 @@ impl<'a> Lexer<'a> {
         self.advance_span(s.len());
         self.span.end += 2; // Compensate span to get the last '
         self.span.line += lines;
-        return Token::StrLiteral(s);
+        return Token::StrLiteral(unescape(&s));
     }
 
     fn token_string(&mut self) -> Token {
@@ -274,7 +302,7 @@ impl<'a> Lexer<'a> {
         self.advance_span(s.len());
         self.span.end += 2; // Compensate span to get the last "
         self.span.line += lines;
-        return Token::StringLiteral(s);
+        return Token::StringLiteral(unescape(&s));
     }
 
     fn token_char(&mut self) -> Token {
@@ -282,7 +310,7 @@ impl<'a> Lexer<'a> {
         self.chars.next(); // Compensate for the last `
         self.advance_span(ch.len());
         self.span.end += 2; // Compensate span to get the last `
-        return Token::CharLiteral(ch);
+        return Token::CharLiteral(unescape(&ch));
     }
 }
 
