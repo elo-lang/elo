@@ -9,7 +9,7 @@ characteristics and systems for what we plan in the moment for the language.
 If you are interested in knowing about what this language **really** is, please read these
 markdown documents in order.
 
-1. [`philosophy.md`](./philosophy.md): Explains what Elo really aims to be as an useful tool for developers.
+1. [`introduction.md`](./introduction.md): Explains what Elo really aims to be as an useful tool for developers.
 1. [`basic.md`](./basic.md): Describes the basic features of the language (fns, structs, enums, control flow, etc.) and its differences from other programming languages.
 1. [`typing.md`](./typing.md): Description about the use of the primitive and other types available to the user and how Elo handles them.
 1. [`patmatching.md`](./patmatching.md): Specification of how Elo will feature **pattern matching** using the language's typing system.
