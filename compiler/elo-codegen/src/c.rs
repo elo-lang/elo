@@ -50,6 +50,32 @@ impl std::fmt::Display for Unop {
     }
 }
 
+pub fn string_expr(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for &b in text.as_bytes() {
+        match b {
+            b'\n' => out.push_str("\\n"),
+            b'\r' => out.push_str("\\r"),
+            b'\t' => out.push_str("\\t"),
+            b'\0' => out.push_str("\\0"),
+            b'\x07' => out.push_str("\\a"),
+            b'\x08' => out.push_str("\\b"),
+            b'\x0c' => out.push_str("\\f"),
+            b'\x0b' => out.push_str("\\v"),
+            b'\\' => out.push_str("\\\\"),
+            b'\'' => out.push_str("\\'"),
+            b'"'  => out.push_str("\\\""),
+            b'?'  => out.push_str("\\?"),
+            0x20..=0x7e => out.push(b as char),
+            _ => {
+                out.push_str(&format!("\\x{:02X}", b));
+            }
+        }
+    }
+
+    return format!("\"{out}\"");
+}
+
 pub fn field(r#type: &str, name: &str) -> String {
     return format!("{} {}", r#type, name);
 }

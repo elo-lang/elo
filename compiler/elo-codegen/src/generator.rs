@@ -103,7 +103,7 @@ impl Generator {
         match &expr.data {
             cir::ExpressionData::Integer { value } => value.to_string(),
             cir::ExpressionData::Float { value } => value.to_string(),
-            cir::ExpressionData::StringLiteral { value } => format!("\"{}\"", value),
+            cir::ExpressionData::StringLiteral { value } => c::string_expr(value),
             cir::ExpressionData::Bool { value } => {
                 return if *value { "1" } else { "0" }.to_string();
             }
