@@ -29,14 +29,6 @@ enum ExpressionIdentity {
     Immediate,
 }
 
-impl std::fmt::Display for ExpressionIdentity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ExpressionIdentity::Locatable(mutable) => write!(f, "{} locatable", if *mutable { "mutable" } else { "immutable" }),
-            ExpressionIdentity::Immediate => write!(f, "immediate"),
-        }
-    }
-}
 
 type ExpressionMetadata = (cir::Expression, cir::Typing, ExpressionIdentity);
 
@@ -491,16 +483,6 @@ impl SemanticChecker {
             }
             ast::ExpressionData::FieldAccess { origin, field } => {
                 let (expression, typing, id) = self.typecheck_expr(origin)?;
-                if let ExpressionIdentity::Locatable(..) = id {
-                } else {
-                    return Err(SemanticError {
-                        span: origin.span,
-                        case: SemanticErrorCase::InvalidExpression {
-                            what: format!("{} expression", id),
-                            should: String::from("locatable expression"),
-                        },
-                    });
-                }
                 match typing {
                     cir::Typing::Struct(st) => {
                         // the case when you are getting a field from struct instance
