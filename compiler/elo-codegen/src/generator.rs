@@ -258,7 +258,7 @@ impl Generator {
                 let fields = stmt
                     .fields
                     .iter()
-                    .map(|(k, v)| c::field(&self.choose_type(v), k));
+                    .map(|(k, v)| c::struct_field(&self.choose_type(v), k));
                 let fields = fields.collect::<Vec<String>>();
                 let body = c::statement_list(&fields);
                 self.head.push_str(&c::struct_stmt(&stmt.name, &body));

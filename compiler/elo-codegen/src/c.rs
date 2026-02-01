@@ -80,6 +80,10 @@ pub fn field(r#type: &str, name: &str) -> String {
     return format!("{} {}", r#type, name);
 }
 
+pub fn struct_field(r#type: &str, name: &str) -> String {
+    return format!("{} {};\n", r#type, name);
+}
+
 pub fn list(arguments: &[String]) -> String {
     let mut s = String::new();
     let l = arguments.len();
