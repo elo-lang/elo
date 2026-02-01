@@ -19,7 +19,7 @@ pub fn parse_error(pe: ParseErrorCase, filespan: &FileSpan) {
     match pe {
         ParseErrorCase::UnexpectedToken { got, expected } => {
             error(
-                "Parse Error",
+                "Syntax Error",
                 &format!("unexpected token: expected {expected} but got {got}"),
                 filespan,
                 None,
@@ -28,7 +28,7 @@ pub fn parse_error(pe: ParseErrorCase, filespan: &FileSpan) {
         }
         ParseErrorCase::InvalidCharacterLiteral => {
             error(
-                "Parse Error",
+                "Syntax Error",
                 &format!("invalid token found"),
                 filespan,
                 Some("if you meant to use str/string, use ' or \" instead of `"),
@@ -37,7 +37,7 @@ pub fn parse_error(pe: ParseErrorCase, filespan: &FileSpan) {
         }
         ParseErrorCase::ExpectedStatement => {
             error(
-                "Parse Error",
+                "Syntax Error",
                 &format!("expected statement after '=>', but found nothing"),
                 filespan,
                 Some("if you meant to have an empty block, use just {}"),
