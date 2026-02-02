@@ -2,8 +2,8 @@ use std::{collections::HashMap, process::Output};
 
 #[derive(Debug, Clone)]
 struct Test {
-    stdout: Vec<u8>,
-    stderr: Vec<u8>,
+    stdout: Option<Vec<u8>>,
+    stderr: Option<Vec<u8>>,
     return_code: i32,
 }
 
@@ -24,10 +24,8 @@ fn parse_test_file_header(content: &String) -> Test {
         }
     }
     return Test {
-        stdout: unescape_string(&props.get("stdout").unwrap_or(&String::from("")).to_string())
-            .into_bytes(),
-        stderr: unescape_string(&props.get("stderr").unwrap_or(&String::from("")).to_string())
-            .into_bytes(),
+        stdout: props.get("stdout").map(|it| unescape_string(&it).into_bytes()),
+        stderr: props.get("stderr").map(|it| unescape_string(&it).into_bytes()),
         return_code: props
             .get("return_code")
             .map(|x| x.parse::<i32>().unwrap())
@@ -56,11 +54,11 @@ fn build_compiler() {
 
 fn test_file(path: &str, output: Output, test: Test) -> bool {
     let mut success = true;
-    if output.stdout != test.stdout {
+    if let Some(stdout) = test.stdout && output.stdout != stdout {
         eprintln!("{}: unexpected stdout:", path);
         eprintln!(
             "   expected: {}",
-            escape_string(&String::from_utf8_lossy(&test.stdout))
+            escape_string(&String::from_utf8_lossy(&stdout))
         );
         eprintln!(
             "   actual: {}",
@@ -68,11 +66,11 @@ fn test_file(path: &str, output: Output, test: Test) -> bool {
         );
         success = false;
     };
-    if output.stderr != test.stderr {
+    if let Some(stderr) = test.stderr && output.stderr != stderr {
         eprintln!("{}: unexpected stderr:", path);
         eprintln!(
             "   expected: {}",
-            escape_string(&String::from_utf8_lossy(&test.stderr))
+            escape_string(&String::from_utf8_lossy(&stderr))
         );
         eprintln!(
             "   actual: {}",
