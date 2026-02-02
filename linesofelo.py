@@ -1,4 +1,4 @@
-# simple joke script that counts the lines of the Pile's implementation code
+# simple joke script that counts the lines of the Elo's implementation code
 from os.path import join, isdir
 from os import listdir
 
