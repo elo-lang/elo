@@ -50,6 +50,7 @@ fn parse_and_validate(filename: &str, source: &str, mut callback: impl FnMut(cir
                 callback(validated_program);
             }
             Err(es) => {
+                let error_amount = es.len() as i32;
                 for e in es {
                     match e {
                         ValidationError::SemanticChecker(e) => {
@@ -60,10 +61,12 @@ fn parse_and_validate(filename: &str, source: &str, mut callback: impl FnMut(cir
                         }
                     }
                 }
+                std::process::exit(error_amount);
             },
         },
         Err(e) => {
             parseerror::parse_error(e.case, &e.span.into_filespan(input_file));
+            std::process::exit(1);
         }
     }
 }
