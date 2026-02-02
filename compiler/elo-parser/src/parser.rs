@@ -145,7 +145,7 @@ impl<'a> Parser<'a> {
                     });
                 }
                 Token::Op('*', None) => {
-                    let mutable = self.test_token(Token::Keyword(Keyword::Mut), false).is_some();
+                    let mutable = self.test_token(&Token::Keyword(Keyword::Mut), false).is_some();
                     let typ = self.parse_type()?;
                     return Ok(Type {
                         span: lexem.span.merge(self.current_span),
@@ -238,8 +238,8 @@ impl<'a> Parser<'a> {
         });
     }
 
-    // identifier: type[, identifier: type]*
-    fn parse_typed_fields(&mut self) -> Result<Vec<TypedField>, ParseError> {
+    // identifier: type[, identifier: type]*,?
+    fn parse_typed_fields(&mut self, termination: Token) -> Result<Vec<TypedField>, ParseError> {
         let mut fields = Vec::new();
         if let Ok(first) = self.parse_typed_field() {
             fields.push(first);
@@ -250,6 +250,9 @@ impl<'a> Parser<'a> {
         }) = self.lexer.peek()
         {
             self.next();
+            if let Some(_) = self.seek_token(&termination, true) {
+                break;
+            }
             let f = self.parse_typed_field()?;
             fields.push(f);
         }
@@ -263,7 +266,7 @@ impl<'a> Parser<'a> {
         let mut fields = Vec::new();
         let mut variadic = false;
         // Consider also the first argument could be ...
-        if let Some(_) = self.test_token(Token::Variadic, true) {
+        if let Some(_) = self.test_token(&Token::Variadic, true) {
             variadic = true;
             return Ok((fields, variadic));
         }
@@ -291,8 +294,8 @@ impl<'a> Parser<'a> {
         Ok((fields, variadic))
     }
 
-    // identifier: expr[, identifier: expr]*
-    fn parse_fields(&mut self) -> Result<Vec<Field>, ParseError> {
+    // identifier: expr[, identifier: expr]*,?
+    fn parse_fields(&mut self, termination: Token) -> Result<Vec<Field>, ParseError> {
         let mut fields = Vec::new();
         if let Ok(first) = self.parse_field() {
             fields.push(first);
@@ -303,6 +306,9 @@ impl<'a> Parser<'a> {
         }) = self.lexer.peek()
         {
             self.next();
+            if let Some(_) = self.seek_token(&termination, true) {
+                break;
+            }
             let f = self.parse_field()?;
             fields.push(f);
         }
@@ -327,10 +333,8 @@ impl<'a> Parser<'a> {
         }) = self.lexer.peek()
         {
             self.next();
-            if let Some(Lexem { token, .. }) = self.lexer.peek() {
-                if token == &termination {
-                    break;
-                }
+            if let Some(_) = self.seek_token(&termination, true) {
+                break;
             }
             let expr = self.parse_expr(1, true)?;
             fields.push(expr);
@@ -338,8 +342,8 @@ impl<'a> Parser<'a> {
         Ok(fields)
     }
 
-    // identifier[, identifier]*
-    fn parse_enum_variants(&mut self) -> Result<Vec<String>, ParseError> {
+    // identifier[, identifier]*,?
+    fn parse_enum_variants(&mut self, termination: Token) -> Result<Vec<String>, ParseError> {
         let mut fields = Vec::new();
         if let Ok(first) = self.expect_identifier() {
             fields.push(first);
@@ -350,6 +354,9 @@ impl<'a> Parser<'a> {
         }) = self.lexer.peek()
         {
             self.next();
+            if let Some(_) = self.seek_token(&termination, true) {
+                break;
+            }
             let f = self.expect_identifier()?;
             fields.push(f);
         }
@@ -392,12 +399,10 @@ impl<'a> Parser<'a> {
     // Check if a token is present at the next iteration. Only consumes if the condition is met.
     // Does not ignore newlines by default, unless `lazy` argument is set to true.
     // If you put a Token::Newline in the `expect` argument and `lazy` is true, it will always return None.
-    pub fn test_token(&mut self, expect: Token, lazy: bool) -> Option<Lexem> {
+    pub fn test_token(&mut self, expect: &Token, lazy: bool) -> Option<Lexem> {
         match self.lexer.peek() {
-            Some(lexem) if lexem.token == expect => {
-                let x = lexem.clone();
-                self.next();
-                Some(x)
+            Some(lexem) if &lexem.token == expect => {
+                Some(self.next().unwrap())
             }
             Some(Lexem {
                 token: Token::Newline,
@@ -407,6 +412,27 @@ impl<'a> Parser<'a> {
                     self.next();
                 }
                 self.test_token(expect, lazy)
+            }
+            _ => None,
+        }
+    }
+
+    // Check if a token is present at the next iteration. Never consumes the token.
+    // Does not ignore newlines by default, unless `lazy` argument is set to true.
+    // If you put a Token::Newline in the `expect` argument and `lazy` is true, it will always return None.
+    pub fn seek_token(&mut self, expect: &Token, lazy: bool) -> Option<Lexem> {
+        match self.lexer.peek() {
+            Some(lexem) if &lexem.token == expect => {
+                Some(lexem.clone())
+            }
+            Some(Lexem {
+                token: Token::Newline,
+                ..
+            }) if lazy => {
+                while let Some(Lexem { token: Token::Newline, .. }) = self.lexer.peek() {
+                    self.next();
+                }
+                self.seek_token(expect, lazy)
             }
             _ => None,
         }
@@ -560,7 +586,7 @@ impl<'a> Parser<'a> {
                     let i = self.parse_identifier()?;
 
                     // Function call (e.g. foo(), bar())
-                    if let Some(_) = self.test_token(Token::Delimiter('('), false) {
+                    if let Some(_) = self.test_token(&Token::Delimiter('('), false) {
                         let args = self.parse_expression_list(Token::Delimiter(')'))?;
                         self.expect_token(Token::Delimiter(')'))?;
                         return Ok(Expression {
@@ -582,7 +608,7 @@ impl<'a> Parser<'a> {
                             // In case of not allowed, it will just not parse it at all
                             self.next();
                             let span = i.span.merge(self.current_span);
-                            let fields = self.parse_fields()?;
+                            let fields = self.parse_fields(Token::Delimiter('}'))?;
                             self.expect_token(Token::Delimiter('}'))?;
                             if let ExpressionData::Identifier { name } = i.data {
                                 return Ok(Expression {
@@ -600,7 +626,7 @@ impl<'a> Parser<'a> {
                     self.next();
                     let init_span = self.current_span;
                     let expr = self.parse_expr(1, true)?;
-                    if let Some(_) = self.test_token(Token::Delimiter(','), false) {
+                    if let Some(_) = self.test_token(&Token::Delimiter(','), false) {
                         let tail = self.parse_expression_list(Token::Delimiter(')'))?;
                         self.expect_token(Token::Delimiter(')'))?;
                         let span = init_span.merge(self.current_span);
@@ -727,7 +753,7 @@ impl<'a> Parser<'a> {
             //        over multiple lines, but this causes the test_token function to consume
             //        the newline token that is needed to ensure proper statement termination.
             //        Possible Fix: only allow "lazy" parsing of expressions inside ()
-            if let Some(_) = self.test_token(Token::Delimiter('.'), false) {
+            if let Some(_) = self.test_token(&Token::Delimiter('.'), false) {
                 // First we check for an integer after the '.' to see if it's a tuple index access
                 // instead of a field access
                 if let Some(Token::Integer(value, base)) = self.test_integer(false) {
@@ -751,7 +777,7 @@ impl<'a> Parser<'a> {
                 };
                 continue;
             }
-            if let Some(_) = self.test_token(Token::Delimiter('['), false) {
+            if let Some(_) = self.test_token(&Token::Delimiter('['), false) {
                 let inner = self.parse_expr(1, true)?;
                 self.expect_token(Token::Delimiter(']'))?;
                 left = Expression {
@@ -842,7 +868,7 @@ impl<'a> Parser<'a> {
 
     fn parse_block(&mut self, lazy: bool, inside_block: bool) -> Result<Block, ParseError> {
         let block: Block;
-        if let Some(Lexem { span, .. }) = self.test_token(Token::Op('=', Some('>')), lazy) {
+        if let Some(Lexem { span, .. }) = self.test_token(&Token::Op('=', Some('>')), lazy) {
             if let Some(x) = self.parse_node(inside_block)? {
                 block = Block { content: vec![x] }
             } else {
@@ -862,10 +888,10 @@ impl<'a> Parser<'a> {
     fn parse_fn_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('('))?;
-        let arguments = self.parse_typed_fields()?;
+        let arguments = self.parse_typed_fields(Token::Delimiter(')'))?;
         self.expect_token(Token::Delimiter(')'))?;
         let mut typ = None;
-        if let Some(_) = self.test_token(Token::Delimiter(':'), false) {
+        if let Some(_) = self.test_token(&Token::Delimiter(':'), false) {
             typ = Some(self.parse_type()?);
         }
         let block = self.parse_block(true, false)?;
@@ -884,7 +910,7 @@ impl<'a> Parser<'a> {
         let (arguments, variadic) = self.parse_fn_decl_args()?;
         self.expect_token(Token::Delimiter(')'))?;
         let mut typ = None;
-        if let Some(_) = self.test_token(Token::Delimiter(':'), false) {
+        if let Some(_) = self.test_token(&Token::Delimiter(':'), false) {
             typ = Some(self.parse_type()?);
         }
         Ok(Statement::ExternFnStatement(ExternFnStatement {
@@ -898,7 +924,7 @@ impl<'a> Parser<'a> {
     fn parse_struct_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('{'))?;
-        let fields = self.parse_typed_fields()?;
+        let fields = self.parse_typed_fields(Token::Delimiter('}'))?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::StructStatement(StructStatement { name, fields }))
     }
@@ -906,7 +932,7 @@ impl<'a> Parser<'a> {
     fn parse_enum_stmt(&mut self) -> Result<Statement, ParseError> {
         let name = self.expect_identifier()?;
         self.expect_token(Token::Delimiter('{'))?;
-        let variants = self.parse_enum_variants()?;
+        let variants = self.parse_enum_variants(Token::Delimiter('}'))?;
         self.expect_token(Token::Delimiter('}'))?;
         Ok(Statement::EnumStatement(EnumStatement { name, variants }))
     }
@@ -915,8 +941,8 @@ impl<'a> Parser<'a> {
         let expr = self.parse_expr(1, false)?;
         let block_true = self.parse_block(true, true)?;
         let mut block_false: Option<Block> = None;
-        if let Some(_) = self.test_token(Token::Keyword(Keyword::Else), true) {
-            if let Some(elseif) = self.test_token(Token::Keyword(Keyword::If), true) {
+        if let Some(_) = self.test_token(&Token::Keyword(Keyword::Else), true) {
+            if let Some(elseif) = self.test_token(&Token::Keyword(Keyword::If), true) {
                 let if_node = Node {
                     span: elseif.span,
                     stmt: self.parse_if_stmt()?,
