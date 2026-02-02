@@ -1,0 +1,9 @@
+// return_code=1
+
+fn test(): i32 {
+    return true;
+}
+
+fn main() {
+    test();
+}

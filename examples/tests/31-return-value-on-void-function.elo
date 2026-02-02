@@ -1,0 +1,9 @@
+// return_code=1
+
+fn test() {
+    return 10;
+}
+
+fn main() {
+    test();
+}

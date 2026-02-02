@@ -1,0 +1,9 @@
+// return_code=1
+
+fn test(): i32 {
+    let a = 10;
+}
+
+fn main() {
+    test();
+}

@@ -1,0 +1,6 @@
+// return_code=1
+
+fn main() {
+    let a = 10;
+    let b = a.0;
+}

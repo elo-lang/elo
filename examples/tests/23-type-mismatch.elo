@@ -1,0 +1,6 @@
+// return_code=1
+
+const a: i32 = true;
+
+fn main() {
+}

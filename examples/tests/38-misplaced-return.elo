@@ -1,0 +1,6 @@
+// return_code=1
+
+return 10;
+
+fn main() {
+}
