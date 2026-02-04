@@ -6,10 +6,10 @@ use std::collections::HashMap;
 
 pub struct Namespace {
     pub name: Option<String>,
-    pub constants: HashMap<String, cir::Typing>,
-    pub structs: HashMap<String, cir::Struct>,
-    pub enums: HashMap<String, cir::Enum>,
-    pub functions: HashMap<String, cir::FunctionHead>,
+    pub constants: HashMap<String, (Span, cir::Typing)>,
+    pub structs: HashMap<String, (Span, cir::Struct)>,
+    pub enums: HashMap<String, (Span, cir::Enum)>,
+    pub functions: HashMap<String, (Span, cir::FunctionHead)>,
     pub locals: Vec<Scope>,
 }
 
@@ -28,7 +28,6 @@ enum ExpressionIdentity {
     Locatable(bool), // bool: mutable
     Immediate,
 }
-
 
 type ExpressionMetadata = (cir::Expression, cir::Typing, ExpressionIdentity);
 
@@ -60,9 +59,9 @@ impl SemanticChecker {
             ast::Typing::Named { name, .. } => {
                 if let Some(t) = cir::Primitive::from_str(name) {
                     return Ok(cir::Typing::Primitive(t));
-                } else if let Some(e) = self.namespace.enums.get(name) {
+                } else if let Some((_, e)) = self.namespace.enums.get(name) {
                     return Ok(cir::Typing::Enum(e.clone()));
-                } else if let Some(e) = self.namespace.structs.get(name) {
+                } else if let Some((_, e)) = self.namespace.structs.get(name) {
                     return Ok(cir::Typing::Struct(e.clone()));
                 }
                 return Err(SemanticError {
@@ -167,7 +166,7 @@ impl SemanticChecker {
         arguments: &Vec<Expression>,
         span: Span,
     ) -> Result<ExpressionMetadata, SemanticError> {
-        let function = self.namespace.functions.get(name).ok_or(SemanticError {
+        let (_, function) = self.namespace.functions.get(name).ok_or(SemanticError {
             span: span,
             case: SemanticErrorCase::UnresolvedName {
                 name: name.to_string(),
@@ -537,7 +536,7 @@ impl SemanticChecker {
             }
             ast::ExpressionData::StructInit { name, fields } => {
                 let span = expr.span;
-                let strukt = self
+                let (_, strukt) = self
                     .namespace
                     .structs
                     .get(name)
@@ -619,13 +618,13 @@ impl SemanticChecker {
                     span: expr.span,
                     data: cir::ExpressionData::Identifier { name: name.clone() }
                 };
-                if let Some(typ) = self.namespace.constants.get(name) {
+                if let Some((_, typ)) = self.namespace.constants.get(name) {
                     return Ok((
                         thing,
                         typ.clone(),
                         ExpressionIdentity::Immediate,
                     ));
-                } else if let Some(f) = self.namespace.functions.get(name) {
+                } else if let Some((_, f)) = self.namespace.functions.get(name) {
                     return Ok((
                         thing,
                         f.ret.clone(), // FIXME: This should be the function pointer type
@@ -745,6 +744,20 @@ impl SemanticChecker {
         Ok(())
     }
 
+    // If there is a name, return the span of the definition
+    fn check_name_availability(&self, name: &str) -> Option<Span> {
+        if let Some((span, _)) = self.namespace.functions.get(name) {
+            return Some(*span)
+        } else if let Some((span, _)) = self.namespace.enums.get(name) {
+            return Some(*span)
+        } else if let Some((span, _)) = self.namespace.structs.get(name) {
+            return Some(*span)
+        } else if let Some((span, _)) = self.namespace.constants.get(name) {
+            return Some(*span)
+        }
+        None
+    }
+
     fn typecheck_node(&mut self, node: ast::Node, expects_return: Option<&cir::Typing>) -> Result<cir::Statement, SemanticError> {
         match node.stmt {
             ast::Statement::LetStatement(stmt) => {
@@ -826,7 +839,7 @@ impl SemanticChecker {
                         },
                     });
                 }
-                self.namespace.constants.insert(name.clone(), typ.clone());
+                self.namespace.constants.insert(name.clone(), (node.span, typ.clone()));
                 Ok(cir::Statement {
                     span: node.span,
                     kind: cir::StatementKind::Constant {
@@ -872,6 +885,13 @@ impl SemanticChecker {
             }
             ast::Statement::FnStatement(stmt) => {
                 // TODO: Add proper type-checking for the function block (check return type in all control flow branches)
+                if let Some(s) = self.check_name_availability(&stmt.name) {
+                    return Err(SemanticError { span: node.span, case: SemanticErrorCase::NameRedefinition {
+                        name: stmt.name.clone(),
+                        defined: s
+                    }})
+                }
+
                 let mut validated_args = Vec::new();
                 for a in stmt.arguments.iter() {
                     validated_args.push((a.name.clone(), self.check_type(&a.typing)?));
@@ -908,7 +928,7 @@ impl SemanticChecker {
                     extrn: false     // The same for extrn which is meant to flag if this function should be mangled
                 };
                 // Insert the function into the namespace
-                self.namespace.functions.insert(stmt.name.clone(), head.clone());
+                self.namespace.functions.insert(stmt.name.clone(), (node.span, head.clone()));
 
                 let validated_block = self.typecheck_function_block(stmt.block.content, &validated_ret_type, &stmt.name, arguments)?;
                 self.controlcheck_function_block(node.span, &validated_block, &stmt.name, &validated_ret_type)?;
@@ -924,6 +944,13 @@ impl SemanticChecker {
                 });
             }
             ast::Statement::ExternFnStatement(stmt) => {
+                if let Some(s) = self.check_name_availability(&stmt.name) {
+                    return Err(SemanticError { span: node.span, case: SemanticErrorCase::NameRedefinition {
+                        name: stmt.name.clone(),
+                        defined: s
+                    }})
+                }
+
                 // TODO: Add type-checking
                 let mut validated_args = Vec::new();
                 for a in stmt.arguments.iter() {
@@ -940,7 +967,7 @@ impl SemanticChecker {
                     variadic: stmt.variadic,
                     extrn: true,
                 };
-                self.namespace.functions.insert(stmt.name.clone(), head.clone());
+                self.namespace.functions.insert(stmt.name.clone(), (node.span, head.clone()));
                 return Ok(
                     cir::Statement {
                         span: node.span,
@@ -949,6 +976,13 @@ impl SemanticChecker {
                 );
             }
             ast::Statement::StructStatement(stmt) => {
+                if let Some(s) = self.check_name_availability(&stmt.name) {
+                    return Err(SemanticError { span: node.span, case: SemanticErrorCase::NameRedefinition {
+                        name: stmt.name.clone(),
+                        defined: s
+                    }})
+                }
+
                 let mut fields = HashMap::new();
                 for TypedField { name, typing } in &stmt.fields {
                     let checked_type = self.check_type(typing)?;
@@ -958,18 +992,25 @@ impl SemanticChecker {
                     name: stmt.name,
                     fields,
                 };
-                self.namespace.structs.insert(e.name.clone(), e.clone());
+                self.namespace.structs.insert(e.name.clone(), (node.span, e.clone()));
                 return Ok(cir::Statement {
                     span: node.span,
                     kind: cir::StatementKind::StructStatement(e)
                 });
             }
             ast::Statement::EnumStatement(stmt) => {
+                if let Some(s) = self.check_name_availability(&stmt.name) {
+                    return Err(SemanticError { span: node.span, case: SemanticErrorCase::NameRedefinition {
+                        name: stmt.name.clone(),
+                        defined: s
+                    }})
+                }
+
                 let e = cir::Enum {
                     name: stmt.name,
                     variants: stmt.variants,
                 };
-                self.namespace.enums.insert(e.name.clone(), e.clone());
+                self.namespace.enums.insert(e.name.clone(), (node.span, e.clone()));
                 return Ok(cir::Statement {
                     span: node.span,
                     kind: cir::StatementKind::EnumStatement(e)
