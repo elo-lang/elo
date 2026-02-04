@@ -713,8 +713,8 @@ impl SemanticChecker {
                     return Ok((true, i.span));
                 }
                 cir::StatementKind::IfStatement { block_true, block_false, .. } => {
-                    let (a, s1) = self.controlcheck_inner_function_block(span, block_true, false, function_name, return_type)?;
-                    let (b, s2) = self.controlcheck_inner_function_block(span, block_false, false, function_name, return_type)?;
+                    let (a, s1) = self.controlcheck_inner_function_block(last_span, block_true, false, function_name, return_type)?;
+                    let (b, s2) = self.controlcheck_inner_function_block(last_span, block_false, false, function_name, return_type)?;
                     if a && b {
                         return Ok((true, s2));
                     }
