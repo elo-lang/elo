@@ -63,6 +63,10 @@ pub enum SemanticErrorCase {
     VariableRedefinition {
         name: String,
     },
+    NameRedefinition {
+        name: String,
+        defined: Span,
+    },
     MisplacedReturn,
 }
 
@@ -74,6 +78,15 @@ pub struct SemanticError {
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
+        SemanticErrorCase::NameRedefinition { name, defined } => {
+            error(
+                "Type Check Error",
+                &format!("attempt to redefine name {name}"),
+                filespan,
+                None,
+                Some(&format!("note: defined originally at {}:{}:{}", filespan.input_file.filename, defined.line, defined.start)),
+            );
+        }
         SemanticErrorCase::IndexNonIndexable { thing, got } => {
             error(
                 "Type Check Error",
