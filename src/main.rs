@@ -101,7 +101,11 @@ fn main() {
                         std::fs::write(&output_h, r#gen.head).unwrap();
                     }
                     if !c && !h {
-                        tcc.compile_string(generated_output).unwrap();
+                        if tcc.compile_string(generated_output).is_err() {
+                            cli::critical(&args[0], "could not compile C backend source-code. This is likely a bug");
+                            cli::information(&args[0], "if so, please report the bug at https://github.com/elo-lang/elo/issues");
+                            std::process::exit(-1);
+                        }
                         tcc.output_file(&output_exe);
                     }
                 });
@@ -124,10 +128,14 @@ fn main() {
                 parse_and_validate(input.as_str(), content.as_str(), |validated_program| {
                     tcc.set_output_type(tcc::OutputType::Memory);
                     let g = generate_program(validated_program);
-                    tcc.compile_string(&g).unwrap();
+                    if tcc.compile_string(&g).is_err() {
+                        cli::critical(&args[0], "could not compile C backend source-code. This is likely a bug");
+                        cli::information(&args[0], "if so, please report the bug at https://github.com/elo-lang/elo/issues");
+                        std::process::exit(-1);
+                    }
                     let arguments =
                         arguments.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
-                    tcc.run(&arguments);
+                    std::process::exit(tcc.run(&arguments));
                 });
             } else {
                 cli::error(&args[0], &format!("could not read input file {}", input));

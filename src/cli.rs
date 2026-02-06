@@ -11,6 +11,10 @@ pub fn information(program: &str, msg: &str) {
     eprintln!("{program}: info: {msg}");
 }
 
+pub fn critical(program: &str, msg: &str) {
+    eprintln!("{program}: critical: {msg}");
+}
+
 pub fn usage(program: &str, command: Option<&Command>) {
     if let Some(cmd) = command {
         match cmd {

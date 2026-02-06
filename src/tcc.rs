@@ -111,7 +111,7 @@ impl TCCState {
         Err(())
     }
 
-    pub fn run(&self, args: &[&str]) {
+    pub fn run(&self, args: &[&str]) -> i32 {
         let argc = args.len() as i32;
 
         let argv: Vec<CString> = args.iter().map(|arg| CString::new(*arg).unwrap()).collect();
@@ -120,9 +120,9 @@ impl TCCState {
 
         let argv = argv.as_ptr();
 
-        unsafe {
-            ffi::tcc_run(self.state, argc, argv);
-        }
+        return unsafe {
+            ffi::tcc_run(self.state, argc, argv)
+        };
     }
 }
 
