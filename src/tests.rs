@@ -19,7 +19,7 @@ fn parse_test_file_header(content: &String) -> Test {
                 .skip(2) // skip '//'
                 .take_while(|x| *x != '=')
                 .collect::<String>();
-            let value = line.collect::<String>(); // skip : and then collect the value
+            let value = line.collect::<String>(); // skip '=' and then collect the value
             props.insert(prop.trim().to_string(), value.trim().to_string());
         }
     }
