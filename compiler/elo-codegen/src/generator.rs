@@ -41,6 +41,18 @@ fn mangle_function(name: &str) -> String {
     return format!("_fn_{name}_{}", fnv_hash(name));
 }
 
+fn mangle_enum(name: &str) -> String {
+    return format!("_enum_{name}_{}", fnv_hash(name));
+}
+
+fn mangle_struct(name: &str) -> String {
+    return format!("_struct_{name}_{}", fnv_hash(name));
+}
+
+fn mangle_tuple(no: usize) -> String {
+    return format!("_tuple{no}_{}", fnv_hash(&no.to_string()));
+}
+
 impl Generator {
     pub fn get_tuple(&mut self, types: &Vec<cir::Typing>) -> String {
         let mut tuple_index = None;
@@ -50,7 +62,7 @@ impl Generator {
             }
         }
         if let Some(i) = tuple_index {
-            return format!("tuple_{i}");
+            return mangle_tuple(i);
         } else {
             self.tuples.push(types.clone());
             let i = self.tuples.len() - 1;
@@ -58,7 +70,7 @@ impl Generator {
             for (i, j) in types.iter().enumerate() {
                 body.push_str(&format!("{} t{i};\n", self.choose_type(j)));
             }
-            let struct_name = format!("tuple_{i}");
+            let struct_name = mangle_tuple(i);
             self.head.push_str(&c::struct_stmt(&struct_name, &body));
             return struct_name;
         }
@@ -86,8 +98,8 @@ impl Generator {
             cir::Typing::Primitive(cir::Primitive::Char) => "uint32_t".to_string(),
             cir::Typing::Pointer { typ, mutable: _ } => self.choose_type(typ) + "*",
             cir::Typing::Array { typ, .. } => self.choose_type(typ) + "*",
-            cir::Typing::Struct(cir::Struct { name, .. }) => format!("struct {name}"),
-            cir::Typing::Enum(cir::Enum { name, .. }) => format!("enum {name}"),
+            cir::Typing::Struct(cir::Struct { name, .. }) => format!("struct {}", mangle_struct(name)),
+            cir::Typing::Enum(cir::Enum { name, .. }) => format!("enum {}", mangle_enum(name)),
             cir::Typing::Void => "void".to_string(),
             cir::Typing::Tuple { types } => format!("struct {}", self.get_tuple(types)),
             _ => {
@@ -261,11 +273,11 @@ impl Generator {
                     .map(|(k, v)| c::struct_field(&self.choose_type(v), k));
                 let fields = fields.collect::<Vec<String>>();
                 let body = c::statement_list(&fields);
-                self.head.push_str(&c::struct_stmt(&stmt.name, &body));
+                self.head.push_str(&c::struct_stmt(&mangle_struct(&stmt.name), &body));
             }
             cir::StatementKind::EnumStatement(stmt) => {
                 let doby = c::list(&stmt.variants);
-                self.head.push_str(&c::enum_stmt(&stmt.name, &doby));
+                self.head.push_str(&c::enum_stmt(&mangle_enum(&stmt.name), &doby));
             }
             // BODY STATEMENTS //
             cir::StatementKind::Variable {
