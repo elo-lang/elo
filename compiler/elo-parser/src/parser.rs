@@ -800,7 +800,7 @@ impl<'a> Parser<'a> {
             }) = self.next()
             {
                 let binop = BinaryOperation::from_op(a, b);
-                let right = self.parse_expr(next_limit, true)?;
+                let right = self.parse_expr(next_limit, struct_allowed)?;
                 left = Expression {
                     span: left.span.merge(self.current_span),
                     data: ExpressionData::BinaryOperation {
