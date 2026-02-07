@@ -13,6 +13,10 @@ pub enum SemanticErrorCase {
         tuple: String,
         member_count: usize,
     },
+    UnknownEnumVariant {
+        enumeration: String,
+        variant: String,
+    },
     InvalidType {
         what: String,
     },
@@ -78,6 +82,15 @@ pub struct SemanticError {
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
+        SemanticErrorCase::UnknownEnumVariant { enumeration, variant } => {
+            error(
+                "Type Check Error",
+                &format!("unknown variant '{variant}' in enumeration {enumeration}"),
+                filespan,
+                None,
+                None,
+            );
+        }
         SemanticErrorCase::NameRedefinition { name, defined } => {
             error(
                 "Type Check Error",
