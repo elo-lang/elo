@@ -481,6 +481,37 @@ impl SemanticChecker {
                 }
             }
             ast::ExpressionData::FieldAccess { origin, field } => {
+                if let ast::ExpressionData::Identifier { name } = &origin.data {
+                    if let Some((_, e)) = self.namespace.enums.get(name) {
+                        let mut found = false;
+                        for i in e.variants.iter() {
+                            if i == field {
+                                found = true;
+                            }
+                        }
+                        if !found {
+                            return Err(SemanticError {
+                                span: origin.span,
+                                case: SemanticErrorCase::UnknownEnumVariant {
+                                    enumeration: e.name.clone(),
+                                    variant: field.clone(),
+                                }
+                            })
+                        }
+                        return Ok((
+                            cir::Expression {
+                                span: expr.span,
+                                data: cir::ExpressionData::EnumVariant {
+                                    origin: e.name.clone(),
+                                    variant: field.clone()
+                                }
+                            },
+                            cir::Typing::Enum(e.clone()),
+                            ExpressionIdentity::Immediate
+                        ));
+                    }
+                }
+
                 let (expression, typing, id) = self.typecheck_expr(origin)?;
                 match typing {
                     cir::Typing::Struct(st) => {
