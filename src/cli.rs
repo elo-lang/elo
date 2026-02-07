@@ -1,18 +1,24 @@
-pub fn fatal(program: &str, msg: &str) {
-    eprintln!("{program}: fatal: {msg}");
+const RED: &str = "\x1b[1;31m";
+const CYAN: &str = "\x1b[1;36m";
+const YELLOW: &str = "\x1b[1;33m";
+const GREEN: &str = "\x1b[1;32m";
+const RESET: &str = "\x1b[0m";
+
+pub fn fatal(msg: &str) {
+    eprintln!("{RED}fatal{RESET}: {msg}");
 }
 
 #[allow(dead_code)]
-pub fn warning(program: &str, msg: &str) {
-    eprintln!("{program}: warning: {msg}");
+pub fn warning(msg: &str) {
+    eprintln!("{YELLOW}warning{RESET}: {msg}");
 }
 
-pub fn information(program: &str, msg: &str) {
-    eprintln!("{program}: info: {msg}");
+pub fn information(msg: &str) {
+    eprintln!("{CYAN}info{RESET}: {msg}");
 }
 
-pub fn critical(program: &str, msg: &str) {
-    eprintln!("{program}: critical: {msg}");
+pub fn critical(msg: &str) {
+    eprintln!("{RED}critical{RESET}: {msg}");
 }
 
 pub fn usage(program: &str, command: Option<&Command>) {
@@ -27,11 +33,6 @@ pub fn usage(program: &str, command: Option<&Command>) {
     } else {
         eprintln!("usage: {program} <command> ...");
     }
-}
-
-pub fn error(program: &str, msg: &str) -> ! {
-    eprintln!("{program}: error: {msg}");
-    std::process::exit(1);
 }
 
 pub fn help(program: &str, command: Option<&Command>) {
@@ -118,7 +119,7 @@ fn parse_run(program: &str, args: &[String]) -> Result<Command, ()> {
     }
     if input.is_none() {
         usage(program, Command::from_str("build").as_ref());
-        fatal(program, "expected positional argument: <input>");
+        fatal("expected positional argument: <input>");
         return Err(());
     }
     return Ok(Command::Run {
@@ -156,7 +157,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
                         i += 1; // skip the next argument
                     } else {
                         usage(program, Command::from_str("build").as_ref());
-                        fatal(program, "expected output file after `-o` flag");
+                        fatal("expected output file after `-o` flag");
                         return Err(());
                     }
                 } else {
@@ -168,7 +169,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
             }
             x if input.is_some() => {
                 usage(program, Command::from_str("build").as_ref());
-                fatal(program, &format!("unexpected positional argument `{x}`"));
+                fatal(&format!("unexpected positional argument `{x}`"));
                 return Err(());
             }
             _ => {}
@@ -178,7 +179,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
 
     if input.is_none() {
         usage(program, Command::from_str("build").as_ref());
-        fatal(program, "expected positional argument: <input>");
+        fatal("expected positional argument: <input>");
         return Err(());
     }
     Ok(Command::Build {
@@ -202,7 +203,7 @@ fn parse_command(program: &str, args: &[String]) -> Result<Command, ()> {
         "h" | "help" => parse_help(args),
         _ => {
             usage(program, None);
-            fatal(program, &format!("unknown command `{command}`"));
+            fatal(&format!("unknown command `{command}`"));
             Err(())
         }
     }
@@ -211,9 +212,8 @@ fn parse_command(program: &str, args: &[String]) -> Result<Command, ()> {
 pub fn parse_args(args: &[String]) -> Result<Command, ()> {
     if args[1..].is_empty() {
         usage(&args[0], None);
-        fatal(&args[0], "expected command");
+        fatal("expected command");
         information(
-            &args[0],
             "run with `help` command to see available commands",
         );
         return Err(());

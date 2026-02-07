@@ -74,7 +74,7 @@ fn parse_and_validate(filename: &str, source: &str, mut callback: impl FnMut(cir
 fn main() {
     let args: Vec<String> = args().collect();
     let comm = parse_args(&args).unwrap_or_else(|_| {
-        cli::error(&args[0], "could not parse command line arguments");
+        std::process::exit(-1);
     });
     let mut tcc = tcc::TCCState::new();
 
@@ -102,15 +102,16 @@ fn main() {
                     }
                     if !c && !h {
                         if tcc.compile_string(generated_output).is_err() {
-                            cli::critical(&args[0], "could not compile C backend source-code. This is likely a bug");
-                            cli::information(&args[0], "if so, please report the bug at https://github.com/elo-lang/elo/issues");
+                            cli::critical("could not compile C backend source-code. This is likely a bug");
+                            cli::information("if so, please report the bug at https://github.com/elo-lang/elo/issues");
                             std::process::exit(-1);
                         }
                         tcc.output_file(&output_exe);
                     }
                 });
             } else {
-                cli::error(&args[0], &format!("could not read input file {}", input));
+                cli::fatal(&format!("could not read input file {}", input));
+                std::process::exit(-1);
             }
         }
         Command::Help { command } => {
@@ -129,8 +130,8 @@ fn main() {
                     tcc.set_output_type(tcc::OutputType::Memory);
                     let g = generate_program(validated_program);
                     if tcc.compile_string(&g).is_err() {
-                        cli::critical(&args[0], "could not compile C backend source-code. This is likely a bug");
-                        cli::information(&args[0], "if so, please report the bug at https://github.com/elo-lang/elo/issues");
+                        cli::critical("could not compile C backend source-code. This is likely a bug");
+                        cli::information("if so, please report the bug at https://github.com/elo-lang/elo/issues");
                         std::process::exit(-1);
                     }
                     let arguments =
@@ -138,7 +139,8 @@ fn main() {
                     std::process::exit(tcc.run(&arguments));
                 });
             } else {
-                cli::error(&args[0], &format!("could not read input file {}", input));
+                cli::fatal(&format!("could not read input file {}", input));
+                std::process::exit(-1);
             }
         }
     }
