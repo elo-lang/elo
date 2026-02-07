@@ -33,7 +33,7 @@ pub fn error(
     eprintln!();
     eprintln!(" {} {CYAN_BOLD}|{RESET} {line}", filespan.line);
     eprintln!(
-        "{indent}{CYAN_BOLD} {RESET}{}{GREEN_BOLD} ^{} {RESET}",
+        "{indent} {}{GREEN_BOLD} ^{} {RESET}",
         " ".repeat(filespan.start),
         "-".repeat(
             if span_length == 0 { 0 } else { span_length - 1 }
@@ -47,8 +47,7 @@ pub fn error(
         );
     }
     if let Some(h) = help {
-        eprintln!("{indent}{CYAN_BOLD} {RESET}",);
-        eprintln!("{indent}{CYAN_BOLD} {RESET}{GREEN_BOLD} Help{RESET}: {h}",);
+        eprintln!("\n{indent} {GREEN_BOLD}Help{RESET}: {h}",);
     }
     eprintln!();
 }
