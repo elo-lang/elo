@@ -1,7 +1,6 @@
 const RED: &str = "\x1b[1;31m";
 const CYAN: &str = "\x1b[1;36m";
 const YELLOW: &str = "\x1b[1;33m";
-const GREEN: &str = "\x1b[1;32m";
 const RESET: &str = "\x1b[0m";
 
 pub fn fatal(msg: &str) {
