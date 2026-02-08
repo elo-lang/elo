@@ -45,6 +45,10 @@ fn mangle_enum(name: &str) -> String {
     return format!("_enum_{name}_{}", fnv_hash(name));
 }
 
+fn mangle_enum_variant(enum_name: &str, variant: &str) -> String {
+    return format!("_enum_{enum_name}_{variant}_{}", fnv_hash(variant));
+}
+
 fn mangle_struct(name: &str) -> String {
     return format!("_struct_{name}_{}", fnv_hash(name));
 }
@@ -52,6 +56,7 @@ fn mangle_struct(name: &str) -> String {
 fn mangle_tuple(no: usize) -> String {
     return format!("_tuple{no}_{}", fnv_hash(&no.to_string()));
 }
+
 
 impl Generator {
     pub fn get_tuple(&mut self, types: &Vec<cir::Typing>) -> String {
@@ -205,6 +210,9 @@ impl Generator {
                 let rhs = field.clone();
                 return c::member_expr(&lhs, &rhs);
             }
+            cir::ExpressionData::EnumVariant { origin, variant } => {
+                return mangle_enum_variant(origin, variant);
+            }
         }
     }
 
@@ -276,7 +284,8 @@ impl Generator {
                 self.head.push_str(&c::struct_stmt(&mangle_struct(&stmt.name), &body));
             }
             cir::StatementKind::EnumStatement(stmt) => {
-                let doby = c::list(&stmt.variants);
+                let vars: Vec<String> = stmt.variants.iter().map(|x| mangle_enum_variant(&stmt.name, x)).collect();
+                let doby = c::list(&vars);
                 self.head.push_str(&c::enum_stmt(&mangle_enum(&stmt.name), &doby));
             }
             // BODY STATEMENTS //
