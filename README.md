@@ -10,13 +10,17 @@ and an **intuitive experience** in general.
 
 ### Development
 Elo is in its early stages of development, we are still brainstorming a lot.
-This repository contains the source code of Elo's compiler.
+This repository contains:
+- Source-code of [Elo's compiler](./compiler)
+- Source-code of [Elo's runtime library](./rt)
 
 ### Design docs
 In this repository, there is a Design documentation which specifies
 Elo programming language in a simple way. If you're interested, consider [reading it](./docs/design).
 
-### Building from source
+### Building from source-code
+
+#### Compiler build instructions
 > **WARNING**: Elo is not a finished language. There's no warranty of this piece of software. **Use it at your own risk**.
 
 The compiler is implemented in [**Rust**](https://rust-lang.org/).
@@ -35,6 +39,9 @@ You need to use [**cargo**](https://doc.rust-lang.org/stable/cargo/) to build th
     $ cd ./path/to/elo
     $ cargo build --release
     ```
+
+#### Runtime library build instructions
+Read them [here](./rt/README.md).
 
 ---
 
