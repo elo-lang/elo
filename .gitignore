@@ -2,7 +2,6 @@
 /.vscode
 test.elo
 *.o
-*.c
 *.out
 out
 output
