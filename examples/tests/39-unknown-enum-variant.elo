@@ -1,0 +1,11 @@
+// return_code=1
+
+enum Test {
+    Var1,
+    Var2
+}
+
+fn main(): int {
+    let y = Test.Var3;
+    ret 0;
+}
