@@ -1,4 +1,3 @@
-
 #ifndef PANIC_H
 #define PANIC_H
 
@@ -10,4 +9,3 @@ typedef struct {
 void __elo_panic(Pos pos, const char* message, ...);
 
 #endif
-

@@ -19,6 +19,7 @@ mod ffi {
         pub fn tcc_add_file(s: *mut TCCState, filename: *const c_char) -> c_int;
         pub fn tcc_set_output_type(s: *mut TCCState, output_type: c_int) -> c_int;
         pub fn tcc_run(s: *mut TCCState, argc: c_int, argv: *const *const c_char) -> c_int;
+        pub fn tcc_set_options(s: *mut TCCState, options: *const c_char) -> c_int;
     }
 }
 
@@ -109,6 +110,13 @@ impl TCCState {
             return Ok(());
         }
         Err(())
+    }
+
+    pub fn set_options(&mut self, options: &str) {
+        let options = CString::new(options).unwrap();
+        unsafe {
+            ffi::tcc_set_options(self.state, options.as_ptr());
+        }
     }
 
     pub fn run(&self, args: &[&str]) -> i32 {

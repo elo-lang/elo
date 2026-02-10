@@ -159,6 +159,13 @@ pub fn function_stmt(
     );
 }
 
+pub fn function_sign(
+    sign: &str,
+    body: &str,
+) -> String {
+    return format!("{sign}{{\n{body}}};\n");
+}
+
 pub fn function_decl_stmt(
     r#return: &str,
     name: &str,

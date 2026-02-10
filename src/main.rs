@@ -77,6 +77,9 @@ fn main() {
         std::process::exit(-1);
     });
     let mut tcc = tcc::TCCState::new();
+    tcc.add_library_path("rt/bin");
+    tcc.add_library("elort");
+    tcc.set_options("-I rt/include");
 
     match comm {
         Command::Build { input, output, c, h } => {

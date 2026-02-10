@@ -8,7 +8,7 @@
 
 // Terminology
 //    handle - A heap address located in the handles table
-//    slot   - 
+//    slot   -
 
 // Index in the handle table containing the slot's heap address
 typedef size_t Slot;
