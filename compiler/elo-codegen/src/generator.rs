@@ -179,13 +179,17 @@ impl Generator {
                 arguments,
                 extrn
             } => {
-                let arguments: Vec<String> = arguments
-                    .iter()
-                    .map(|x| self.generate_expression(x))
-                    .collect();
-                let arguments = c::list(arguments.as_slice());
-                let fn_name = if *extrn { function } else { &mangle_function(function) };
-                return c::function_call_expr(fn_name, &arguments);
+                if let cir::ExpressionData::Identifier { ref name } = (**function).data {
+                    let arguments: Vec<String> = arguments
+                        .iter()
+                        .map(|x| self.generate_expression(x))
+                        .collect();
+                    let arguments = c::list(arguments.as_slice());
+                    let fn_name = if *extrn { name } else { &mangle_function(name) };
+                    return c::function_call_expr(fn_name, &arguments);
+                } else {
+                    todo!("implement other cases for function calls");
+                }
             },
             cir::ExpressionData::Identifier { name } => name.clone(),
             cir::ExpressionData::StructInit { origin, fields } => {
