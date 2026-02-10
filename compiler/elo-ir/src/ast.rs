@@ -270,7 +270,7 @@ pub enum Typing {
     },
     Function {
         args: Vec<Type>,
-        return_: Box<Option<Type>>,
+        ret: Option<Box<Type>>,
     },
 }
 

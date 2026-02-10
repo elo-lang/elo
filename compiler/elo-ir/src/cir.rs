@@ -269,7 +269,7 @@ pub struct Function {
     pub block: Block,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct FunctionHead {
     pub name: String,
     pub ret: Typing,
@@ -376,10 +376,7 @@ pub enum Typing {
         mutable: bool,
         typ: Box<Typing>,
     },
-    FunctionPointer {
-        args: Vec<Typing>,
-        ret: Box<Option<Typing>>,
-    },
+    Function(Box<FunctionHead>),
 }
 
 impl std::fmt::Display for Typing {
@@ -402,14 +399,14 @@ impl std::fmt::Display for Typing {
                 write!(f, "{}", fmt)
             }
             Typing::Pointer { typ, mutable } => write!(f, "*{}{}", if *mutable { "mut " } else { "" }, typ),
-            Typing::FunctionPointer { args, ret } => {
+            Typing::Function(head) => {
                 let mut fmt = String::from("fn");
-                if let Some(ret) = ret.as_ref() {
-                    fmt.push_str(&format!(" {ret}"))
+                if head.ret != Typing::Void {
+                    fmt.push_str(&format!(" {}", head.ret))
                 }
-                for (i, typ) in args.iter().enumerate() {
+                for (i, (_, typ)) in head.arguments.iter().enumerate() {
                     fmt.push_str(&format!("{}", typ));
-                    if i < args.len()-1 {
+                    if i < head.arguments.len()-1 {
                         fmt.push_str(", ");
                     }
                 }
