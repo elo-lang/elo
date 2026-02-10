@@ -85,6 +85,22 @@ impl SemanticChecker {
                 }
                 return Ok(cir::Typing::Tuple { types: checked_types })
             }
+            ast::Typing::Function { args, ret } => {
+                let mut checked_types = Vec::new();
+                for t in args {
+                    checked_types.push(self.check_type(t)?);
+                }
+                let mut checked_ret = cir::Typing::Void;
+                if let Some(t) = ret {
+                    checked_ret = self.check_type(t)?;
+                }
+                return Ok(cir::Typing::Function {
+                    ret: Box::new(checked_ret),
+                    arguments: checked_types,
+                    variadic: false,
+                    extrn: false
+                });
+            }
             _ => todo!("implement other types"),
         }
     }
@@ -162,36 +178,32 @@ impl SemanticChecker {
 
     fn typecheck_function_call(
         &mut self,
-        name: &str,
-        arguments: &Vec<Expression>,
-        span: Span,
+        expr: cir::Expression,
+        ret: cir::Typing,
+        arguments: &Vec<cir::Typing>,
+        variadic: bool,
+        extrn: bool,
+        caller_arguments: &Vec<Expression>,
+        call_span: Span,
     ) -> Result<ExpressionMetadata, SemanticError> {
-        let (_, function) = self.namespace.functions.get(name).ok_or(SemanticError {
-            span: span,
-            case: SemanticErrorCase::UnresolvedName {
-                name: name.to_string(),
-            },
-        })?;
-        let extrn = function.extrn;
-
-        let return_type = function.ret.clone();
-        let passed_length = arguments.len();
-        let expected_len = function.arguments.len();
+        let return_type = ret;
+        let passed_length = caller_arguments.len();
+        let expected_len = arguments.len();
         if passed_length < expected_len {
             return Err(SemanticError {
-                span: span,
+                span: call_span,
                 case: SemanticErrorCase::UnmatchedArguments {
-                    name: name.to_string(),
+                    function: format!("{expr}"),
                     got: passed_length,
                     expected: expected_len,
                     too_much: false,
                 },
             });
-        } else if (passed_length > expected_len) && !function.variadic {
+        } else if (passed_length > expected_len) && !variadic {
             return Err(SemanticError {
-                span: span,
+                span: call_span,
                 case: SemanticErrorCase::UnmatchedArguments {
-                    name: name.to_string(),
+                    function: format!("{expr}"),
                     got: passed_length,
                     expected: expected_len,
                     too_much: true,
@@ -199,8 +211,8 @@ impl SemanticChecker {
             });
         }
         let mut checked_arguments = Vec::new();
-        let iter = arguments.iter().zip(function.arguments.clone());
-        for (expression, (_, expected_type)) in iter {
+        let iter = caller_arguments.iter().zip(arguments.clone());
+        for (expression, expected_type) in iter {
             let (checked, got_type, _) = self.typecheck_expr(expression)?;
             if got_type != expected_type {
                 return Err(SemanticError {
@@ -214,9 +226,8 @@ impl SemanticChecker {
             checked_arguments.push(checked);
         }
 
-
         // get the remaining extra arguments if the fn is variadic
-        for extra in arguments.iter().skip(expected_len) {
+        for extra in caller_arguments.iter().skip(expected_len) {
             // remaining if the function is variadic
             let (extra, _, _) = self.typecheck_expr(extra)?;
             checked_arguments.push(extra);
@@ -224,9 +235,9 @@ impl SemanticChecker {
 
         return Ok((
             cir::Expression {
-                span,
+                span: call_span,
                 data: cir::ExpressionData::FunctionCall {
-                    function: name.to_string(),
+                    function: Box::new(expr),
                     arguments: checked_arguments,
                     extrn
                 }
@@ -557,12 +568,22 @@ impl SemanticChecker {
             }
             ast::ExpressionData::FunctionCall {
                 function,
-                arguments,
+                arguments: caller_arguments,
             } => {
-                if let ast::ExpressionData::Identifier { name } = &function.data {
-                    return self.typecheck_function_call(name, arguments, function.span);
+                let (function, function_type, _) = self.typecheck_expr(function)?;
+                if let cir::Typing::Function { ret, arguments, variadic, extrn } = function_type {
+                    let span = function.span;
+                    return self.typecheck_function_call(
+                        function,
+                        *ret,
+                        &arguments,
+                        variadic,
+                        extrn,
+                        caller_arguments,
+                        span,
+                    );
                 } else {
-                    todo!("implement other cases for function call")
+                    panic!("call non-function");
                 }
             }
             ast::ExpressionData::StructInit { name, fields } => {
@@ -656,9 +677,15 @@ impl SemanticChecker {
                         ExpressionIdentity::Immediate,
                     ));
                 } else if let Some((_, f)) = self.namespace.functions.get(name) {
+                    let args = f.arguments.iter().map(|(_, typ)| typ.clone()).collect::<Vec<cir::Typing>>();
                     return Ok((
                         thing,
-                        f.ret.clone(), // FIXME: This should be the function pointer type
+                        cir::Typing::Function {
+                            ret: Box::new(f.ret.clone()),
+                            arguments: args,
+                            variadic: f.variadic,
+                            extrn: f.extrn,
+                        },
                         ExpressionIdentity::Immediate,
                     ));
                 } else {
