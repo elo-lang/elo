@@ -101,7 +101,12 @@ impl SemanticChecker {
                     extrn: false
                 });
             }
-            _ => todo!("implement other types"),
+            ast::Typing::Array { typ, amount } => {
+                return Ok(cir::Typing::Array {
+                    typ: Box::new(self.check_type(typ)?),
+                    amount: *amount
+                });
+            }
         }
     }
 
@@ -947,7 +952,6 @@ impl SemanticChecker {
                 })
             }
             ast::Statement::FnStatement(stmt) => {
-                // TODO: Add proper type-checking for the function block (check return type in all control flow branches)
                 if let Some(s) = self.check_name_availability(&stmt.name) {
                     return Err(SemanticError { span: node.span, case: SemanticErrorCase::NameRedefinition {
                         name: stmt.name.clone(),
@@ -1014,7 +1018,6 @@ impl SemanticChecker {
                     }})
                 }
 
-                // TODO: Add type-checking
                 let mut validated_args = Vec::new();
                 for a in stmt.arguments.iter() {
                     validated_args.push((a.name.clone(), self.check_type(&a.typing)?));
@@ -1114,7 +1117,6 @@ impl SemanticChecker {
                 );
             }
             ast::Statement::WhileStatement(stmt) => {
-                // TODO: Remember to push a new scope to the namespace
                 let (condition, typing, _) = self.typecheck_expr(&stmt.condition)?;
                 if typing != cir::Typing::Primitive(cir::Primitive::Bool) {
                     return Err(SemanticError {
