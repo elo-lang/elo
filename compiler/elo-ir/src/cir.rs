@@ -400,10 +400,7 @@ impl std::fmt::Display for Typing {
             }
             Typing::Pointer { typ, mutable } => write!(f, "*{}{}", if *mutable { "mut " } else { "" }, typ),
             Typing::Function(head) => {
-                let mut fmt = String::from("fn");
-                if head.ret != Typing::Void {
-                    fmt.push_str(&format!(" {}", head.ret))
-                }
+                let mut fmt = String::from("fn (");
                 for (i, (_, typ)) in head.arguments.iter().enumerate() {
                     fmt.push_str(&format!("{}", typ));
                     if i < head.arguments.len()-1 {
@@ -411,6 +408,9 @@ impl std::fmt::Display for Typing {
                     }
                 }
                 fmt.push(')');
+                if head.ret != Typing::Void {
+                    fmt.push_str(&format!(": {}", head.ret))
+                }
                 write!(f, "{}", fmt)
             }
         }

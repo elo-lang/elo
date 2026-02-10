@@ -119,6 +119,31 @@ impl<'a> Parser<'a> {
                     }
                     return self.parse_type()
                 }
+                Token::Keyword(Keyword::Fn) => {
+                    self.expect_token(Token::Delimiter('('))?;
+                    let mut types = Vec::new();
+                    if let Ok(first) = self.parse_type() {
+                        types.push(first);
+                    }
+                    while let Some(Lexem {
+                        token: Token::Delimiter(','),
+                        ..
+                    }) = self.lexer.peek()
+                    {
+                        self.next();
+                        let t = self.parse_type()?;
+                        types.push(t);
+                    }
+                    self.expect_token(Token::Delimiter(')'))?;
+                    let mut ret = None;
+                    if let Some(_) = self.test_token(&Token::Delimiter(':'), false) {
+                        ret = Some(self.parse_type()?);
+                    }
+                    return Ok(Type {
+                        span: lexem.span.merge(self.current_span),
+                        typing: Typing::Function { args: types, ret: ret.map(|x| Box::new(x)) }
+                    });
+                }
                 Token::Identifier(x) => {
                     if let Some(Lexem {
                         token: Token::Op('<', None),
