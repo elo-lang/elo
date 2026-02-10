@@ -31,6 +31,7 @@ pub enum SemanticErrorCase {
         name: String,
     },
     UnmatchedArguments {
+        function: String,
         got: usize,
         expected: usize,
         too_much: bool,
@@ -208,6 +209,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
             );
         }
         SemanticErrorCase::UnmatchedArguments {
+            function,
             got,
             expected,
             too_much,
@@ -215,7 +217,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
             if too_much {
                 error(
                     "Type Check Error",
-                    &format!("too much arguments to function call"),
+                    &format!("too much arguments to function {function}"),
                     filespan,
                     None,
                     Some(&format!(
@@ -225,11 +227,11 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
             } else {
                 error(
                     "Type Check Error",
-                    &format!("too few arguments to function call"),
+                    &format!("too few arguments to function call {function}"),
                     filespan,
                     None,
                     Some(&format!(
-                        "function accepts {expected} argument(s) but got {got}",
+                        "function accepts {expected} argument(s) but got only {got}",
                     )),
                 );
             }
