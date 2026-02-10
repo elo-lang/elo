@@ -56,6 +56,9 @@ pub enum SemanticErrorCase {
         thing: String,
         got: String,
     },
+    CallNonFunction {
+        typ: String,
+    },
     NonAggregateFieldAccess {
         typ: String,
         field: String,
@@ -82,6 +85,15 @@ pub struct SemanticError {
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
+        SemanticErrorCase::CallNonFunction { typ } => {
+            error(
+                "Type Check Error",
+                &format!("attempt to call non-function type {typ}"),
+                filespan,
+                None,
+                None,
+            );
+        }
         SemanticErrorCase::UnknownEnumVariant { enumeration, variant } => {
             error(
                 "Type Check Error",
