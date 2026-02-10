@@ -181,7 +181,7 @@ pub enum ExpressionData {
         field: usize,
     },
     FunctionCall {
-        function: String,
+        function: Box<Expression>,
         arguments: Vec<Expression>,
         extrn: bool,
     },
@@ -376,7 +376,12 @@ pub enum Typing {
         mutable: bool,
         typ: Box<Typing>,
     },
-    Function(Box<FunctionHead>),
+    Function {
+        ret: Box<Typing>,
+        arguments: Vec<Typing>,
+        variadic: bool,
+        extrn: bool,
+    },
 }
 
 impl std::fmt::Display for Typing {
@@ -399,17 +404,20 @@ impl std::fmt::Display for Typing {
                 write!(f, "{}", fmt)
             }
             Typing::Pointer { typ, mutable } => write!(f, "*{}{}", if *mutable { "mut " } else { "" }, typ),
-            Typing::Function(head) => {
+            Typing::Function { ret, arguments, variadic, extrn: _ } => {
                 let mut fmt = String::from("fn (");
-                for (i, (_, typ)) in head.arguments.iter().enumerate() {
+                for (i, typ) in arguments.iter().enumerate() {
                     fmt.push_str(&format!("{}", typ));
-                    if i < head.arguments.len()-1 {
+                    if i < arguments.len()-1 {
                         fmt.push_str(", ");
                     }
                 }
+                if *variadic {
+                    fmt.push_str(", ...");
+                }
                 fmt.push(')');
-                if head.ret != Typing::Void {
-                    fmt.push_str(&format!(": {}", head.ret))
+                if Typing::Void != **ret {
+                    fmt.push_str(&format!(": {}", ret))
                 }
                 write!(f, "{}", fmt)
             }
