@@ -268,7 +268,7 @@ pub enum Typing {
         mutable: bool,
         typ: Box<Type>,
     },
-    FunctionPointer {
+    Function {
         args: Vec<Type>,
         return_: Box<Option<Type>>,
     },
