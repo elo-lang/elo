@@ -193,6 +193,9 @@ impl<'a> Parser<'a> {
                         types.push(t);
                     }
                     self.expect_token(Token::Delimiter(')'))?;
+                    if types.len() == 1 {
+                        return Ok(types.pop().unwrap());
+                    }
                     return Ok(Type {
                         span: lexem.span.merge(self.current_span),
                         typing: Typing::Tuple { types },
