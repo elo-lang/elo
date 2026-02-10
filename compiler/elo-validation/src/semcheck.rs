@@ -583,7 +583,12 @@ impl SemanticChecker {
                         span,
                     );
                 } else {
-                    panic!("call non-function");
+                    return Err(SemanticError {
+                        span: expr.span,
+                        case: SemanticErrorCase::CallNonFunction {
+                            typ: format!("{function_type}"),
+                        },
+                    });
                 }
             }
             ast::ExpressionData::StructInit { name, fields } => {
