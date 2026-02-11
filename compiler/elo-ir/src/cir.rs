@@ -205,6 +205,10 @@ pub enum ExpressionData {
     Identifier {
         name: String,
     },
+    Cast {
+        expr: Box<Expression>,
+        typ: Typing,
+    }
 }
 
 impl std::fmt::Display for ExpressionData {
@@ -248,6 +252,9 @@ impl std::fmt::Display for ExpressionData {
                 fmt.push_str(")");
                 write!(f, "{fmt}")
             }
+            ExpressionData::Cast { expr, typ } => {
+                write!(f, "{expr} as {typ}")
+            }
             ExpressionData::Integer { value } => write!(f, "{}", value),
             ExpressionData::Float { value } => write!(f, "{}", value),
             ExpressionData::Bool { value } => write!(f, "{}", value),
@@ -269,7 +276,7 @@ pub struct Function {
     pub block: Block,
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct FunctionHead {
     pub name: String,
     pub ret: Typing,
@@ -296,16 +303,16 @@ pub enum Primitive {
     I32,
     I16,
     I8,
-    Bool,
     U64,
     U32,
     U16,
     U8,
-    F32,
-    F64,
     Int,
     UInt,
     Float,
+    F32,
+    F64,
+    Bool,
     Str,
     Char,
 }
@@ -384,6 +391,40 @@ pub enum Typing {
     },
 }
 
+impl Typing {
+    pub fn is_integer(&self) -> bool {
+        match self {
+              Typing::Primitive(Primitive::I64)
+            | Typing::Primitive(Primitive::I32)
+            | Typing::Primitive(Primitive::I16)
+            | Typing::Primitive(Primitive::I8)
+            | Typing::Primitive(Primitive::U64)
+            | Typing::Primitive(Primitive::U32)
+            | Typing::Primitive(Primitive::U16)
+            | Typing::Primitive(Primitive::U8)
+            | Typing::Primitive(Primitive::Int)
+            | Typing::Primitive(Primitive::UInt) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_bool(&self) -> bool {
+        if let Typing::Primitive(Primitive::Bool) = self {
+            return true;
+        }
+        false
+    }
+
+    pub fn is_float(&self) -> bool {
+        match self {
+              Typing::Primitive(Primitive::F64)
+            | Typing::Primitive(Primitive::F32)
+            | Typing::Primitive(Primitive::Float) => true,
+            _ => false,
+        }
+    }
+}
+
 impl std::fmt::Display for Typing {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
@@ -416,7 +457,7 @@ impl std::fmt::Display for Typing {
                     fmt.push_str(", ...");
                 }
                 fmt.push(')');
-                if Typing::Void != **ret {
+                if let Typing::Void = **ret {} else {
                     fmt.push_str(&format!(": {}", ret))
                 }
                 write!(f, "{}", fmt)

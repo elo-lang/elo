@@ -132,6 +132,10 @@ pub enum ExpressionData {
         origin: Box<Expression>,
         inner: Box<Expression>,
     },
+    Cast {
+        expr: Box<Expression>,
+        typ: Type,
+    },
     FieldAccess {
         origin: Box<Expression>,
         field: String,
