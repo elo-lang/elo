@@ -252,8 +252,57 @@ impl SemanticChecker {
         ));
     }
 
+    // Explicit type cast rules
+    fn typecheck_cast(&mut self, origin: &cir::Typing, into: &cir::Typing, span: Span) -> Result<(), SemanticError> {
+        let mut ok = false;
+        if origin.is_integer() {
+            ok = into.is_bool() || into.is_integer() || into.is_float();
+        } else if origin.is_float() {
+            ok = into.is_bool() || into.is_integer() || into.is_float();
+        } else if origin.is_bool() {
+            ok = into.is_integer();
+        } else if let (
+            &cir::Typing::Primitive(cir::Primitive::Char),
+            &cir::Typing::Primitive(cir::Primitive::U8 | cir::Primitive::U32)
+        ) = (&origin, &into) {
+            ok = true;
+        } else if let (
+            &cir::Typing::Pointer { mutable: true, .. },
+            &cir::Typing::Pointer { mutable: false, .. },
+        ) = (&origin, &into) {
+            ok = true;
+        }
+
+        if !ok {
+            return Err(SemanticError {
+                span: span,
+                case: SemanticErrorCase::InvalidCast {
+                    from: format!("{}", origin),
+                    into: format!("{}", into),
+                }
+            });
+        }
+        return Ok(())
+    }
+
     fn typecheck_expr(&mut self, expr: &ast::Expression) -> Result<ExpressionMetadata, SemanticError> {
         match &expr.data {
+            ast::ExpressionData::Cast { expr: inner, typ } => {
+                let typ = self.check_type(typ)?;
+                let (inner, origin, id) = self.typecheck_expr(inner)?;
+                self.typecheck_cast(&origin, &typ, expr.span)?;
+                return Ok((
+                    cir::Expression {
+                        span: expr.span,
+                        data: cir::ExpressionData::Cast {
+                            expr: Box::new(inner),
+                            typ: typ.clone(),
+                        },
+                    },
+                    typ,
+                    id
+                ))
+            }
             ast::ExpressionData::BinaryOperation {
                 operator,
                 left,
