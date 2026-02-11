@@ -776,11 +776,13 @@ impl<'a> Parser<'a> {
         while let Some(Lexem { token, .. }) = self.lexer.peek() {
             // Everything put before checking the precedence automatically means it's always the highest precedence.
             let next_limit = binop_precedence(token);
+
             // FIXME: The argument `false` of the test_token call below is not correct
             //        because it is desirable to let you have member accesses in a chain
             //        over multiple lines, but this causes the test_token function to consume
             //        the newline token that is needed to ensure proper statement termination.
             //        Possible Fix: only allow "lazy" parsing of expressions inside ()
+            // Field/member access
             if let Some(_) = self.test_token(&Token::Delimiter('.'), false) {
                 // First we check for an integer after the '.' to see if it's a tuple index access
                 // instead of a field access
@@ -805,6 +807,8 @@ impl<'a> Parser<'a> {
                 };
                 continue;
             }
+
+            // Subscript
             if let Some(_) = self.test_token(&Token::Delimiter('['), false) {
                 let inner = self.parse_expr(1, true)?;
                 self.expect_token(Token::Delimiter(']'))?;
@@ -813,6 +817,19 @@ impl<'a> Parser<'a> {
                     data: ExpressionData::Subscript {
                         origin: Box::new(left),
                         inner: Box::new(inner),
+                    },
+                };
+                continue;
+            }
+
+            // Type cast with 'as'
+            if let Some(_) = self.test_token(&Token::Keyword(Keyword::As), false) {
+                let typ = self.parse_type()?;
+                left = Expression {
+                    span: left.span.merge(self.current_span),
+                    data: ExpressionData::Cast {
+                        expr: Box::new(left),
+                        typ: typ,
                     },
                 };
                 continue;
