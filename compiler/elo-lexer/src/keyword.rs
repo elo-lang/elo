@@ -14,6 +14,7 @@ pub enum Keyword {
     True,
     False,
     Mut,
+    As,
 }
 
 impl Keyword {
@@ -34,6 +35,7 @@ impl Keyword {
             "true" => Some(Keyword::True),
             "false" => Some(Keyword::False),
             "mut" => Some(Keyword::Mut),
+            "as" => Some(Keyword::As),
             _ => None,
         }
     }
@@ -56,6 +58,7 @@ impl std::fmt::Display for Keyword {
             Keyword::True => write!(f, "true"),
             Keyword::False => write!(f, "false"),
             Keyword::Mut => write!(f, "mut"),
+            Keyword::As => write!(f, "as"),
         }
     }
 }
