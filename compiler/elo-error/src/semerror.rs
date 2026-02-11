@@ -20,6 +20,10 @@ pub enum SemanticErrorCase {
     InvalidType {
         what: String,
     },
+    InvalidCast {
+        from: String,
+        into: String,
+    },
     InvalidExpression {
         what: String,
         should: String,
@@ -85,6 +89,15 @@ pub struct SemanticError {
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
+        SemanticErrorCase::InvalidCast { from, into } => {
+            error(
+                "Type Check Error",
+                &format!("invalid cast from {from} to {into}"),
+                filespan,
+                None,
+                None,
+            );
+        }
         SemanticErrorCase::CallNonFunction { typ } => {
             error(
                 "Type Check Error",
