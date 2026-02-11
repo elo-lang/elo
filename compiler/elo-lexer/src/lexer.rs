@@ -164,6 +164,17 @@ impl<'a> Lexer<'a> {
         (buffer, last_char)
     }
 
+    fn token_float(&mut self, integer: String) -> Token {
+        self.chars.next();
+        if !matches!(self.chars.peek(), Some(&numeric!())) {
+            self.advance_span(integer.len() + 1); // 1 for the '.'
+            return Token::Float(format!("{integer}.0"));
+        }
+        let (fractional, _) = self.consume_while(None, |c| matches!(c, numeric!()));
+        self.advance_span(integer.len() + fractional.len() + 1); // 1 for the '.'
+        return Token::Float(format!("{integer}.{fractional}"));
+    }
+
     fn token_numeric(&mut self, ch: &char) -> Token {
         // TODO: check suffixes like u8, i8, etc?
         if ch == &'0' {
@@ -192,6 +203,7 @@ impl<'a> Lexer<'a> {
                         self.span.end += number.len();
                         return Token::Integer(number, 16);
                     }
+                    '.' => return self.token_float("0".to_string()),
                     _ => {}
                 }
             }
@@ -201,14 +213,7 @@ impl<'a> Lexer<'a> {
         let (number, _) = self.consume_while(Some(ch), |c| matches!(c, numeric!()));
         if let Some(c) = self.chars.peek() {
             if *c == '.' { // float literal
-                self.chars.next();
-                if !matches!(self.chars.peek(), Some(&numeric!())) {
-                    self.advance_span(number.len() + 1); // 1 for the '.'
-                    return Token::Float(format!("{number}.0"));
-                }
-                let (fractional, _) = self.consume_while(None, |c| matches!(c, numeric!()));
-                self.advance_span(number.len() + fractional.len() + 1); // 1 for the '.'
-                return Token::Float(format!("{number}.{fractional}"));
+                return self.token_float(number);
             }
         }
         self.advance_span(number.len());
