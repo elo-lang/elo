@@ -137,6 +137,9 @@ pub fn struct_expr_ordered(name: &str, fields: &[String]) -> String {
 pub fn function_call_expr(name: &str, arguments: &str) -> String {
     return format!("{name}({arguments})");
 }
+pub fn cast_expr(expr: &str, typ: &str) -> String {
+    return format!("({typ})({expr})")
+}
 
 pub fn statement_list(statements: &[String]) -> String {
     let mut s = String::new();

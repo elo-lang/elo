@@ -95,10 +95,8 @@ impl Generator {
             cir::Typing::Primitive(cir::Primitive::U8) => "uint8_t".to_string(),
             cir::Typing::Primitive(cir::Primitive::F32) => "float".to_string(),
             cir::Typing::Primitive(cir::Primitive::F64) => "double".to_string(),
-            // TODO: Make these int and uint to have the same size as the target architecture
-            cir::Typing::Primitive(cir::Primitive::Int) => "intptr_t".to_string(),
-            cir::Typing::Primitive(cir::Primitive::UInt) => "uintptr_t".to_string(),
-            // TODO: Make float have the size as the target architecture
+            cir::Typing::Primitive(cir::Primitive::Int) => "int32_t".to_string(),
+            cir::Typing::Primitive(cir::Primitive::UInt) => "uint32_t".to_string(),
             cir::Typing::Primitive(cir::Primitive::Float) => "float".to_string(),
             cir::Typing::Primitive(cir::Primitive::Str) => "char*".to_string(),
             cir::Typing::Primitive(cir::Primitive::Char) => "uint32_t".to_string(),
@@ -124,6 +122,11 @@ impl Generator {
             cir::ExpressionData::StringLiteral { value } => c::string_expr(value),
             cir::ExpressionData::Bool { value } => {
                 return if *value { "1" } else { "0" }.to_string();
+            }
+            cir::ExpressionData::Cast { expr, typ } => {
+                let typ = self.choose_type(typ);
+                let expr = self.generate_expression(expr);
+                return c::cast_expr(&expr, &typ);
             }
             cir::ExpressionData::Tuple { exprs, types } => {
                 let struct_name = self.get_tuple(types);
