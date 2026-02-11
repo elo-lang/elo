@@ -22,17 +22,31 @@ Types in Elo are categorized into 2 main categories and their corresponding subc
 - logic: `bool`
 
 ### Type casting
+
+### Explicit type casting Rules
+Explicit type cast is allowed when casting:
+
+1. Any integer into any integer
+3. Any integer into any floating-point and vice-versa
+3. Any integer into bool and vice-versa
+3. Any floating-point into bool
+4. `char` into `u8`
+
+The implicit type casting are also included here.
+
+### Automatic type inference (implicit type casting)
+
 Elo's type-checker is meant to automatically infer implicit casts between types that are safe to cast automatically.
 
-Automatic cast is allowed when converting:
+Automatic cast is done when casting:
 
 1. Any unsigned with size X into signed with size >=2X
 1. Any signed of size X into a floating-point with
    size >=X
 1. Any unsigned of size X into any floating-point with
    size >=2X
-1. Any logic into any integer
 1. `char` into `u32`
+1. `u8` into `char`
 1. `{char}` or `{char; _}` into `str` and vice-versa
 1. `*mut T` into `*T`
 
