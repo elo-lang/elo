@@ -112,7 +112,7 @@ fn parse_run(program: &str, args: &[String]) -> Result<Command, ()> {
         }
     }
     if input.is_none() {
-        usage(program, Command::from_str("build").as_ref());
+        usage(program, Command::from_str("run").as_ref());
         fatal("expected positional argument: <input>");
         return Err(());
     }
