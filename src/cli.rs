@@ -25,7 +25,7 @@ pub fn usage(program: &str, command: Option<&Command>) {
         match cmd {
             Command::Run { .. } => eprintln!("usage: {program} run <input> [...<args>]"),
             Command::Build { .. } => {
-                eprintln!("usage: {program} build <input> [-o <output>] [-O0|-O1|-O2|-O3]")
+                eprintln!("usage: {program} build <input> [-o <output>] [-c]")
             }
             Command::Help { .. } => eprintln!("usage: {program} help [<command>]"),
         }
@@ -55,10 +55,6 @@ pub fn help(program: &str, command: Option<&Command>) {
             eprintln!("flags:");
             eprintln!("    -o <output>      Specify output file");
             eprintln!("    -c               Output C source-code file from the compiled program");
-            eprintln!("                     If -h flag is enabled, the .c file will only contain the");
-            eprintln!("                     implementation of the program, and then the definitions");
-            eprintln!("                     will be in the generated .h file instead.");
-            eprintln!("    -h               Output C header file from the compiled program");
         }
     }
 }
@@ -68,7 +64,6 @@ pub enum Command {
         input: String,
         output: Option<String>,
         c: bool,
-        h: bool,
     },
     Run {
         input: String,
@@ -85,7 +80,7 @@ impl Command {
             "build" | "b" => Some(Command::Build {
                 input: String::new(),
                 output: None,
-                c: false, h: false,
+                c: false
             }),
             "run" | "r" => Some(Command::Run {
                 input: String::new(),
@@ -135,7 +130,6 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
     let mut input = None;
     let mut output = None;
     let mut c = false;
-    let mut h = false;
 
     let mut i = 2; // Start after the command and program name
     while i < args.len() {
@@ -143,9 +137,6 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
         match arg.as_str() {
             "-c" => {
                 c = true;
-            }
-            "-h" => {
-                h = true;
             }
             _ if arg.starts_with("-o") => {
                 let rest = arg[2..].to_string();
@@ -184,7 +175,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
     Ok(Command::Build {
         input: input.unwrap(),
         output,
-        c, h
+        c
     })
 }
 
