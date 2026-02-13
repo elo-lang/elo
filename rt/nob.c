@@ -13,21 +13,9 @@ bool build_rt(const char* source) {
 	return cmd_run(&cmd);
 }
 
-bool build_test(
-	const char* source,
-	const char* output
-) {
-	cmd_append(&cmd, "cc", "-o", output, source);
-	cmd_append(&cmd, "-I", "include");
-	cmd_append(&cmd, "-L", BUILD_DIR);
-	cmd_append(&cmd, "-l:"RT);
-	return cmd_run(&cmd);
-}
-
 int main(int argc, char** argv) {
 	NOB_GO_REBUILD_URSELF(argc, argv);
 	if (!mkdir_if_not_exists(BUILD_DIR)) return 1;
 	if (!build_rt(ENTRY)) return 1;
-	if (!build_test("test.c", BUILD_DIR "test")) return 1;
 	return 0;
 }

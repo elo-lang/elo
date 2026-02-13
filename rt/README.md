@@ -26,7 +26,7 @@ $ cc -o nob nob.c
 $ ./nob
 ```
 
-This will create the static library `libelort.a` and a test program in the `bin/` folder.
+This will create the static library `libelort.a` in the `bin/` folder.
 
 ---
 
