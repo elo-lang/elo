@@ -1043,6 +1043,7 @@ impl SemanticChecker {
                                      // Because Elo is not meant to support variadic functions at all.
                     extrn: false     // The same for extrn which is meant to flag if this function should be mangled
                 };
+
                 // Insert the function into the namespace
                 self.namespace.functions.insert(stmt.name.clone(), (node.span, head.clone()));
 
@@ -1197,15 +1198,44 @@ impl SemanticChecker {
         }
     }
 
+    pub fn typecheck_main_function(&mut self) -> Result<(), SemanticError> {
+        let main = cir::FunctionHead {
+            name: String::from("main"),
+            ret: cir::Typing::Void,
+            arguments: Vec::new(),
+            variadic: false,
+            extrn: false
+        };
+
+        if let Some((span, f)) = self.namespace.functions.get("main") {
+            if &main == f {
+                return Ok(());
+            }
+            return Err(SemanticError {
+                span: *span,
+                case: SemanticErrorCase::InvalidMainSignature {
+                    should_be: format!("{}", main)
+                }
+            });
+        }
+        return Ok(())
+    }
+
     // Type-check, control-flow check and transform the AST into the IR of Elo code
     pub fn go(&mut self, input: Vec<ast::Node>) -> cir::Program {
         // This is why i'm making a language
         let mut stmts = Vec::new();
         for node in Box::new(input).into_iter() {
             match self.typecheck_node(node, None) {
-                Ok(s) => stmts.push(s),
+                Ok(s) => {
+                    stmts.push(s)
+                },
                 Err(e) => self.errors.push(e),
             }
+        }
+        match self.typecheck_main_function() {
+            Ok(()) => {},
+            Err(e) => self.errors.push(e),
         }
         cir::Program { nodes: stmts }
     }

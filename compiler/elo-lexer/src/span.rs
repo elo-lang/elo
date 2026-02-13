@@ -47,7 +47,7 @@ impl Span {
 
     pub fn default(input_file: InputFile<'_>) -> Self {
         Span {
-            line: input_file.content.lines().count() - 1,
+            line: input_file.content.lines().count(),
             start: 0, end: 1
         }
     }
