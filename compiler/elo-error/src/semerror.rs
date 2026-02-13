@@ -4,6 +4,9 @@ use crate::error::error;
 
 #[derive(Debug)]
 pub enum SemanticErrorCase {
+    InvalidMainSignature {
+        should_be: String,
+    },
     TypeMismatch {
         got: String,
         expected: String,
@@ -89,6 +92,15 @@ pub struct SemanticError {
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
+        SemanticErrorCase::InvalidMainSignature { should_be } => {
+            error(
+                "Type Check Error",
+                &format!("invalid signature for main function"),
+                filespan,
+                None,
+                Some(&format!("this function signature should be {should_be}")),
+            );
+        }
         SemanticErrorCase::InvalidCast { from, into } => {
             error(
                 "Type Check Error",
