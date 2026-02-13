@@ -3,7 +3,7 @@
 // return_code=0
 
 extern fn printf(f: *u8, ...)
-fn main(): int {
+
+fn main() {
     printf('Hello World\n');
-    ret 0
 }

@@ -5,7 +5,7 @@ enum Test {
     Var2
 }
 
-fn main(): int {
+fn main() {
     let y = Test.Var3;
     ret 0;
 }

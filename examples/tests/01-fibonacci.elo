@@ -9,11 +9,10 @@ fn fib(n: int): int {
     return fib(n - 1) + fib(n - 2)
 }
 
-fn main(): int {
+fn main() {
     var x = 0
     while x < 10 {
         printf("%d\n", fib(x));
         x = x+1
     }
-    ret 0;
 }
