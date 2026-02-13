@@ -276,13 +276,33 @@ pub struct Function {
     pub block: Block,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct FunctionHead {
     pub name: String,
     pub ret: Typing,
     pub arguments: Vec<TypedField>,
     pub variadic: bool,
     pub extrn: bool,
+}
+
+impl std::fmt::Display for FunctionHead {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let mut fmt = format!("fn {}(", self.name);
+        for (i, (name, typ)) in self.arguments.iter().enumerate() {
+            fmt.push_str(&format!("{name}: {typ}"));
+            if i < self.arguments.len()-1 {
+                fmt.push_str(", ");
+            }
+        }
+        if self.variadic {
+            fmt.push_str(", ...");
+        }
+        fmt.push(')');
+        if let Typing::Void = self.ret {} else {
+            fmt.push_str(&format!(": {}", self.ret))
+        }
+        write!(f, "{}", fmt)
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
