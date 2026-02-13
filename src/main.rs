@@ -71,6 +71,15 @@ fn parse_and_validate(filename: &str, source: &str) -> cir::Program {
     }
 }
 
+fn tcc_compile(tcc: &mut tcc::TCCState, source: &str, output: tcc::OutputType) {
+    tcc.set_output_type(output);
+    if tcc.compile_string(source).is_err() {
+        cli::critical("could not compile C backend source-code. This is likely a bug");
+        cli::information("if so, please report the bug at https://github.com/elo-lang/elo/issues");
+        std::process::exit(-1);
+    }
+}
+
 fn main() {
     let args: Vec<String> = args().collect();
     let comm = parse_args(&args).unwrap_or_else(|_| {
@@ -89,7 +98,7 @@ fn main() {
                 let output_c = format!("{}.c", input_name);
                 let output_h = format!("{}.h", input_name);
                 let validated_program = parse_and_validate(input.as_str(), content.as_str());
-                tcc.set_output_type(tcc::OutputType::Executable);
+
                 let mut r#gen = Generator::new(validated_program);
                 r#gen.go();
                 let generated_output = &format!("{}{}", r#gen.head, r#gen.body);
@@ -104,11 +113,7 @@ fn main() {
                     std::fs::write(&output_h, r#gen.head).unwrap();
                 }
                 if !c && !h {
-                    if tcc.compile_string(generated_output).is_err() {
-                        cli::critical("could not compile C backend source-code. This is likely a bug");
-                        cli::information("if so, please report the bug at https://github.com/elo-lang/elo/issues");
-                        std::process::exit(-1);
-                    }
+                    tcc_compile(&mut tcc, generated_output, tcc::OutputType::Executable);
                     tcc.output_file(&output_exe);
                 }
             } else {
@@ -129,16 +134,16 @@ fn main() {
         } => {
             if let Some(content) = std::fs::read_to_string(&input).ok() {
                 let validated_program = parse_and_validate(input.as_str(), content.as_str());
-                tcc.set_output_type(tcc::OutputType::Memory);
-                let g = generate_program(validated_program);
-                if tcc.compile_string(&g).is_err() {
-                    cli::critical("could not compile C backend source-code. This is likely a bug");
-                    cli::information("if so, please report the bug at https://github.com/elo-lang/elo/issues");
-                    std::process::exit(-1);
-                }
+                let g = &generate_program(validated_program);
+
+                tcc_compile(&mut tcc, g, tcc::OutputType::Memory);
+
                 let arguments =
                     arguments.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
-                std::process::exit(tcc.run(&arguments));
+
+                let code = tcc.run(&arguments);
+
+                std::process::exit(code);
             } else {
                 cli::fatal(&format!("could not read input file {}", input));
                 std::process::exit(-1);
