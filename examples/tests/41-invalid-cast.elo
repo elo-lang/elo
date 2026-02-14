@@ -1,0 +1,5 @@
+// return_code=1
+
+fn main() {
+    let x = 10 as *u8
+}
