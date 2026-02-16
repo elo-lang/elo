@@ -1,0 +1,14 @@
+extern fn printf(fmt: *u8, ...)
+
+fn fib(n: int): int {
+    if n <= 1 => ret n;
+    return fib(n - 1) + fib(n - 2)
+}
+
+fn main() {
+    var x = 0
+    while x < 10 {
+        printf("%d\n", fib(x));
+        x = x+1
+    }
+}
