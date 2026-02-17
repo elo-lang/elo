@@ -730,12 +730,14 @@ impl<'a> Parser<'a> {
                     let op = UnaryOperation::from_op(*a, b.as_ref().copied());
                     if let Some(unop) = op {
                         let prec = unop_precedence(token);
+                        let start = lexem.span;
                         self.next();
+                        let expr = self.parse_expr(prec, true)?;
                         return Ok(Expression {
-                            span: self.current_span,
+                            span: start.merge(self.current_span),
                             data: ExpressionData::UnaryOperation {
                                 operator: unop,
-                                operand: Box::new(self.parse_expr(prec, true)?),
+                                operand: Box::new(expr),
                             },
                         });
                     }
