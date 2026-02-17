@@ -139,8 +139,8 @@ impl<'a> Lexer<'a> {
 
     fn advance_line(&mut self) {
         self.span.line += 1;
-        self.span.start = 0;
-        self.span.end = 0;
+        self.span.start = 1;
+        self.span.end = 1;
     }
 
     pub fn consume_while(

@@ -12,12 +12,7 @@ pub struct FileSpan<'a> {
 
 impl<'a> FileSpan<'a> {
     pub fn empty(input_file: InputFile<'a>) -> FileSpan<'a> {
-        FileSpan {
-            input_file,
-            line: 1,
-            start: 0,
-            end: 0,
-        }
+        Span::empty().into_filespan(input_file)
     }
 
     pub fn into_span(&self) -> Span {
@@ -45,10 +40,17 @@ impl Span {
     // let c = a.merge(b);
     // assert_eq!(c, Span { line: 5, start: 10, end: 22 })
 
-    pub fn default(input_file: InputFile<'_>) -> Self {
+    pub fn end_of_file(input_file: InputFile<'_>) -> Self {
         Span {
             line: input_file.content.lines().count(),
-            start: 0, end: 1
+            start: 1, end: 2
+        }
+    }
+
+    pub fn empty() -> Self {
+        Span {
+            line: 1,
+            start: 1, end: 2
         }
     }
 

@@ -70,7 +70,7 @@ impl<'a> Parser<'a> {
         Parser {
             lexer: lexer.peekable(),
             inputfile,
-            current_span: Span::default(inputfile),
+            current_span: Span::end_of_file(inputfile),
         }
     }
 
