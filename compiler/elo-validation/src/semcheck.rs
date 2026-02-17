@@ -13,6 +13,24 @@ pub struct Namespace {
     pub locals: Vec<Scope>,
 }
 
+pub enum Inference {
+    Equal,
+    Cast,
+    Dereference,
+    Invalid,
+}
+
+impl Inference {
+    pub fn is_valid(&self) -> bool {
+        match self {
+            Inference::Equal => true,
+            Inference::Cast => true,
+            Inference::Dereference => true,
+            Inference::Invalid => false,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Variable {
     pub mutable: bool,
@@ -112,13 +130,15 @@ impl SemanticChecker {
 
     fn typecheck_binop(
         &mut self,
-        lhs: &ExpressionMetadata,
-        rhs: &ExpressionMetadata,
+        lhs: ExpressionMetadata,
+        rhs: ExpressionMetadata,
         binop: &ast::BinaryOperation,
-        span: elo_lexer::span::Span,
-    ) -> Result<(cir::BinaryOperation, cir::Typing, ExpressionIdentity), SemanticError> {
+        span: Span,
+    ) -> Result<ExpressionMetadata, SemanticError> {
         let ir_binop = cir::BinaryOperation::from_ast(&binop);
-        if rhs.1 != lhs.1 {
+        let rhs_inferred = self.make_inference(rhs.0, &rhs.1, &lhs.1);
+
+        if rhs_inferred.is_none() {
             return Err(SemanticError {
                 span: span,
                 case: SemanticErrorCase::TypeMismatch {
@@ -127,6 +147,7 @@ impl SemanticChecker {
                 },
             });
         }
+
         let typing = match ir_binop {
             cir::BinaryOperation::Add
             | cir::BinaryOperation::Sub
@@ -137,7 +158,7 @@ impl SemanticChecker {
             | cir::BinaryOperation::BOr
             | cir::BinaryOperation::BXor
             | cir::BinaryOperation::LShift
-            | cir::BinaryOperation::RShift => lhs.1.clone(),
+            | cir::BinaryOperation::RShift => lhs.1,
             cir::BinaryOperation::Eq
             | cir::BinaryOperation::Ne
             | cir::BinaryOperation::Lt
@@ -178,7 +199,17 @@ impl SemanticChecker {
                 cir::Typing::Void
             }
         };
-        Ok((ir_binop, typing, ExpressionIdentity::Immediate))
+
+        let expr = cir::Expression {
+            span,
+            data: cir::ExpressionData::BinaryOperation {
+                operator: ir_binop,
+                left    : Box::new(lhs.0),
+                right   : Box::new(rhs_inferred.unwrap())
+            }
+        };
+
+        Ok((expr, typing, ExpressionIdentity::Immediate))
     }
 
     fn typecheck_function_call(
@@ -216,10 +247,12 @@ impl SemanticChecker {
             });
         }
         let mut checked_arguments = Vec::new();
-        let iter = caller_arguments.iter().zip(arguments.clone());
+        let iter = caller_arguments.into_iter().zip(arguments.clone());
         for (expression, expected_type) in iter {
             let (checked, got_type, _) = self.typecheck_expr(expression)?;
-            if got_type != expected_type {
+            if let Some(checked) = self.make_inference(checked, &got_type, &expected_type) {
+                checked_arguments.push(checked);
+            } else {
                 return Err(SemanticError {
                     span: expression.span,
                     case: SemanticErrorCase::TypeMismatch {
@@ -228,7 +261,6 @@ impl SemanticChecker {
                     },
                 });
             }
-            checked_arguments.push(checked);
         }
 
         // get the remaining extra arguments if the fn is variadic
@@ -252,9 +284,76 @@ impl SemanticChecker {
         ));
     }
 
+    // Make the changes in the expression so the inference is possible
+    fn make_inference(&self, expression: cir::Expression, from: &cir::Typing, into: &cir::Typing) -> Option<cir::Expression> {
+        let inf = self.typecheck_inference(from, into);
+
+        match inf {
+            Inference::Invalid => None,
+            Inference::Cast => Some(cir::Expression {
+                span: expression.span,
+                data: cir::ExpressionData::Cast {
+                    expr: Box::new(expression),
+                    typ: into.clone(),
+                }
+            }),
+            Inference::Dereference => Some(cir::Expression {
+                span: expression.span,
+                data: cir::ExpressionData::UnaryOperation {
+                    operator: cir::UnaryOperation::Deref,
+                    operand: Box::new(expression)
+                }
+            }),
+            Inference::Equal => Some(expression),
+        }
+    }
+
+    // Implicit type cast checking
+    fn typecheck_inference(&self, from: &cir::Typing, into: &cir::Typing) -> Inference {
+        if from == into {
+            return Inference::Equal;
+        }
+
+        let x = from.get_size();
+        let y = into.get_size();
+
+        let mut cast = false;
+        if from.is_unsigned() {
+            cast = (into.is_signed() || into.is_float()) && y >= 2*x;
+        } else if from.is_signed() {
+            cast = into.is_float() && y >= x;
+        } else if let (
+            &cir::Typing::Primitive(cir::Primitive::Char),
+            &cir::Typing::Primitive(cir::Primitive::U32)
+        ) = (&from, &into) {
+            cast = true;
+        } else if let (
+            &cir::Typing::Primitive(cir::Primitive::U8),
+            &cir::Typing::Primitive(cir::Primitive::Char)
+        ) = (&from, &into) {
+            cast = true;
+        } else if let (
+            &cir::Typing::Pointer { mutable: true, .. },
+            &cir::Typing::Pointer { mutable: false, .. },
+        ) = (&from, &into) {
+            cast = true;
+        }
+
+        if cast {
+            return Inference::Cast;
+        }
+
+        return Inference::Invalid;
+    }
+
     // Explicit type cast rules
     fn typecheck_cast(&mut self, origin: &cir::Typing, into: &cir::Typing, span: Span) -> Result<(), SemanticError> {
         let mut ok = false;
+
+        if self.typecheck_inference(&origin, &into).is_valid() {
+            return Ok(());
+        }
+
         if origin.is_integer() {
             ok = into.is_bool() || into.is_integer() || into.is_float();
         } else if origin.is_float() {
@@ -263,12 +362,7 @@ impl SemanticChecker {
             ok = into.is_integer();
         } else if let (
             &cir::Typing::Primitive(cir::Primitive::Char),
-            &cir::Typing::Primitive(cir::Primitive::U8 | cir::Primitive::U32)
-        ) = (&origin, &into) {
-            ok = true;
-        } else if let (
-            &cir::Typing::Pointer { mutable: true, .. },
-            &cir::Typing::Pointer { mutable: false, .. },
+            &cir::Typing::Primitive(cir::Primitive::U8)
         ) = (&origin, &into) {
             ok = true;
         }
@@ -310,20 +404,7 @@ impl SemanticChecker {
             } => {
                 let lhs = self.typecheck_expr(left)?;
                 let rhs = self.typecheck_expr(right)?;
-                let (operator, typing, op_id) =
-                    self.typecheck_binop(&lhs, &rhs, operator, expr.span)?;
-                Ok((
-                    cir::Expression {
-                        span: expr.span,
-                        data: cir::ExpressionData::BinaryOperation {
-                            operator,
-                            left: Box::new(lhs.0),
-                            right: Box::new(rhs.0),
-                        }
-                    },
-                    typing,
-                    op_id,
-                ))
+                Ok(self.typecheck_binop(lhs, rhs, operator, expr.span)?)
             }
             ast::ExpressionData::UnaryOperation { operator, operand } => {
                 let operator = cir::UnaryOperation::from_ast(operator);
@@ -444,11 +525,12 @@ impl SemanticChecker {
                 let mut checked_exprs = Vec::new();
                 let mut r#type: Option<cir::Typing> = None;
                 for i in exprs {
-                    let (expr, expr_typing, _) = self.typecheck_expr(i)?;
+                    let (mut expr, expr_typing, _) = self.typecheck_expr(i)?;
                     let span = i.span;
-                    checked_exprs.push(expr);
                     if let Some(ref expected) = r#type {
-                        if expected != &expr_typing {
+                        if let Some(inferred) = self.make_inference(expr, &expr_typing, &expected) {
+                            expr = inferred;
+                        } else {
                             return Err(SemanticError {
                                 span: span,
                                 case: SemanticErrorCase::TypeMismatch {
@@ -460,6 +542,7 @@ impl SemanticChecker {
                     } else {
                         r#type = Some(expr_typing);
                     }
+                    checked_exprs.push(expr);
                 }
                 return Ok((
                     cir::Expression {
@@ -514,27 +597,29 @@ impl SemanticChecker {
             ast::ExpressionData::Subscript { origin, inner } => {
                 let (origin, origin_type, origin_id) = self.typecheck_expr(origin)?;
                 let (inner, inner_type, _) = self.typecheck_expr(inner)?;
+                let inner_span = inner.span;
                 if let cir::Typing::Array { typ, .. } = origin_type {
-                    if inner_type != cir::Typing::Primitive(cir::Primitive::Int) {
+                    if let Some(inner) = self.make_inference(inner, &inner_type, &cir::Typing::Primitive(cir::Primitive::UInt)) {
+                        return Ok((
+                            cir::Expression {
+                                span: expr.span,
+                                data: cir::ExpressionData::ArraySubscript {
+                                    origin: Box::new(origin),
+                                    index: Box::new(inner)
+                                }
+                            },
+                            *typ,
+                            origin_id
+                        ))
+                    } else {
                         return Err(SemanticError {
-                            span: inner.span,
+                            span: inner_span,
                             case: SemanticErrorCase::TypeMismatch {
                                 got: format!("{}", inner_type),
                                 expected: format!("integer type")
                             }
                         })
                     }
-                    return Ok((
-                        cir::Expression {
-                            span: expr.span,
-                            data: cir::ExpressionData::ArraySubscript {
-                                origin: Box::new(origin),
-                                index: Box::new(inner)
-                            }
-                        },
-                        *typ,
-                        origin_id
-                    ))
                 } else {
                     return Err(SemanticError {
                         span: origin.span,
@@ -670,7 +755,9 @@ impl SemanticChecker {
                         })?;
                     let field_value_span = field.value.span;
                     let (expr, typing, _) = self.typecheck_expr(&field.value)?;
-                    if &typing != expected_typing {
+                    if let Some(expr) = self.make_inference(expr, &typing, expected_typing) {
+                        checked_fields.push((field.name.clone(), expr));
+                    } else {
                         return Err(SemanticError {
                             span: field_value_span,
                             case: SemanticErrorCase::TypeMismatch {
@@ -679,7 +766,6 @@ impl SemanticChecker {
                             },
                         });
                     }
-                    checked_fields.push((field.name.clone(), expr));
                 }
                 let thing = cir::ExpressionData::StructInit {
                     origin: strukt.clone(),
@@ -947,7 +1033,17 @@ impl SemanticChecker {
                 let name = &stmt.binding;
                 let (expr, typ, _) = self.typecheck_expr(assignment)?;
                 let annotated = self.check_type(&stmt.typing)?;
-                if annotated != typ {
+                self.namespace.constants.insert(name.clone(), (node.span, typ.clone()));
+                if let Some(expr) = self.make_inference(expr, &typ, &annotated) {
+                    return Ok(cir::Statement {
+                        span: node.span,
+                        kind: cir::StatementKind::Constant {
+                            value: expr,
+                            binding: name.clone(),
+                            typing: typ,
+                        }
+                    })
+                } else {
                     return Err(SemanticError {
                         span: stmt.typing.span,
                         case: SemanticErrorCase::TypeMismatch {
@@ -956,15 +1052,6 @@ impl SemanticChecker {
                         },
                     });
                 }
-                self.namespace.constants.insert(name.clone(), (node.span, typ.clone()));
-                Ok(cir::Statement {
-                    span: node.span,
-                    kind: cir::StatementKind::Constant {
-                        value: expr,
-                        binding: name.clone(),
-                        typing: typ,
-                    }
-                })
             }
             ast::Statement::ReturnStatement(stmt) => {
                 if expects_return.is_none() && stmt.expr.is_some() {
@@ -972,8 +1059,18 @@ impl SemanticChecker {
                 }
                 if let Some(expr) = &stmt.expr {
                     let (expr, typ, _) = self.typecheck_expr(expr)?;
-                    if &typ != expects_return.unwrap() {
-                        if expects_return.unwrap() == &cir::Typing::Void {
+                    let got_return = &typ;
+                    let expected_return = expects_return.unwrap();
+                    if let Some(expr) = self.make_inference(expr, got_return, expected_return) {
+                        return Ok(cir::Statement {
+                            span: node.span,
+                            kind: cir::StatementKind::ReturnStatement {
+                                value: Some(expr),
+                                typing: typ,
+                            }
+                        });
+                    } else {
+                        if expected_return == &cir::Typing::Void {
                             return Err(SemanticError { span: node.span, case: SemanticErrorCase::ReturnValueOnVoidFunction {
                                 function: self.current_function.clone(),
                             }})
@@ -981,16 +1078,9 @@ impl SemanticChecker {
                         return Err(SemanticError { span: node.span, case: SemanticErrorCase::MismatchedReturnType {
                             function: self.current_function.clone(),
                             got: format!("{}", typ),
-                            expected: format!("{}", expects_return.unwrap()),
+                            expected: format!("{}", expected_return),
                         }});
                     }
-                    return Ok(cir::Statement {
-                        span: node.span,
-                        kind: cir::StatementKind::ReturnStatement {
-                            value: Some(expr),
-                            typing: typ,
-                        }
-                    });
                 }
                 Ok(cir::Statement {
                     span: node.span,
