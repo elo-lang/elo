@@ -428,6 +428,47 @@ impl Typing {
         }
     }
 
+    pub fn is_unsigned(&self) -> bool {
+        match self {
+              Typing::Primitive(Primitive::U64)
+            | Typing::Primitive(Primitive::U32)
+            | Typing::Primitive(Primitive::U16)
+            | Typing::Primitive(Primitive::U8)
+            | Typing::Primitive(Primitive::UInt) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_signed(&self) -> bool {
+        match self {
+              Typing::Primitive(Primitive::I64)
+            | Typing::Primitive(Primitive::I32)
+            | Typing::Primitive(Primitive::I16)
+            | Typing::Primitive(Primitive::I8)
+            | Typing::Primitive(Primitive::Int) => true,
+            _ => false,
+        }
+    }
+
+    pub fn get_size(&self) -> u8 {
+        match self {
+            Typing::Primitive(Primitive::I64) => 8,
+            Typing::Primitive(Primitive::I32) => 4,
+            Typing::Primitive(Primitive::I16) => 2,
+            Typing::Primitive(Primitive::I8) => 1,
+            Typing::Primitive(Primitive::U64) => 8,
+            Typing::Primitive(Primitive::U32) => 4,
+            Typing::Primitive(Primitive::U16) => 2,
+            Typing::Primitive(Primitive::U8) => 1,
+            Typing::Primitive(Primitive::Int) => 4,
+            Typing::Primitive(Primitive::UInt) => 4,
+            Typing::Primitive(Primitive::F64) => 8,
+            Typing::Primitive(Primitive::F32) => 4,
+            Typing::Primitive(Primitive::Float) => 8,
+            _ => 0,
+        }
+    }
+
     pub fn is_bool(&self) -> bool {
         if let Typing::Primitive(Primitive::Bool) = self {
             return true;
