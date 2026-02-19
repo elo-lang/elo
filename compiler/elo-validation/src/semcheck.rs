@@ -2,7 +2,7 @@ use elo_ir::ast::{self, Expression, TypedField};
 use elo_error::semerror::*;
 use elo_ir::cir;
 use elo_lexer::span::Span;
-use std::collections::HashMap;
+use std::{collections::HashMap, thread::LocalKey};
 
 pub struct Namespace {
     pub name: Option<String>,
@@ -16,7 +16,6 @@ pub struct Namespace {
 pub enum Inference {
     Equal,
     Cast,
-    Dereference,
     Invalid,
 }
 
@@ -273,6 +272,23 @@ impl SemanticChecker {
         ));
     }
 
+    fn auto_dereference(&self, expression: ExpressionMetadata) -> ExpressionMetadata {
+        let (mut expr, mut typ, mut id) = expression;
+        let span = expr.span;
+        while let cir::Typing::Pointer { typ: inner, mutable } = typ {
+            expr = cir::Expression {
+                span,
+                data: cir::ExpressionData::UnaryOperation {
+                    operator: cir::UnaryOperation::Deref,
+                    operand: Box::new(expr)
+                }
+            };
+            typ = *inner;
+            id = ExpressionIdentity::Locatable(mutable);
+        }
+        (expr, typ, id)
+    }
+
     // Make the changes in the expression so the inference is possible
     fn make_inference(&self, expression: cir::Expression, from: &cir::Typing, into: &cir::Typing) -> Option<cir::Expression> {
         let inf = self.typecheck_inference(from, into);
@@ -284,13 +300,6 @@ impl SemanticChecker {
                 data: cir::ExpressionData::Cast {
                     expr: Box::new(expression),
                     typ: into.clone(),
-                }
-            }),
-            Inference::Dereference => Some(cir::Expression {
-                span: expression.span,
-                data: cir::ExpressionData::UnaryOperation {
-                    operator: cir::UnaryOperation::Deref,
-                    operand: Box::new(expression)
                 }
             }),
             Inference::Equal => Some(expression),
@@ -651,7 +660,8 @@ impl SemanticChecker {
                     }
                 }
 
-                let (expression, typing, id) = self.typecheck_expr(origin)?;
+                let meta = self.typecheck_expr(origin)?;
+                let (expression, typing, id) = self.auto_dereference(meta);
                 match typing {
                     cir::Typing::Struct(st) => {
                         // the case when you are getting a field from struct instance
