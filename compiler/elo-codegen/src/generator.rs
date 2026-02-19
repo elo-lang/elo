@@ -58,7 +58,6 @@ fn mangle_tuple(no: usize) -> String {
     return format!("_tuple{no}_{}", fnv_hash(&no.to_string()));
 }
 
-
 impl Generator {
     pub fn get_tuple(&mut self, types: &Vec<cir::Typing>) -> String {
         let mut tuple_index = None;
@@ -202,7 +201,8 @@ impl Generator {
                     .iter()
                     .map(|(f, e)| (f.clone(), self.generate_expression(e)))
                     .collect::<Vec<(String, String)>>();
-                return c::struct_expr(&name, &fields);
+                let name = &mangle_struct(&name);
+                return c::struct_expr(name, &fields);
             }
             cir::ExpressionData::TupleAccess { origin, field } => {
                 let field = &format!("t{field}");
