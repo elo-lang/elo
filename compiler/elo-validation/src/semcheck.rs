@@ -20,17 +20,6 @@ pub enum Inference {
     Invalid,
 }
 
-impl Inference {
-    pub fn is_valid(&self) -> bool {
-        match self {
-            Inference::Equal => true,
-            Inference::Cast => true,
-            Inference::Dereference => true,
-            Inference::Invalid => false,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct Variable {
     pub mutable: bool,
@@ -350,7 +339,7 @@ impl SemanticChecker {
     fn typecheck_cast(&mut self, origin: &cir::Typing, into: &cir::Typing, span: Span) -> Result<(), SemanticError> {
         let mut ok = false;
 
-        if self.typecheck_inference(&origin, &into).is_valid() {
+        if let Inference::Cast | Inference::Equal = self.typecheck_inference(&origin, &into) {
             return Ok(());
         }
 
