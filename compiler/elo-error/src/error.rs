@@ -34,7 +34,7 @@ pub fn error(
     eprintln!(" {} {CYAN_BOLD}|{RESET} {line}", filespan.line);
     eprintln!(
         "{indent} {}{GREEN_BOLD} ^{} {RESET}",
-        " ".repeat(filespan.start),
+        " ".repeat(filespan.start - 1),
         "-".repeat(
             if span_length == 0 { 0 } else { span_length - 1 }
         ),
@@ -42,7 +42,7 @@ pub fn error(
     if submessage.is_some() {
         eprintln!(
             "{indent}{CYAN_BOLD} {RESET}{}{GREEN_BOLD}{RESET} {}",
-            " ".repeat(filespan.start),
+            " ".repeat(filespan.start - 1),
             submessage.unwrap()
         );
     }
