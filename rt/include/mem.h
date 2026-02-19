@@ -31,8 +31,10 @@ typedef struct {
 	SlotTable   dead_slots;
 } MemoryContext;
 
+Slot __elo_handle_add(MemoryContext* ctx, void* ptr);
 Slot __elo_handle_new(MemoryContext* ctx, size_t size);
 void __elo_handle_resize(MemoryContext* ctx, Slot slot, size_t size);
 void __elo_handle_drop(MemoryContext* ctx, Slot slot);
+void* __elo_handle_get(MemoryContext* ctx, Slot slot);
 
 #endif

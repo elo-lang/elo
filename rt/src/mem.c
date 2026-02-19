@@ -15,12 +15,8 @@
         (xs)->items[(xs)->count++] = (x);                                            \
     } while (0)
 
-Slot __elo_handle_new(MemoryContext* ctx, size_t size) {
-	void* ptr = malloc(size);
-	if (ptr == NULL) {
-		abort();
-	}
-	Slot s;
+Slot __elo_handle_add(MemoryContext* ctx, void* ptr) {
+    Slot s;
 	if (ctx->dead_slots.count > 0) {
 		s = ctx->dead_slots.items[--(ctx->dead_slots.count)];
 		ctx->handles.items[s] = ptr;
@@ -29,6 +25,14 @@ Slot __elo_handle_new(MemoryContext* ctx, size_t size) {
 	s = ctx->handles.count;
 	da_append(&ctx->handles, ptr);
 	return s;
+}
+
+Slot __elo_handle_new(MemoryContext* ctx, size_t size) {
+	void* ptr = malloc(size);
+	if (ptr == NULL) {
+		abort();
+	}
+	__elo_handle_add(ctx, ptr);
 }
 
 void __elo_handle_resize(MemoryContext* ctx, Slot slot, size_t size) {
@@ -42,4 +46,8 @@ void __elo_handle_drop(MemoryContext* ctx, Slot slot) {
 	free(ctx->handles.items[slot]);
 	ctx->handles.items[slot] = NULL;
 	da_append(&ctx->dead_slots, slot);
+}
+
+inline void* __elo_handle_get(MemoryContext* ctx, Slot slot) {
+    return ctx->handles.items[slot];
 }
