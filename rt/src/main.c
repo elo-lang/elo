@@ -1,6 +1,7 @@
 #include "panic.c"
 #include "mem.c"
 #include "list.c"
+#include "str.c"
 
 void __elo_main(MemoryContext*);
 

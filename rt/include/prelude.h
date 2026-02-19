@@ -13,5 +13,6 @@
 #include <panic.h>
 #include <mem.h>
 #include <list.h>
+#include <str.h>
 
 #endif
