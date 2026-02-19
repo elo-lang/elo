@@ -491,8 +491,8 @@ impl std::fmt::Display for Typing {
         match self {
             Typing::Void => unreachable!("format void type is not allowed"),
             Typing::Primitive(p) => write!(f, "{}", p),
-            Typing::Struct(s) => write!(f, "struct {}", s.name),
-            Typing::Enum(e) => write!(f, "enum {}", e.name),
+            Typing::Struct(s) => write!(f, "{}", s.name),
+            Typing::Enum(e) => write!(f, "{}", e.name),
             Typing::Array { typ, amount } => write!(f, "{{{}; {}}}", typ, amount),
             Typing::Tuple { types } => {
                 let mut fmt = String::from("(");
