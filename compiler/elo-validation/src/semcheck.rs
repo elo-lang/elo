@@ -479,8 +479,8 @@ impl SemanticChecker {
                 return Ok((
                     cir::Expression {
                         span: expr.span,
-                        data: cir::ExpressionData::StringLiteral {
-                            value: String::from(*value),
+                        data: cir::ExpressionData::Integer {
+                            value: *value as i128,
                         }
                     },
                     cir::Typing::Primitive(cir::Primitive::Char),
