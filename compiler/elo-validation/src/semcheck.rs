@@ -2,7 +2,7 @@ use elo_ir::ast::{self, Expression, TypedField};
 use elo_error::semerror::*;
 use elo_ir::cir;
 use elo_lexer::span::Span;
-use std::{collections::HashMap, thread::LocalKey};
+use std::collections::HashMap;
 
 pub struct Namespace {
     pub name: Option<String>,
@@ -318,19 +318,23 @@ impl SemanticChecker {
         let mut cast = false;
         if from.is_unsigned() {
             cast = (into.is_signed() || into.is_float()) && y >= 2*x;
-        } else if from.is_signed() {
+        }
+        if from.is_signed() {
             cast = into.is_float() && y >= x;
-        } else if let (
+        }
+        if let (
             &cir::Typing::Primitive(cir::Primitive::Char),
             &cir::Typing::Primitive(cir::Primitive::U32)
         ) = (&from, &into) {
             cast = true;
-        } else if let (
+        }
+        if let (
             &cir::Typing::Primitive(cir::Primitive::U8),
             &cir::Typing::Primitive(cir::Primitive::Char)
         ) = (&from, &into) {
             cast = true;
-        } else if let (
+        }
+        if let (
             &cir::Typing::Pointer { mutable: true, .. },
             &cir::Typing::Pointer { mutable: false, .. },
         ) = (&from, &into) {
