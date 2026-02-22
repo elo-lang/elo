@@ -1,4 +1,3 @@
-#include <cstddef>
 #include <panic.h>
 #include <mem.h>
 #include <str.h>
@@ -29,7 +28,7 @@ Str __elo_str_slice(Pos pos, MemoryContext *ctx, Str str, size_t start, size_t e
     if (end >= str.size)
         __elo_panic(pos, "slice end %zu is out of bounds for str of length %zu", end, str.size);
 
-    char* offset = str.offset + start
+    size_t offset = str.offset + start;
     size_t size = end - offset;
 
     return (Str) {
