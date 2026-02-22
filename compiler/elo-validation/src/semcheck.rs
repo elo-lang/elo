@@ -495,11 +495,7 @@ impl SemanticChecker {
                             value: value.clone(),
                         }
                     },
-                    // TODO: Change this to `str` type.
-                    cir::Typing::Pointer {
-                        typ: Box::new(cir::Typing::Primitive(cir::Primitive::U8)),
-                        mutable: false,
-                    },
+                    cir::Typing::Primitive(cir::Primitive::Str),
                     ExpressionIdentity::Immediate,
                 ));
             }
@@ -554,7 +550,6 @@ impl SemanticChecker {
                             typ: r#type.clone().unwrap(),
                         }
                     },
-                    // TODO: Change this to `str` type.
                     cir::Typing::Array {
                         typ: Box::new(r#type.unwrap()),
                         amount: *amount,

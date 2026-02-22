@@ -97,7 +97,7 @@ impl Generator {
             cir::Typing::Primitive(cir::Primitive::Int) => "int32_t".to_string(),
             cir::Typing::Primitive(cir::Primitive::UInt) => "uint32_t".to_string(),
             cir::Typing::Primitive(cir::Primitive::Float) => "float".to_string(),
-            cir::Typing::Primitive(cir::Primitive::Str) => "char*".to_string(),
+            cir::Typing::Primitive(cir::Primitive::Str) => "Str".to_string(),
             cir::Typing::Primitive(cir::Primitive::Char) => "uint32_t".to_string(),
             cir::Typing::Pointer { typ, mutable: _ } => self.choose_type(typ) + "*",
             cir::Typing::Array { typ, .. } => self.choose_type(typ) + "*",
@@ -118,7 +118,10 @@ impl Generator {
         match &expr.data {
             cir::ExpressionData::Integer { value } => value.to_string(),
             cir::ExpressionData::Float { value } => value.to_string(),
-            cir::ExpressionData::StringLiteral { value } => c::string_expr(value),
+            cir::ExpressionData::StringLiteral { value } => {
+                // TODO: Find a way to organize this Runtime-related calls better.
+                c::function_call_expr("__elo_str_new", &format!("ctx, {}", c::string_expr(value)))
+            }
             cir::ExpressionData::Bool { value } => {
                 return if *value { "1" } else { "0" }.to_string();
             }
