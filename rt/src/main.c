@@ -2,6 +2,7 @@
 #include "mem.c"
 #include "list.c"
 #include "str.c"
+#include "print.c"
 
 void __elo_main(MemoryContext*);
 

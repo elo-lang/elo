@@ -14,5 +14,6 @@
 #include <mem.h>
 #include <list.h>
 #include <str.h>
+#include <print.h>
 
 #endif
