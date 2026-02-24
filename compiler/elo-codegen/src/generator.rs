@@ -180,6 +180,20 @@ impl Generator {
                 let typ = self.choose_type(typ);
                 return c::array_expr(&typ, &items);
             }
+            cir::ExpressionData::IntrinsicCall { intrinsic, arguments } => {
+                let name = match intrinsic {
+                    cir::Intrinsic::Print => "__elo_print_str",
+                };
+                let mut real_args = vec![String::from("ctx")];
+                let arguments: Vec<String> = arguments
+                    .iter()
+                    .map(|x| self.generate_expression(x))
+                    .collect();
+                real_args.extend(arguments);
+                let arguments = c::list(real_args.as_slice());
+
+                return c::function_call_expr(name, &arguments);
+            }
             cir::ExpressionData::FunctionCall {
                 function,
                 arguments,
