@@ -1,6 +1,6 @@
 // Compiled Intermediate Representation
 use elo_lexer::span::Span;
-use std::collections::HashMap;
+use std::{collections::{HashMap, hash_set::Intersection}, num::IntErrorKind};
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum BinaryOperation {
@@ -146,6 +146,28 @@ impl std::fmt::Display for Expression {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum Intrinsic {
+    Print,
+}
+
+impl std::fmt::Display for Intrinsic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Intrinsic::Print => write!(f, "print"),
+        }
+    }
+}
+
+impl Intrinsic {
+    pub fn from_str(s: &str) -> Option<Intrinsic> {
+        match s {
+            "print" => Some(Intrinsic::Print),
+            _ => None
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum ExpressionData {
     BinaryOperation {
@@ -184,6 +206,10 @@ pub enum ExpressionData {
         function: Box<Expression>,
         arguments: Vec<Expression>,
         extrn: bool,
+    },
+    IntrinsicCall {
+        intrinsic: Intrinsic,
+        arguments: Vec<Expression>,
     },
     StructInit {
         origin: Struct,
@@ -224,6 +250,16 @@ impl std::fmt::Display for ExpressionData {
             ExpressionData::EnumVariant { origin, variant } => write!(f, "{}.{}", origin, variant),
             ExpressionData::FunctionCall { function, arguments, extrn: _ } => {
                 let mut fmt = String::from(&format!("{function}("));
+                if arguments.len() == 1 {
+                    fmt.push_str(&format!("{}", arguments[0]))
+                } else if arguments.len() >= 2 {
+                    fmt.push_str(&format!("{}, ...", arguments[0]))
+                }
+                fmt.push(')');
+                write!(f, "{fmt}")
+            }
+            ExpressionData::IntrinsicCall { intrinsic, arguments } => {
+                let mut fmt = String::from(&format!("{intrinsic}("));
                 if arguments.len() == 1 {
                     fmt.push_str(&format!("{}", arguments[0]))
                 } else if arguments.len() >= 2 {
@@ -409,6 +445,7 @@ pub enum Typing {
         variadic: bool,
         extrn: bool,
     },
+    Intrinsic(Intrinsic)
 }
 
 impl Typing {
@@ -522,6 +559,9 @@ impl std::fmt::Display for Typing {
                     fmt.push_str(&format!(": {}", ret))
                 }
                 write!(f, "{}", fmt)
+            }
+            Typing::Intrinsic(intrinsic) => {
+                write!(f, "fn <{intrinsic}>")
             }
         }
     }
