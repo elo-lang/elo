@@ -1,4 +1,4 @@
-use elo_ir::ast::{self, Expression, TypedField};
+use elo_ir::{ast::{self, Expression, TypedField}, cir::Intrinsic};
 use elo_error::semerror::*;
 use elo_ir::cir;
 use elo_lexer::span::Span;
@@ -200,6 +200,49 @@ impl SemanticChecker {
         Ok((expr, typing, ExpressionIdentity::Immediate))
     }
 
+    fn typecheck_intrinsic_call(
+        &mut self,
+        expr: cir::Expression,
+        intrinsic: cir::Intrinsic,
+        arguments: &Vec<ast::Expression>,
+        call_span: Span,
+    ) -> Result<ExpressionMetadata, SemanticError> {
+        let signature = match intrinsic {
+            cir::Intrinsic::Print => {
+                (cir::Typing::Void,
+                 vec![cir::Typing::Primitive(cir::Primitive::Str)])
+            }
+        };
+
+        let mut checked_arguments = Vec::new();
+        for (expression, expected_type) in arguments.iter().zip(signature.1.clone()) {
+            let (checked, got_type, _) = self.typecheck_expr(expression)?;
+            if let Some(checked) = self.make_inference(checked, &got_type, &expected_type) {
+                checked_arguments.push(checked);
+            } else {
+                return Err(SemanticError {
+                    span: expression.span,
+                    case: SemanticErrorCase::TypeMismatch {
+                        got: format!("{}", got_type),
+                        expected: format!("{}", expected_type),
+                    },
+                });
+            }
+        }
+
+        return Ok((
+            cir::Expression {
+                span: call_span,
+                data: cir::ExpressionData::IntrinsicCall {
+                    intrinsic,
+                    arguments: checked_arguments,
+                }
+            },
+            signature.0,
+            ExpressionIdentity::Immediate,
+        ));
+    }
+
     fn typecheck_function_call(
         &mut self,
         expr: cir::Expression,
@@ -207,7 +250,7 @@ impl SemanticChecker {
         arguments: &Vec<cir::Typing>,
         variadic: bool,
         extrn: bool,
-        caller_arguments: &Vec<Expression>,
+        caller_arguments: &Vec<ast::Expression>,
         call_span: Span,
     ) -> Result<ExpressionMetadata, SemanticError> {
         let return_type = ret;
@@ -708,8 +751,8 @@ impl SemanticChecker {
                 arguments: caller_arguments,
             } => {
                 let (function, function_type, _) = self.typecheck_expr(function)?;
+                let span = function.span;
                 if let cir::Typing::Function { ret, arguments, variadic, extrn } = function_type {
-                    let span = function.span;
                     return self.typecheck_function_call(
                         function,
                         *ret,
@@ -719,6 +762,8 @@ impl SemanticChecker {
                         caller_arguments,
                         span,
                     );
+                } else if let cir::Typing::Intrinsic(intrinsic) = function_type {
+                    return self.typecheck_intrinsic_call(function, intrinsic, caller_arguments, span);
                 } else {
                     return Err(SemanticError {
                         span: expr.span,
@@ -829,6 +874,12 @@ impl SemanticChecker {
                             variadic: f.variadic,
                             extrn: f.extrn,
                         },
+                        ExpressionIdentity::Immediate,
+                    ));
+                } else if let Some(i) = Intrinsic::from_str(name) {
+                    return Ok((
+                        thing,
+                        cir::Typing::Intrinsic(i),
                         ExpressionIdentity::Immediate,
                     ));
                 } else {
