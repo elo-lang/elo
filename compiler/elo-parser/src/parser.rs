@@ -122,9 +122,13 @@ impl<'a> Parser<'a> {
                 Token::Keyword(Keyword::Fn) => {
                     self.expect_token(Token::Delimiter('('))?;
                     let mut types = Vec::new();
-                    if let Ok(first) = self.parse_type() {
-                        types.push(first);
+                    if let Some(_) = self.test_token(&Token::Delimiter(')'), false) {
+                        return Ok(Type {
+                            span: lexem.span.merge(self.current_span),
+                            typing: Typing::Function { args: vec![], ret: None }
+                        });
                     }
+                    types.push(self.parse_type()?);
                     while let Some(Lexem {
                         token: Token::Delimiter(','),
                         ..
