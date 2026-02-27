@@ -161,17 +161,29 @@ impl Generator {
                     cir::BinaryOperation::Sub => c::binop_expr(lhs, rhs, c::Binop::Sub),
                     cir::BinaryOperation::Mul => c::binop_expr(lhs, rhs, c::Binop::Mul),
                     cir::BinaryOperation::Div => c::binop_expr(lhs, rhs, c::Binop::Div),
-                    cir::BinaryOperation::Lt => c::binop_expr(lhs, rhs, c::Binop::Lt),
-                    cir::BinaryOperation::Gt => c::binop_expr(lhs, rhs, c::Binop::Gt),
-                    cir::BinaryOperation::Le => c::binop_expr(lhs, rhs, c::Binop::Le),
-                    cir::BinaryOperation::Ge => c::binop_expr(lhs, rhs, c::Binop::Ge),
+                    cir::BinaryOperation::Mod => c::binop_expr(lhs, rhs, c::Binop::Mod),
                     cir::BinaryOperation::Eq => c::binop_expr(lhs, rhs, c::Binop::Eq),
                     cir::BinaryOperation::Ne => c::binop_expr(lhs, rhs, c::Binop::Ne),
+                    cir::BinaryOperation::Lt => c::binop_expr(lhs, rhs, c::Binop::Lt),
+                    cir::BinaryOperation::Le => c::binop_expr(lhs, rhs, c::Binop::Le),
+                    cir::BinaryOperation::Gt => c::binop_expr(lhs, rhs, c::Binop::Gt),
+                    cir::BinaryOperation::Ge => c::binop_expr(lhs, rhs, c::Binop::Ge),
+                    cir::BinaryOperation::And => c::binop_expr(lhs, rhs, c::Binop::And),
+                    cir::BinaryOperation::Or => c::binop_expr(lhs, rhs, c::Binop::Or),
+                    cir::BinaryOperation::BAnd => c::binop_expr(lhs, rhs, c::Binop::BAnd),
+                    cir::BinaryOperation::BOr => c::binop_expr(lhs, rhs, c::Binop::BOr),
+                    cir::BinaryOperation::BXor => c::binop_expr(lhs, rhs, c::Binop::BXor),
+                    cir::BinaryOperation::LShift => c::binop_expr(lhs, rhs, c::Binop::LShift),
+                    cir::BinaryOperation::RShift => c::binop_expr(lhs, rhs, c::Binop::RShift),
                     cir::BinaryOperation::Assign => c::binop_expr(lhs, rhs, c::Binop::Assign),
-                    c => {
-                        dbg!(c);
-                        todo!()
-                    }
+                    cir::BinaryOperation::AssignAdd => c::binop_expr(lhs, rhs, c::Binop::AssignAdd),
+                    cir::BinaryOperation::AssignSub => c::binop_expr(lhs, rhs, c::Binop::AssignSub),
+                    cir::BinaryOperation::AssignMul => c::binop_expr(lhs, rhs, c::Binop::AssignMul),
+                    cir::BinaryOperation::AssignDiv => c::binop_expr(lhs, rhs, c::Binop::AssignDiv),
+                    cir::BinaryOperation::AssignMod => c::binop_expr(lhs, rhs, c::Binop::AssignMod),
+                    cir::BinaryOperation::AssignBAnd => c::binop_expr(lhs, rhs, c::Binop::AssignBAnd),
+                    cir::BinaryOperation::AssignBOr => c::binop_expr(lhs, rhs, c::Binop::AssignBOr),
+                    cir::BinaryOperation::AssignBXor => c::binop_expr(lhs, rhs, c::Binop::AssignBXor),
                 }
             }
             cir::ExpressionData::ArrayLiteral { exprs, typ } => {

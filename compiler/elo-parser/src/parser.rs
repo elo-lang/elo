@@ -14,9 +14,18 @@ use elo_ir::ast::*;
 
 pub type Precedence = u8;
 
+// TODO: Change this function to accept a BinaryOperation enum instead of &Token
 fn binop_precedence(token: &Token) -> Precedence {
     match token {
         Token::Op('=', None)      => 1,
+        Token::Op('+', Some('=')) => 1,
+        Token::Op('-', Some('=')) => 1,
+        Token::Op('*', Some('=')) => 1,
+        Token::Op('/', Some('=')) => 1,
+        Token::Op('%', Some('=')) => 1,
+        Token::Op('&', Some('=')) => 1,
+        Token::Op('|', Some('=')) => 1,
+        Token::Op('^', Some('=')) => 1,
         Token::Op('=', Some('=')) => 2,
         Token::Op('!', Some('=')) => 2,
         Token::Op('<', Some('=')) => 3,
@@ -42,6 +51,7 @@ fn binop_precedence(token: &Token) -> Precedence {
     }
 }
 
+// TODO: Change this function to accept a UnaryOperation enum instead of &Token
 fn unop_precedence(op: &Token) -> Precedence {
     match op {
         Token::Op('!', None) => 9,
