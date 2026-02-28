@@ -134,10 +134,19 @@ impl UnaryOperation {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// This enum is like an extended version of the concept of Lvalues and Rvalues in C/C++ terms
+// read more
+pub enum ExpressionIdentity {
+    Locatable(bool), // bool: mutable
+    Immediate,
+}
+
 #[derive(Debug, Clone)]
 pub struct Expression {
     pub span: Span,
     pub data: ExpressionData,
+    pub identity: ExpressionIdentity,
 }
 
 impl std::fmt::Display for Expression {
