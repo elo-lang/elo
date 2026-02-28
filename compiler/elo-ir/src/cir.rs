@@ -1,6 +1,6 @@
 // Compiled Intermediate Representation
 use elo_lexer::span::Span;
-use std::{collections::{HashMap, hash_set::Intersection}, num::IntErrorKind};
+use std::collections::HashMap;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum BinaryOperation {
@@ -140,6 +140,7 @@ impl UnaryOperation {
 pub enum ExpressionIdentity {
     Locatable(bool), // bool: mutable
     Immediate,
+    Function(bool), // bool: extern or not
 }
 
 #[derive(Debug, Clone)]
@@ -214,7 +215,6 @@ pub enum ExpressionData {
     FunctionCall {
         function: Box<Expression>,
         arguments: Vec<Expression>,
-        extrn: bool,
     },
     IntrinsicCall {
         intrinsic: Intrinsic,
@@ -257,7 +257,7 @@ impl std::fmt::Display for ExpressionData {
             ExpressionData::FieldAccess { origin, field } => write!(f, "{}.{}", origin, field),
             ExpressionData::TupleAccess { origin, field } => write!(f, "{}.{}", origin, field),
             ExpressionData::EnumVariant { origin, variant } => write!(f, "{}.{}", origin, variant),
-            ExpressionData::FunctionCall { function, arguments, extrn: _ } => {
+            ExpressionData::FunctionCall { function, arguments } => {
                 let mut fmt = String::from(&format!("{function}("));
                 if arguments.len() == 1 {
                     fmt.push_str(&format!("{}", arguments[0]))

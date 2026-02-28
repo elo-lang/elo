@@ -6,6 +6,7 @@ pub struct Generator {
     pub body: String,
     pub head: String,
     tuples: Vec<Vec<cir::Typing>>,
+    fn_types: Vec<(cir::Typing, Vec<cir::Typing>)>,
 }
 
 impl Generator {
@@ -15,6 +16,7 @@ impl Generator {
             body: String::new(),
             head: String::from(HEAD),
             tuples: Vec::new(),
+            fn_types: Vec::new(),
         }
     }
 }
@@ -54,12 +56,41 @@ fn mangle_struct(name: &str) -> String {
     return format!("_struct_{name}_{}", fnv_hash(name));
 }
 
-fn mangle_tuple(no: usize) -> String {
+fn mangle_tuple_type(no: usize) -> String {
     return format!("_tuple{no}_{}", fnv_hash(&no.to_string()));
 }
 
+fn mangle_fn_type(no: usize) -> String {
+    return format!("_fn{no}_{}", fnv_hash(&no.to_string()));
+}
+
 impl Generator {
-    pub fn get_tuple(&mut self, types: &Vec<cir::Typing>) -> String {
+    pub fn get_fn_type(&mut self, ret: &cir::Typing, args: &Vec<cir::Typing>) -> String {
+        let mut fn_type_index = None;
+        for (index, fn_type) in self.fn_types.iter().enumerate() {
+            if (ret, args) == (&fn_type.0, &fn_type.1) {
+                fn_type_index = Some(index);
+            }
+        }
+        if let Some(i) = fn_type_index {
+            return mangle_fn_type(i);
+        } else {
+            self.fn_types.push((ret.clone(), args.clone()));
+            let i = self.tuples.len();
+            let type_name = mangle_fn_type(i);
+            let ret = self.choose_type(ret);
+            let args = args
+                .iter()
+                .map(|x| self.choose_type(x))
+                .collect::<Vec<String>>()
+                .join(",");
+            let fn_type = &format!("{ret}(*{type_name})({args})");
+            self.head.push_str(&(c::typedef_stmt(fn_type) + "\n"));
+            return type_name;
+        }
+    }
+
+    pub fn get_tuple_type(&mut self, types: &Vec<cir::Typing>) -> String {
         let mut tuple_index = None;
         for (index, tuple) in self.tuples.iter().enumerate() {
             if tuple == types {
@@ -67,7 +98,7 @@ impl Generator {
             }
         }
         if let Some(i) = tuple_index {
-            return mangle_tuple(i);
+            return mangle_tuple_type(i);
         } else {
             self.tuples.push(types.clone());
             let i = self.tuples.len() - 1;
@@ -75,7 +106,7 @@ impl Generator {
             for (i, j) in types.iter().enumerate() {
                 body.push_str(&format!("{} t{i};\n", self.choose_type(j)));
             }
-            let struct_name = mangle_tuple(i);
+            let struct_name = mangle_tuple_type(i);
             self.head.push_str(&c::struct_stmt(&struct_name, &body));
             return struct_name;
         }
@@ -104,7 +135,10 @@ impl Generator {
             cir::Typing::Struct(cir::Struct { name, .. }) => format!("struct {}", mangle_struct(name)),
             cir::Typing::Enum(cir::Enum { name, .. }) => format!("enum {}", mangle_enum(name)),
             cir::Typing::Void => "void".to_string(),
-            cir::Typing::Tuple { types } => format!("struct {}", self.get_tuple(types)),
+            cir::Typing::Tuple { types } => format!("struct {}", self.get_tuple_type(types)),
+            cir::Typing::Function { ret, arguments, variadic: _, extrn: _ } => {
+                self.get_fn_type(ret, arguments)
+            }
             _ => {
                 todo!()
             }
@@ -131,7 +165,7 @@ impl Generator {
                 return c::cast_expr(&expr, &typ);
             }
             cir::ExpressionData::Tuple { exprs, types } => {
-                let struct_name = self.get_tuple(types);
+                let struct_name = self.get_tuple_type(types);
                 let fields = exprs
                     .iter()
                     .map(|e| self.generate_expression(e))
@@ -209,21 +243,27 @@ impl Generator {
             cir::ExpressionData::FunctionCall {
                 function,
                 arguments,
-                extrn
             } => {
-                if let cir::ExpressionData::Identifier { ref name } = (**function).data {
-                    let arguments: Vec<String> = arguments
-                        .iter()
-                        .map(|x| self.generate_expression(x))
-                        .collect();
-                    let arguments = c::list(arguments.as_slice());
-                    let fn_name = if *extrn { name } else { &mangle_function(name) };
-                    return c::function_call_expr(fn_name, &arguments);
+                let identity = function.identity;
+                let function = self.generate_expression(function);
+                let arguments: Vec<String> = arguments
+                    .iter()
+                    .map(|x| self.generate_expression(x))
+                    .collect();
+                let arguments = c::list(arguments.as_slice());
+
+                if let cir::ExpressionIdentity::Function(_) = identity {
+                    return c::function_call_expr(&function, &arguments);
+                }
+                return c::function_ptr_call_expr(&function, &arguments)
+            },
+            cir::ExpressionData::Identifier { name } => {
+                if let cir::ExpressionIdentity::Function(false) = expr.identity {
+                    mangle_function(name)
                 } else {
-                    todo!("implement other cases for function calls");
+                    name.clone()
                 }
             },
-            cir::ExpressionData::Identifier { name } => name.clone(),
             cir::ExpressionData::StructInit { origin, fields } => {
                 let name = origin.name.clone();
                 let fields = fields

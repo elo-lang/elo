@@ -241,7 +241,6 @@ impl SemanticChecker {
         ret: cir::Typing,
         arguments: &Vec<cir::Typing>,
         variadic: bool,
-        extrn: bool,
         caller_arguments: &Vec<ast::Expression>,
         call_span: Span,
     ) -> Result<TypedExpression, SemanticError> {
@@ -299,7 +298,6 @@ impl SemanticChecker {
                 data: cir::ExpressionData::FunctionCall {
                     function: Box::new(expr),
                     arguments: checked_arguments,
-                    extrn
                 },
                 identity: ExpressionIdentity::Immediate,
             },
@@ -751,13 +749,12 @@ impl SemanticChecker {
             } => {
                 let (function, function_type) = self.typecheck_expr(function)?;
                 let span = function.span;
-                if let cir::Typing::Function { ret, arguments, variadic, extrn } = function_type {
+                if let cir::Typing::Function { ret, arguments, variadic, extrn: _ } = function_type {
                     return self.typecheck_function_call(
                         function,
                         *ret,
                         &arguments,
                         variadic,
-                        extrn,
                         caller_arguments,
                         span,
                     );
@@ -868,7 +865,7 @@ impl SemanticChecker {
                         cir::Expression {
                             span: expr.span,
                             data: cir::ExpressionData::Identifier { name: name.clone() },
-                            identity: ExpressionIdentity::Immediate,
+                            identity: ExpressionIdentity::Function(f.extrn),
                         },
                         cir::Typing::Function {
                             ret: Box::new(f.ret.clone()),
@@ -882,7 +879,7 @@ impl SemanticChecker {
                         cir::Expression {
                             span: expr.span,
                             data: cir::ExpressionData::Identifier { name: name.clone() },
-                            identity: ExpressionIdentity::Immediate,
+                            identity: ExpressionIdentity::Function(false),
                         },
                         cir::Typing::Intrinsic(i)
                     ));

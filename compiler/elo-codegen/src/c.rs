@@ -169,6 +169,11 @@ pub fn struct_expr_ordered(name: &str, fields: &[String]) -> String {
 pub fn function_call_expr(name: &str, arguments: &str) -> String {
     return format!("{name}({arguments})");
 }
+
+pub fn function_ptr_call_expr(name: &str, arguments: &str) -> String {
+    return format!("(*({name}))({arguments})")
+}
+
 pub fn cast_expr(expr: &str, typ: &str) -> String {
     return format!("({typ})({expr})")
 }
@@ -249,6 +254,10 @@ pub fn enum_stmt(name: &str, body: &str) -> String {
 
 pub fn struct_stmt(name: &str, body: &str) -> String {
     return format!("struct {name} {{ {body} }};\n");
+}
+
+pub fn typedef_stmt(body: &str) -> String {
+    return format!("typedef {body};");
 }
 
 pub fn expr_stmt(expr: &str) -> String {
