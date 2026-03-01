@@ -75,8 +75,8 @@ impl Generator {
         if let Some(i) = fn_type_index {
             return mangle_fn_type(i);
         } else {
+            let i = self.fn_types.len();
             self.fn_types.push((ret.clone(), args.clone()));
-            let i = self.tuples.len();
             let type_name = mangle_fn_type(i);
             let ret = self.choose_type(ret);
             let args = args
@@ -100,8 +100,8 @@ impl Generator {
         if let Some(i) = tuple_index {
             return mangle_tuple_type(i);
         } else {
+            let i = self.tuples.len();
             self.tuples.push(types.clone());
-            let i = self.tuples.len() - 1;
             let mut body = String::new();
             for (i, j) in types.iter().enumerate() {
                 body.push_str(&format!("{} t{i};\n", self.choose_type(j)));
