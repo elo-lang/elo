@@ -627,19 +627,6 @@ impl<'a> Parser<'a> {
                 Token::Identifier(_) => {
                     let i = self.parse_identifier()?;
 
-                    // Function call (e.g. foo(), bar())
-                    if let Some(_) = self.test_token(&Token::Delimiter('('), false) {
-                        let args = self.parse_expression_list(Token::Delimiter(')'))?;
-                        self.expect_token(Token::Delimiter(')'))?;
-                        return Ok(Expression {
-                            span: i.span.merge(self.current_span),
-                            data: ExpressionData::FunctionCall {
-                                function: Box::new(i),
-                                arguments: args,
-                            },
-                        });
-                    }
-
                     if let Some(Lexem {
                         token: Token::Delimiter('{'),
                         ..
@@ -822,6 +809,19 @@ impl<'a> Parser<'a> {
                     },
                 };
                 continue;
+            }
+
+            // Function call (e.g. foo(), bar())
+            if let Some(_) = self.test_token(&Token::Delimiter('('), false) {
+                let args = self.parse_expression_list(Token::Delimiter(')'))?;
+                self.expect_token(Token::Delimiter(')'))?;
+                return Ok(Expression {
+                    span: left.span.merge(self.current_span),
+                    data: ExpressionData::FunctionCall {
+                        function: Box::new(left),
+                        arguments: args,
+                    },
+                });
             }
 
             // Subscript
