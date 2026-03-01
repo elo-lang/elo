@@ -313,7 +313,7 @@ impl<'a> Lexer<'a> {
     fn token_char(&mut self) -> Token {
         let ch = self.consume_char();
         self.chars.next(); // Compensate for the last `
-        self.advance_span(ch.len());
+        self.advance_span(ch.chars().count()); // properly consider the "human" length of the string
         self.span.end += 2; // Compensate span to get the last `
         return Token::CharLiteral(unescape(&ch));
     }
