@@ -4,6 +4,9 @@ use crate::error::error;
 
 #[derive(Debug)]
 pub enum SemanticErrorCase {
+    UseExternFnAsExpr {
+        name: String,
+    },
     InvalidMainSignature {
         should_be: String,
     },
@@ -92,6 +95,15 @@ pub struct SemanticError {
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
+        SemanticErrorCase::UseExternFnAsExpr { name } => {
+            error(
+                "Type Check Error",
+                &format!("attempt to use extern function as expression"),
+                filespan,
+                Some(&format!("if you want to use {name} as a first-class citizen, create a wrapper function")),
+                Some("you can only use extern functions by calling it directly"),
+            );
+        }
         SemanticErrorCase::InvalidMainSignature { should_be } => {
             error(
                 "Type Check Error",
