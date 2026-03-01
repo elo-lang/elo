@@ -1,2 +1,2 @@
-Elo Lexer Implementation
-Copyright (c) 2025 Igor Ferreira, Marcio Dantas
+Elo Lexical Analysis Implementation
+Copyright(C) 2026 Igor Ferreira, Marcio Dantas

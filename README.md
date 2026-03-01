@@ -9,8 +9,9 @@ and an **intuitive experience** in general.
 ## Getting started
 
 ### Development
-Elo is in its early stages of development, we are still brainstorming a lot.
-This repository contains:
+Elo is in its early stages of development, we are still brainstorming a lot. This is a work in progress, things may change drastically at any time.
+
+For now, this repository contains:
 - Source-code of [Elo's compiler](./compiler)
 - Source-code of [Elo's runtime library](./rt)
 
@@ -21,8 +22,6 @@ Elo programming language in a simple way. If you're interested, consider [readin
 ### Building from source-code
 
 #### Compiler build instructions
-> **WARNING**: Elo is not a finished language. There's no warranty of this piece of software. **Use it at your own risk**.
-
 The compiler is implemented in [**Rust**](https://rust-lang.org/).
 You need to use [**cargo**](https://doc.rust-lang.org/stable/cargo/) to build the project.
 
@@ -45,6 +44,6 @@ Read them [here](./rt/README.md).
 
 ---
 
-> By [Igor Ferreira](https://github.com/igotfr), [Marcio Dantas](https://github.com/marc-dantas)
+> Copyright(C) 2026 Igor Ferreira, Marcio Dantas
 
-> Licensed under MIT License. Read [LICENSE](./LICENSE) for more information.
+> Licensed under [MIT License](https://choosealicense.com/licenses/mit/). Read [LICENSE](./LICENSE) for more information.

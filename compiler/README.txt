@@ -1,4 +1,5 @@
 This is Elo's full compiler implementation.
+Copyright(C) 2026 Igor Ferreira, Marcio Dantas
 
 It is divided into simple categories for the sake of organization.
 
@@ -17,6 +18,3 @@ elo-parser         Implementation of syntactical analysis system for source code
 
 elo-validation     Group of systems regarding the validation of source code
                    process, like type-checking or safe-checking
-
-
-Copyright (c) 2025 Igor Ferreira, Marcio Dantas

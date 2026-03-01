@@ -1,2 +1,2 @@
 Elo Intermediate Representation
-Copyright (c) 2025 Igor Ferreira, Marcio Dantas
+Copyright(C) 2026 Igor Ferreira, Marcio Dantas

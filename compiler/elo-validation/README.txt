@@ -1,8 +1,8 @@
-Elo Validator Implementation
+Elo Validation Process Implementation
 
 Validation phases:
     - Semantic check (semcheck)
         * includes Type-checking and Control-flow analysis
     - (TBD) Safety checking (safecheck)
 
-Copyright (c) 2025 Igor Ferreira, Marcio Dantas
+Copyright(C) 2026 Igor Ferreira, Marcio Dantas

@@ -1,2 +1,2 @@
-Elo Error Handler Implementation
-Copyright (c) 2025 Igor Ferreira, Marcio Dantas
+Elo Error Handling Implementation
+Copyright(C) 2026 Igor Ferreira, Marcio Dantas

@@ -30,6 +30,6 @@ This will create the static library `libelort.a` in the `bin/` folder.
 
 ---
 
-> Copyright (c) 2026 Igor Ferreira, Marcio Dantas 
+> Copyright(C) 2026 Igor Ferreira, Marcio Dantas 
 
-> Licensed under [MIT License](https://choosealicense.com/licenses/mit/)
+> Licensed under [MIT License](https://choosealicense.com/licenses/mit/). Read [LICENSE](./LICENSE) for more information.
