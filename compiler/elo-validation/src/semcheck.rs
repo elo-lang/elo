@@ -117,6 +117,7 @@ impl SemanticChecker {
     ) -> Result<TypedExpression, SemanticError> {
         let ir_binop = cir::BinaryOperation::from_ast(&binop);
         let rhs_inferred = self.make_inference(rhs.0, &rhs.1, &lhs.1);
+        dbg!(&rhs_inferred);
 
         if rhs_inferred.is_none() {
             return Err(SemanticError {
@@ -468,8 +469,25 @@ impl SemanticChecker {
                             });
                         }
                     }
-                    cir::UnaryOperation::Neg
-                    | cir::UnaryOperation::Not
+                    cir::UnaryOperation::Neg => {
+                        if operand_type.is_integer() || operand_type.is_float() {
+                            operation_type = if let Some(signed) = operand_type.get_signed() {
+                                signed
+                            } else {
+                                operand_type
+                            };
+                            id = ExpressionIdentity::Immediate;
+                        } else {
+                            return Err(SemanticError {
+                                span: expr.span,
+                                case: SemanticErrorCase::TypeMismatch {
+                                    got: format!("{}", operand_type),
+                                    expected: "integer or floating-point".to_string(),
+                                },
+                            });
+                        }
+                    }
+                    cir::UnaryOperation::Not
                     | cir::UnaryOperation::BNot => {
                         operation_type = operand_type;
                         id = ExpressionIdentity::Immediate;
@@ -652,7 +670,7 @@ impl SemanticChecker {
                             span: inner_span,
                             case: SemanticErrorCase::TypeMismatch {
                                 got: format!("{}", inner_type),
-                                expected: format!("integer type")
+                                expected: format!("unsigned integer")
                             }
                         })
                     }
@@ -828,7 +846,7 @@ impl SemanticChecker {
                         },
                         identity: ExpressionIdentity::Immediate,
                     },
-                    cir::Typing::Primitive(cir::Primitive::Int),
+                    cir::Typing::Primitive(cir::Primitive::UInt),
                 ))
             }
             ast::ExpressionData::FloatLiteral { value } => {

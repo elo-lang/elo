@@ -458,6 +458,19 @@ pub enum Typing {
 }
 
 impl Typing {
+
+    // returns signed version of the unsigned integer.
+    pub fn get_signed(&self) -> Option<Typing> {
+        match self {
+            Typing::Primitive(Primitive::U64) => Some(Typing::Primitive(Primitive::I64)),
+            Typing::Primitive(Primitive::U32) => Some(Typing::Primitive(Primitive::I32)),
+            Typing::Primitive(Primitive::U16) => Some(Typing::Primitive(Primitive::I16)),
+            Typing::Primitive(Primitive::U8) => Some(Typing::Primitive(Primitive::I8)),
+            Typing::Primitive(Primitive::UInt) => Some(Typing::Primitive(Primitive::Int)),
+            _ => None,
+        }
+    }
+
     pub fn is_integer(&self) -> bool {
         match self {
               Typing::Primitive(Primitive::I64)
