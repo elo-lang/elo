@@ -51,7 +51,6 @@ Automatic cast is done when casting:
    size >=2X
 1. `char` into `u32`
 1. `u8` into `char`
-1. `{char}` or `{char; _}` into `str` and vice-versa
 1. `*mut T` into `*T`
 
 Otherwise, you must use explicit cast or the cast is just not possible.
