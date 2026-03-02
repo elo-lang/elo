@@ -353,10 +353,10 @@ impl SemanticChecker {
 
         let mut cast = false;
         if from.is_unsigned() {
-            cast = (into.is_signed() || into.is_float()) && y >= 2*x;
+            cast = ((into.is_signed() || into.is_float()) && y >= 2*x) || (into.is_unsigned() && y >= x);
         }
         if from.is_signed() {
-            cast = into.is_float() && y >= x;
+            cast = (into.is_float() || into.is_signed()) && y >= x;
         }
         if let (
             &cir::Typing::Primitive(cir::Primitive::Char),
