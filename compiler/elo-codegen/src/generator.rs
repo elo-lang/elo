@@ -77,11 +77,7 @@ impl Generator {
             self.fn_types.push((ret.clone(), args.clone()));
             let type_name = mangle_fn_type(i);
             let ret = self.choose_type(ret);
-            let args = args
-                .iter()
-                .map(|x| self.choose_type(x))
-                .collect::<Vec<String>>()
-                .join(",");
+            let args = self.generate_fn_args(args, false);
             let fn_type = &format!("{ret}(*{type_name})({args})");
             self.head.push_str(&(c::typedef_stmt(fn_type) + "\n"));
             return type_name;
