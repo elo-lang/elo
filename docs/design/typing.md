@@ -38,12 +38,16 @@ The implicit type casting are also included here.
 
 Elo's type-checker is meant to automatically infer implicit casts between types that are safe to cast automatically.
 
+Elo performs implicit casting only when the value identity is guaranteed to be preserved
+
 Automatic cast is done when casting:
 
-1. Any unsigned with size X into signed with size >=2X
-1. Any signed of size X into a floating-point with
+1. Unsigned with size X into signed with size >=2X
+1. Unsigned with size X into unsigned with size >=X
+1. Signed of size X into a floating-point with
    size >=X
-1. Any unsigned of size X into any floating-point with
+1. Signed with size X into signed with size >=X
+1. Unsigned of size X into any floating-point with
    size >=2X
 1. `char` into `u32`
 1. `u8` into `char`
