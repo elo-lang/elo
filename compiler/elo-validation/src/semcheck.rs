@@ -117,7 +117,6 @@ impl SemanticChecker {
     ) -> Result<TypedExpression, SemanticError> {
         let ir_binop = cir::BinaryOperation::from_ast(&binop);
         let rhs_inferred = self.make_inference(rhs.0, &rhs.1, &lhs.1);
-        dbg!(&rhs_inferred);
 
         if rhs_inferred.is_none() {
             return Err(SemanticError {
