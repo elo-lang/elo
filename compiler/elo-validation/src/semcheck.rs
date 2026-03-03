@@ -206,6 +206,30 @@ impl SemanticChecker {
             }
         };
 
+        let passed_length = arguments.len();
+        let expected_len = signature.1.len();
+        if passed_length < expected_len {
+            return Err(SemanticError {
+                span: call_span,
+                case: SemanticErrorCase::UnmatchedArguments {
+                    function: format!("{intrinsic}"),
+                    got: passed_length,
+                    expected: expected_len,
+                    too_much: false,
+                },
+            });
+        } else if passed_length > expected_len {
+            return Err(SemanticError {
+                span: call_span,
+                case: SemanticErrorCase::UnmatchedArguments {
+                    function: format!("{intrinsic}"),
+                    got: passed_length,
+                    expected: expected_len,
+                    too_much: true,
+                },
+            });
+        }
+
         let mut checked_arguments = Vec::new();
         for (expression, expected_type) in arguments.iter().zip(signature.1.clone()) {
             let (checked, got_type) = self.typecheck_expr(expression, false)?;
