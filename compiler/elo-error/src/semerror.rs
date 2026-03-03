@@ -266,7 +266,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
             if too_much {
                 error(
                     "Type Check Error",
-                    &format!("too much arguments to function {function}"),
+                    &format!("too much arguments to {function}"),
                     filespan,
                     None,
                     Some(&format!(
@@ -276,11 +276,11 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
             } else {
                 error(
                     "Type Check Error",
-                    &format!("too few arguments to function call {function}"),
+                    &format!("too few arguments to {function}"),
                     filespan,
                     None,
                     Some(&format!(
-                        "function accepts {expected} argument(s) but got only {got}",
+                        "{function} accepts {expected} argument(s) but got {got}",
                     )),
                 );
             }
