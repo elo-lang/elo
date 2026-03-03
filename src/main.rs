@@ -94,16 +94,15 @@ fn main() {
         Command::Build { input, output, c } => {
             if let Some(content) = std::fs::read_to_string(&input).ok() {
                 let input_name = strip_extension(&input);
-
-                let output_exe = output.unwrap_or(format!("{}.out", input_name));
-                let output_c = format!("{}.c", input_name);
-
                 let program = parse_and_validate(input.as_str(), content.as_str());
                 let generated_output = generate_program(program);
                 if c {
+                    let output_c = output.unwrap_or(format!("{}.c", input_name));
                     std::fs::write(&output_c, generated_output).unwrap();
                     return;
                 }
+
+                let output_exe = output.clone().unwrap_or(format!("{}.out", input_name));
                 tcc_compile(&mut tcc, &generated_output, tcc::OutputType::Executable);
                 tcc.output_file(&output_exe);
             } else {
