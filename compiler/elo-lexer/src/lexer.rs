@@ -7,10 +7,25 @@ use crate::lexem::Lexem;
 use crate::span::FileSpan;
 use crate::token::Token;
 
+#[derive(Eq, PartialEq, Clone, Copy)]
+enum StringKind {
+    Static,
+    Dynamic,
+    Char,
+}
+
+#[derive(Eq, PartialEq, Clone)]
+enum State {
+    Normal,
+    String { kind: StringKind, buffer: String },
+    Interpolation { string: StringKind, depth: usize }
+}
+
 pub struct Lexer<'a> {
     pub input_file: InputFile<'a>,
     pub chars: Peekable<Chars<'a>>,
     pub span: FileSpan<'a>,
+    state: State,
 }
 
 macro_rules! whitespace {
@@ -95,32 +110,18 @@ macro_rules! identifier {
     };
 }
 
-fn unescape(value: &str) -> String {
-    let mut s = String::new();
-    let mut escape = false;
-    for c in value.chars() {
-        if c == '\\' {
-            escape = true;
-            continue;
-        }
-        if escape {
-            s.push(match c {
-                'n' => '\n',
-                'r' => '\r',
-                't' => '\t',
-                'v' => '\x0B',
-                'f' => '\x0C',
-                '\\' => '\\',
-                '\'' => '\'',
-                '"' => '\"',
-                other => other
-            });
-            escape = false;
-        } else {
-            s.push(c)
-        }
+fn unescape(escape_char: char) -> char {
+    match escape_char {
+        'n' => '\n',
+        'r' => '\r',
+        't' => '\t',
+        'v' => '\x0B',
+        'f' => '\x0C',
+        '\\' => '\\',
+        '\'' => '\'',
+        '"' => '\"',
+        other => other
     }
-    s
 }
 
 impl<'a> Lexer<'a> {
@@ -129,6 +130,7 @@ impl<'a> Lexer<'a> {
             input_file: input_file.clone(),
             chars: input_file.content.chars().peekable(),
             span: FileSpan::empty(input_file),
+            state: State::Normal,
         }
     }
 
@@ -244,92 +246,81 @@ impl<'a> Lexer<'a> {
             }
         };
     }
-
-    //                                       ----- How many lines this str literal has
-    fn consume_str(&mut self) -> (String, usize) {
-        let mut buffer = String::new();
-        let mut lines = 0;
-        while let Some(&c) = self.chars.peek() {
-            if c == '\n' {
-                lines += 1;
-            }
-            if c == '\'' {
-                break;
-            }
-            buffer.push(c);
-            self.chars.next();
-        }
-        (buffer, lines)
-    }
-
-    //                                       ----- How many lines this string literal has
-    fn consume_string(&mut self) -> (String, usize) {
-        let mut buffer = String::new();
-        let mut lines = 0;
-        while let Some(&c) = self.chars.peek() {
-            if c == '\n' {
-                lines += 1;
-            }
-            if c == '\"' {
-                break;
-            }
-            buffer.push(c);
-            self.chars.next();
-        }
-        (buffer, lines)
-    }
-
-    fn consume_char(&mut self) -> String {
-        let mut buffer = String::new();
-        while let Some(&c) = self.chars.peek() {
-            if c == '`' {
-                break;
-            }
-            buffer.push(c);
-            self.chars.next();
-        }
-        buffer
-    }
-
-    fn token_str(&mut self) -> Token {
-        let (s, lines) = self.consume_str();
-
-        self.chars.next(); // Compensate for the last '
-        self.advance_span(s.len());
-        self.span.end += 2; // Compensate span to get the last '
-        self.span.line += lines;
-        return Token::StrLiteral(unescape(&s));
-    }
-
-    fn token_string(&mut self) -> Token {
-        let (s, lines) = self.consume_string();
-        self.chars.next(); // Compensate for the last "
-        self.advance_span(s.len());
-        self.span.end += 2; // Compensate span to get the last "
-        self.span.line += lines;
-        return Token::StringLiteral(unescape(&s));
-    }
-
-    fn token_char(&mut self) -> Token {
-        let ch = self.consume_char();
-        self.chars.next(); // Compensate for the last `
-        self.advance_span(ch.chars().count()); // properly consider the "human" length of the string
-        self.span.end += 2; // Compensate span to get the last `
-        return Token::CharLiteral(unescape(&ch));
-    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
     type Item = Lexem;
 
     fn next(&mut self) -> Option<Lexem> {
-        if let Some(ch) = self.chars.next() {
+        while let Some(ch) = self.chars.next() {
+            if let State::String { buffer, kind } = &mut self.state {
+                match ch {
+                    '\'' => {
+                        self.span.end += 1;
+                        let buffer = std::mem::take(buffer);
+                        self.state = State::Normal;
+                        return Some(Lexem::new(self.span.into_span(), Token::StrLiteral(buffer)));
+                    }
+                    '"' => {
+                        self.span.end += 1;
+                        let buffer = std::mem::take(buffer);
+                        self.state = State::Normal;
+                        return Some(Lexem::new(self.span.into_span(), Token::StringLiteral(buffer)));
+                    }
+                    '`' => {
+                        self.span.end += 1;
+                        let buffer = std::mem::take(buffer);
+                        self.advance_span(buffer.len());
+                        self.state = State::Normal;
+                        return Some(Lexem::new(self.span.into_span(), Token::CharLiteral(buffer)));
+                    }
+                    '\\' => {
+                        self.span.end += 1;
+                        if let Some(c) = self.chars.peek() {
+                            if *c == '(' {
+                                let buffer = std::mem::take(buffer);
+                                let kind = *kind;
+                                self.state = State::Interpolation { string: kind, depth: 0 };
+                                let tok = match kind {
+                                    StringKind::Dynamic => Token::StringLiteral(buffer),
+                                    StringKind::Static => Token::StrLiteral(buffer),
+                                    StringKind::Char => Token::CharLiteral(buffer),
+                                };
+                                return Some(Lexem::new(self.span.into_span(), tok));
+                            }
+                            self.span.end += 1;
+                            buffer.push(unescape(*c));
+                            self.chars.next();
+                            continue;
+                        } else {
+                            buffer.push(ch);
+                        }
+                    }
+                    _ => {
+                        buffer.push(ch);
+                        self.span.end += 1;
+                        continue;
+                    }
+                }
+            }
             return match ch {
-                '/' if self.chars.peek() == Some(&'/') => {
+                '\'' => {
+                    self.state = State::String { kind: StringKind::Static, buffer: String::new() };
+                    continue;
+                }
+                '"' => {
+                    self.state = State::String { kind: StringKind::Dynamic, buffer: String::new() };
+                    continue;
+                }
+                '`' => {
+                    self.state = State::String { kind: StringKind::Char, buffer: String::new() };
+                    continue;
+                }
+                '/' if self.state == State::Normal && self.chars.peek() == Some(&'/') => {
                     let _ = self.consume_while(Some(&ch), |c| c != '\n');
                     self.chars.next(); // Consume \n
                     self.advance_line();
-                    self.next()
+                    continue;
                 }
                 '\n' => {
                     self.advance_line();
@@ -337,7 +328,7 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 whitespace!() => {
                     self.advance_span(1);
-                    self.next()
+                    continue;
                 }
                 identifier_first!() => {
                     let token = self.token_word(&ch);
@@ -363,20 +354,28 @@ impl<'a> Iterator for Lexer<'a> {
                         Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)))
                     } else {
                         self.advance_span(1);
+                        if ch == '(' {
+                            if let State::Interpolation { string: _, depth } = &mut self.state {
+                                *depth += 1;
+                                if *depth == 1 {
+                                    return Some(Lexem::new(self.span.into_span(), Token::InterpolationBegin));
+                                }
+                            }
+                        }
+                        if ch == ')' {
+                            if let State::Interpolation { string, depth } = &mut self.state {
+                                // It's kinda impossible for the depth to be less than one because
+                                // it always starts with 1 anyway because of the first ( after backslash.
+                                // But just in case, let's put <=...
+                                if *depth <= 1 { // end
+                                    self.state = State::String { kind: *string, buffer: String::new() };
+                                    return Some(Lexem::new(self.span.into_span(), Token::InterpolationEnd));
+                                }
+                                *depth -= 1;
+                            }
+                        }
                         Some(Lexem::new(self.span.into_span(), Token::Delimiter(ch)))
                     }
-                }
-                '\'' => {
-                    let token = self.token_str();
-                    Some(Lexem::new(self.span.into_span(), token))
-                }
-                '`' => {
-                    let token = self.token_char();
-                    Some(Lexem::new(self.span.into_span(), token))
-                }
-                '"' => {
-                    let token = self.token_string();
-                    Some(Lexem::new(self.span.into_span(), token))
                 }
                 _ => {
                     self.advance_span(1);
