@@ -16,11 +16,15 @@ pub enum Token {
     StringLiteral(String),  // "foo", "bar", "hello"
     Variadic,               // ...: Special token for variadic functions for C FFI
     Unknown(char),          // Any other character
+    InterpolationBegin,
+    InterpolationEnd,
 }
 
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
+            Token::InterpolationBegin => write!(f, "\\("),
+            Token::InterpolationEnd => write!(f, ")"),
             Token::Keyword(kw) => write!(f, "{}", kw),
             Token::Identifier(name) => write!(f, "{}", name),
             Token::Integer(s, _) => write!(f, "{}", s),
