@@ -1,12 +1,12 @@
 use crate::inputfile::InputFile;
 use crate::lexer::Lexer;
 use crate::span::Span;
-use crate::token::Token;
+use crate::token::{Token, StringKind};
 
 fn get_span_interval(span: Span, source: &str) -> String {
     for (i, line) in source.lines().enumerate() {
         if i + 1 == span.line {
-            return String::from(&line[span.start-1..span.end-1]);
+            return String::from(&line[(span.start-1)..(span.end-1)]);
         }
     }
     String::new()
@@ -70,8 +70,8 @@ fn test_strings() {
     assert_eq!(
         xs,
         vec![
-            Token::StringLiteral(String::from("hello world\n")),
-            Token::StrLiteral(String::from("hello world\n")),
+            Token::String(StringKind::Dynamic, String::from("hello world\n")),
+            Token::String(StringKind::Static, String::from("hello world\n")),
         ]
     );
 }

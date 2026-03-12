@@ -681,7 +681,7 @@ impl<'a> Parser<'a> {
                         data: ExpressionData::Array { exprs, amount },
                     });
                 }
-                Token::CharLiteral(c) => {
+                Token::Character(c) => {
                     let len = c.chars().count();
                     if len != 1 {
                         return Err(ParseError {
@@ -696,21 +696,12 @@ impl<'a> Parser<'a> {
                         data: ExpressionData::CharacterLiteral { value: c },
                     });
                 }
-                Token::StrLiteral(s) => {
+                Token::String(_, s) => {
                     let s = s.clone();
                     self.next();
                     return Ok(Expression {
                         span: self.current_span,
                         data: ExpressionData::StrLiteral { value: s },
-                    });
-                }
-                Token::StringLiteral(s) => {
-                    let s = s.clone();
-                    self.next();
-                    return Ok(Expression {
-                        span: self.current_span,
-                        data: ExpressionData::StrLiteral { value: s },
-                        // FIXME: This will be StringLiteral when we use proper dynamic memory
                     });
                 }
                 Token::Keyword(Keyword::True) => {

@@ -5,14 +5,7 @@ use crate::inputfile::InputFile;
 use crate::keyword::Keyword;
 use crate::lexem::Lexem;
 use crate::span::FileSpan;
-use crate::token::Token;
-
-#[derive(Eq, PartialEq, Clone, Copy)]
-enum StringKind {
-    Static,
-    Dynamic,
-    Char,
-}
+use crate::token::{Token, StringKind};
 
 #[derive(Eq, PartialEq, Clone)]
 enum State {
@@ -223,7 +216,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn token_word(&mut self, ch: &char) -> Token {
-        let (s, _) = self.consume_while(Some(&ch), |c| matches!(c, identifier!()));
+        let (s, _) = self.consume_while(Some(ch), |c| matches!(c, identifier!()));
         self.advance_span(s.len());
 
         if let Some(kw) = Keyword::from_str(s.as_str()) {
@@ -259,20 +252,13 @@ impl<'a> Iterator for Lexer<'a> {
                         self.span.end += 1;
                         let buffer = std::mem::take(buffer);
                         self.state = State::Normal;
-                        return Some(Lexem::new(self.span.into_span(), Token::StrLiteral(buffer)));
+                        return Some(Lexem::new(self.span.into_span(), Token::String(StringKind::Static, buffer)));
                     }
                     '"' => {
                         self.span.end += 1;
                         let buffer = std::mem::take(buffer);
                         self.state = State::Normal;
-                        return Some(Lexem::new(self.span.into_span(), Token::StringLiteral(buffer)));
-                    }
-                    '`' => {
-                        self.span.end += 1;
-                        let buffer = std::mem::take(buffer);
-                        self.advance_span(buffer.len());
-                        self.state = State::Normal;
-                        return Some(Lexem::new(self.span.into_span(), Token::CharLiteral(buffer)));
+                        return Some(Lexem::new(self.span.into_span(), Token::String(StringKind::Dynamic, buffer)));
                     }
                     '\\' => {
                         self.span.end += 1;
@@ -281,12 +267,7 @@ impl<'a> Iterator for Lexer<'a> {
                                 let buffer = std::mem::take(buffer);
                                 let kind = *kind;
                                 self.state = State::Interpolation { string: kind, depth: 0 };
-                                let tok = match kind {
-                                    StringKind::Dynamic => Token::StringLiteral(buffer),
-                                    StringKind::Static => Token::StrLiteral(buffer),
-                                    StringKind::Char => Token::CharLiteral(buffer),
-                                };
-                                return Some(Lexem::new(self.span.into_span(), tok));
+                                return Some(Lexem::new(self.span.into_span(), Token::String(kind, buffer)));
                             }
                             self.span.end += 1;
                             buffer.push(unescape(*c));
@@ -305,16 +286,40 @@ impl<'a> Iterator for Lexer<'a> {
             }
             return match ch {
                 '\'' => {
+                    self.advance_span(1); // acount for quote
                     self.state = State::String { kind: StringKind::Static, buffer: String::new() };
                     continue;
                 }
                 '"' => {
+                    self.advance_span(1); // acount for quote
                     self.state = State::String { kind: StringKind::Dynamic, buffer: String::new() };
                     continue;
                 }
                 '`' => {
-                    self.state = State::String { kind: StringKind::Char, buffer: String::new() };
-                    continue;
+                    self.advance_span(1); // account for quote
+                    let mut buf = String::new();
+                    while let Some(c) = self.chars.peek() {
+                        if *c == '`' {
+                            self.chars.next();
+                            break;
+                        }
+                        if *c == '\\' {
+                            let c = *c;
+                            self.chars.next();
+                            self.span.end += 1;
+                            if let Some(e) = self.chars.next() {
+                                self.span.end += 1;
+                                buf.push(unescape(e));
+                            } else {
+                                buf.push(unescape(c));
+                            }
+                            continue;
+                        }
+                        buf.push(self.chars.next().unwrap());
+                        self.span.end += 1;
+                    }
+                    self.span.end += 1;
+                    return Some(Lexem::new(self.span.into_span(), Token::Character(buf)));
                 }
                 '/' if self.state == State::Normal && self.chars.peek() == Some(&'/') => {
                     let _ = self.consume_while(Some(&ch), |c| c != '\n');

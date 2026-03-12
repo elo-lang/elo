@@ -1,5 +1,11 @@
 use crate::keyword::Keyword;
 
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum StringKind {
+    Static,
+    Dynamic,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
     Keyword(Keyword),       // if, else, while, etc
@@ -11,9 +17,8 @@ pub enum Token {
     // e.g. Token::Op('=', Some('=')) is "=="
     Op(char, Option<char>), // +, -, *, /, ==, etc
     Delimiter(char),        // (, ), [, ], {, }, ., , etc
-    StrLiteral(String),     // 'foo', 'bar', 'hello'
-    CharLiteral(String),    // `a`, `b`, `\n`
-    StringLiteral(String),  // "foo", "bar", "hello"
+    String(StringKind, String),     // 'foo', "bar", 'hello'
+    Character(String),    // `a`, `b`, `\n`
     Variadic,               // ...: Special token for variadic functions for C FFI
     Unknown(char),          // Any other character
     InterpolationBegin,
@@ -38,9 +43,14 @@ impl std::fmt::Display for Token {
                 }
             }
             Token::Delimiter(d) => write!(f, "{}", d),
-            Token::StrLiteral(s) => write!(f, "\'{}\'", s),
-            Token::CharLiteral(s) => write!(f, "`{}`", s),
-            Token::StringLiteral(s) => write!(f, "\"{}\"", s),
+            Token::String(k, s) => {
+                let quot = match k {
+                    StringKind::Static => "\'",
+                    StringKind::Dynamic => "\"",
+                };
+                write!(f, "{quot}{}{quot}", s)
+            }
+            Token::Character(s) => write!(f, "`{}`", s),
             Token::Variadic => write!(f, "..."),
             Token::Unknown(c) => write!(f, "{}", c),
         }
