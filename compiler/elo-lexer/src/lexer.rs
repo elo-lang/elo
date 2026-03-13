@@ -388,6 +388,12 @@ impl<'a> Iterator for Lexer<'a> {
                 }
             };
         }
+        if let State::String { kind, buffer } = &mut self.state {
+            let buffer = std::mem::take(buffer);
+            let kind = *kind;
+            self.state = State::Normal;
+            return Some(Lexem::new(self.span.into_span(), Token::String(kind, buffer)));
+        }
         None
     }
 }
