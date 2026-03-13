@@ -248,17 +248,19 @@ impl<'a> Iterator for Lexer<'a> {
         while let Some(ch) = self.chars.next() {
             if let State::String { buffer, kind } = &mut self.state {
                 match ch {
-                    '\'' => {
+                    '\'' if *kind == StringKind::Static => {
                         self.span.end += 1;
                         let buffer = std::mem::take(buffer);
+                        let kind = *kind;
                         self.state = State::Normal;
-                        return Some(Lexem::new(self.span.into_span(), Token::String(StringKind::Static, buffer)));
+                        return Some(Lexem::new(self.span.into_span(), Token::String(kind, buffer)));
                     }
-                    '"' => {
+                    '"' if *kind == StringKind::Dynamic => {
                         self.span.end += 1;
                         let buffer = std::mem::take(buffer);
+                        let kind = *kind;
                         self.state = State::Normal;
-                        return Some(Lexem::new(self.span.into_span(), Token::String(StringKind::Dynamic, buffer)));
+                        return Some(Lexem::new(self.span.into_span(), Token::String(kind, buffer)));
                     }
                     '\\' => {
                         self.span.end += 1;
