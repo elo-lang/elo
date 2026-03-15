@@ -10,6 +10,7 @@
 #define PRELUDE_H
 
 #include <blueprint.h>
+#include <typing.h>
 #include <panic.h>
 #include <mem.h>
 #include <list.h>
