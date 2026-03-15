@@ -1,10 +1,11 @@
 #include <mem.h>
 #include <str.h>
+#include <typing.h>
 
 void __elo_print_str(MemoryContext* ctx, _ELO_STR_T value) {
-    char* ptr = __elo_handle_get(ctx, str.slot);
-    ptr += str.offset;
-    printf("%.*s\n", str.size, ptr);
+    char* ptr = __elo_handle_get(ctx, value.slot);
+    ptr += value.offset;
+    printf("%.*s\n", value.size, ptr);
 }
 
 void __elo_print_decimal(MemoryContext* ctx, _ELO_F64_T value) {

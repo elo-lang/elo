@@ -4,7 +4,7 @@
 #include <string.h>
 
 Str __elo_str_new(MemoryContext* ctx, const char* cstr) {
-    Slot slot = __elo_handle_add(ctx, cstr);
+    Slot slot = __elo_handle_add(ctx, (void*)cstr);
     return (Str) {
         .slot = slot,
         .offset = 0,

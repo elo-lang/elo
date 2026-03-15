@@ -1,4 +1,6 @@
 // Elo's type definition
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifndef TYPING_H
 #define TYPING_H
