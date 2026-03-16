@@ -157,6 +157,29 @@ impl std::fmt::Display for Expression {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ResolvedIntrinsic {
+    PrintStr,
+    PrintDecimal,
+    PrintUnsigned,
+    PrintSigned,
+    PrintBool,
+    PrintChar,
+}
+
+impl ResolvedIntrinsic {
+    pub fn get_origin(&self) -> Intrinsic {
+        match self {
+              ResolvedIntrinsic::PrintStr
+            | ResolvedIntrinsic::PrintDecimal
+            | ResolvedIntrinsic::PrintUnsigned
+            | ResolvedIntrinsic::PrintSigned
+            | ResolvedIntrinsic::PrintBool
+            | ResolvedIntrinsic::PrintChar => Intrinsic::Print,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Intrinsic {
     Print,
 }
@@ -217,7 +240,7 @@ pub enum ExpressionData {
         arguments: Vec<Expression>,
     },
     IntrinsicCall {
-        intrinsic: Intrinsic,
+        intrinsic: ResolvedIntrinsic,
         arguments: Vec<Expression>,
     },
     StructInit {
@@ -268,7 +291,7 @@ impl std::fmt::Display for ExpressionData {
                 write!(f, "{fmt}")
             }
             ExpressionData::IntrinsicCall { intrinsic, arguments } => {
-                let mut fmt = String::from(&format!("{intrinsic}("));
+                let mut fmt = String::from(&format!("{}(", intrinsic.get_origin()));
                 if arguments.len() == 1 {
                     fmt.push_str(&format!("{}", arguments[0]))
                 } else if arguments.len() >= 2 {
