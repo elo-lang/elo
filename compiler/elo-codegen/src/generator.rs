@@ -222,7 +222,12 @@ impl Generator {
             }
             cir::ExpressionData::IntrinsicCall { intrinsic, arguments } => {
                 let name = match intrinsic {
-                    cir::Intrinsic::Print => "__elo_print_str",
+                    cir::ResolvedIntrinsic::PrintStr => "__elo_print_str",
+                    cir::ResolvedIntrinsic::PrintDecimal => "__elo_print_decimal",
+                    cir::ResolvedIntrinsic::PrintUnsigned => "__elo_print_unsigned",
+                    cir::ResolvedIntrinsic::PrintSigned => "__elo_print_signed",
+                    cir::ResolvedIntrinsic::PrintBool => "__elo_print_bool",
+                    cir::ResolvedIntrinsic::PrintChar => "__elo_print_char",
                 };
                 let mut real_args = vec![String::from("ctx")];
                 let arguments: Vec<String> = arguments
