@@ -806,13 +806,14 @@ impl<'a> Parser<'a> {
             if let Some(_) = self.test_token(&Token::Delimiter('('), false) {
                 let args = self.parse_expression_list(Token::Delimiter(')'))?;
                 self.expect_token(Token::Delimiter(')'))?;
-                return Ok(Expression {
+                left = Expression {
                     span: left.span.merge(self.current_span),
                     data: ExpressionData::FunctionCall {
                         function: Box::new(left),
                         arguments: args,
                     },
-                });
+                };
+                continue;
             }
 
             // Subscript
