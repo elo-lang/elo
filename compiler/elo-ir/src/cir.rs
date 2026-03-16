@@ -560,7 +560,7 @@ impl Typing {
         false
     }
 
-    pub fn is_float(&self) -> bool {
+    pub fn is_decimal(&self) -> bool {
         match self {
               Typing::Primitive(Primitive::F64)
             | Typing::Primitive(Primitive::F32)

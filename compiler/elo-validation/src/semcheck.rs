@@ -1,4 +1,4 @@
-use elo_ir::{ast::{self, TypedField}, cir::{Intrinsic, ExpressionIdentity}};
+use elo_ir::{ast::{self, TypedField}, cir::{ExpressionIdentity, Intrinsic, ResolvedIntrinsic}};
 use elo_error::semerror::*;
 use elo_ir::cir;
 use elo_lexer::span::Span;
@@ -197,63 +197,68 @@ impl SemanticChecker {
         arguments: &Vec<ast::Expression>,
         call_span: Span,
     ) -> Result<cir::TypedExpression, SemanticError> {
-        let signature = match intrinsic {
-            cir::Intrinsic::Print => {
-                (cir::Typing::Void,
-                 vec![cir::Typing::Primitive(cir::Primitive::Str)])
-            }
-        };
-
         let passed_length = arguments.len();
-        let expected_len = signature.1.len();
-        if passed_length < expected_len {
-            return Err(SemanticError {
-                span: call_span,
-                case: SemanticErrorCase::UnmatchedArguments {
-                    function: format!("{intrinsic}"),
-                    got: passed_length,
-                    expected: expected_len,
-                    too_much: false,
-                },
-            });
-        } else if passed_length > expected_len {
-            return Err(SemanticError {
-                span: call_span,
-                case: SemanticErrorCase::UnmatchedArguments {
-                    function: format!("{intrinsic}"),
-                    got: passed_length,
-                    expected: expected_len,
-                    too_much: true,
-                },
-            });
-        }
-
+        let mut resolved: Option<ResolvedIntrinsic> = None;
         let mut checked_arguments = Vec::new();
-        for (expression, expected_type) in arguments.iter().zip(signature.1.clone()) {
-            let (checked, got_type) = self.typecheck_expr(expression, false)?;
-            if let Some(checked) = self.make_inference(checked, &got_type, &expected_type) {
-                checked_arguments.push(checked);
-            } else {
-                return Err(SemanticError {
-                    span: expression.span,
-                    case: SemanticErrorCase::TypeMismatch {
-                        got: format!("{}", got_type),
-                        expected: format!("{}", expected_type),
-                    },
-                });
+        let ret_type: cir::Typing;
+        match intrinsic {
+            cir::Intrinsic::Print => {
+                let expected_len = 1;
+                ret_type = cir::Typing::Void;
+                if passed_length < expected_len {
+                    return Err(SemanticError {
+                        span: call_span,
+                        case: SemanticErrorCase::UnmatchedArguments {
+                            function: format!("{intrinsic}"),
+                            got: passed_length,
+                            expected: expected_len,
+                            too_much: false,
+                        },
+                    });
+                }
+                if passed_length > expected_len {
+                    return Err(SemanticError {
+                        span: call_span,
+                        case: SemanticErrorCase::UnmatchedArguments {
+                            function: format!("{intrinsic}"),
+                            got: passed_length,
+                            expected: expected_len,
+                            too_much: true,
+                        },
+                    });
+                }
+                for expression in arguments.iter() {
+                    let (checked, got_type) = self.typecheck_expr(expression, false)?;
+                    checked_arguments.push(checked);
+
+                    resolved = match got_type {
+                        cir::Typing::Primitive(cir::Primitive::Str)  => Some(ResolvedIntrinsic::PrintStr),
+                        typ if typ.is_decimal()                      => Some(ResolvedIntrinsic::PrintDecimal),
+                        typ if typ.is_unsigned()                     => Some(ResolvedIntrinsic::PrintUnsigned),
+                        typ if typ.is_signed()                       => Some(ResolvedIntrinsic::PrintSigned),
+                        typ if typ.is_bool()                         => Some(ResolvedIntrinsic::PrintBool),
+                        cir::Typing::Primitive(cir::Primitive::Char) => Some(ResolvedIntrinsic::PrintChar),
+                        _ => return Err(SemanticError {
+                            span: expression.span,
+                            case: SemanticErrorCase::TypeMismatch {
+                                got: format!("{}", got_type),
+                                expected: format!("primitive type"),
+                            },
+                        }),
+                    };
+                }
             }
         }
-
         return Ok((
             cir::Expression {
                 span: call_span,
                 data: cir::ExpressionData::IntrinsicCall {
-                    intrinsic,
+                    intrinsic: resolved.unwrap(),
                     arguments: checked_arguments,
                 },
                 identity: ExpressionIdentity::Immediate,
             },
-            signature.0,
+            ret_type,
         ));
     }
 
@@ -374,10 +379,10 @@ impl SemanticChecker {
 
         let mut cast = false;
         if from.is_unsigned() {
-            cast = ((into.is_signed() || into.is_float()) && y >= 2*x) || (into.is_unsigned() && y >= x);
+            cast = ((into.is_signed() || into.is_decimal()) && y >= 2*x) || (into.is_unsigned() && y >= x);
         }
         if from.is_signed() {
-            cast = (into.is_float() || into.is_signed()) && y >= x;
+            cast = (into.is_decimal() || into.is_signed()) && y >= x;
         }
         if let (
             &cir::Typing::Primitive(cir::Primitive::Char),
@@ -414,9 +419,9 @@ impl SemanticChecker {
         }
 
         if origin.is_integer() {
-            ok = into.is_bool() || into.is_integer() || into.is_float();
-        } else if origin.is_float() {
-            ok = into.is_bool() || into.is_integer() || into.is_float();
+            ok = into.is_bool() || into.is_integer() || into.is_decimal();
+        } else if origin.is_decimal() {
+            ok = into.is_bool() || into.is_integer() || into.is_decimal();
         } else if origin.is_bool() {
             ok = into.is_integer();
         } else if let (
@@ -491,7 +496,7 @@ impl SemanticChecker {
                         }
                     }
                     cir::UnaryOperation::Neg => {
-                        if operand_type.is_integer() || operand_type.is_float() {
+                        if operand_type.is_integer() || operand_type.is_decimal() {
                             operation_type = if let Some(signed) = operand_type.get_signed() {
                                 signed
                             } else {
