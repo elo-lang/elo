@@ -27,8 +27,6 @@ pub struct Variable {
 
 pub type Scope = HashMap<String, Variable>;
 
-type TypedExpression = (cir::Expression, cir::Typing);
-
 pub struct SemanticChecker {
     namespace: Namespace,
     current_function: String,
@@ -110,11 +108,11 @@ impl SemanticChecker {
 
     fn typecheck_binop(
         &mut self,
-        lhs: TypedExpression,
-        rhs: TypedExpression,
+        lhs: cir::TypedExpression,
+        rhs: cir::TypedExpression,
         binop: &ast::BinaryOperation,
         span: Span,
-    ) -> Result<TypedExpression, SemanticError> {
+    ) -> Result<cir::TypedExpression, SemanticError> {
         let ir_binop = cir::BinaryOperation::from_ast(&binop);
         let rhs_inferred = self.make_inference(rhs.0, &rhs.1, &lhs.1);
 
@@ -198,7 +196,7 @@ impl SemanticChecker {
         intrinsic: cir::Intrinsic,
         arguments: &Vec<ast::Expression>,
         call_span: Span,
-    ) -> Result<TypedExpression, SemanticError> {
+    ) -> Result<cir::TypedExpression, SemanticError> {
         let signature = match intrinsic {
             cir::Intrinsic::Print => {
                 (cir::Typing::Void,
@@ -267,7 +265,7 @@ impl SemanticChecker {
         variadic: bool,
         caller_arguments: &Vec<ast::Expression>,
         call_span: Span,
-    ) -> Result<TypedExpression, SemanticError> {
+    ) -> Result<cir::TypedExpression, SemanticError> {
         let return_type = ret;
         let passed_length = caller_arguments.len();
         let expected_len = arguments.len();
@@ -329,7 +327,7 @@ impl SemanticChecker {
         ));
     }
 
-    fn auto_dereference(&self, expression: TypedExpression) -> TypedExpression {
+    fn auto_dereference(&self, expression: cir::TypedExpression) -> cir::TypedExpression {
         let (mut expr, mut typ) = expression;
         let span = expr.span;
         while let cir::Typing::Pointer { typ: inner, mutable } = typ {
@@ -440,7 +438,7 @@ impl SemanticChecker {
         return Ok(())
     }
 
-    fn typecheck_expr(&mut self, expr: &ast::Expression, function_call: bool) -> Result<TypedExpression, SemanticError> {
+    fn typecheck_expr(&mut self, expr: &ast::Expression, function_call: bool) -> Result<cir::TypedExpression, SemanticError> {
         match &expr.data {
             ast::ExpressionData::Cast { expr: inner, typ } => {
                 let typ = self.check_type(typ)?;

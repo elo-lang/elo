@@ -431,6 +431,8 @@ impl std::fmt::Display for Primitive {
     }
 }
 
+pub type TypedExpression = (Expression, Typing);
+
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Typing {
     Void,
