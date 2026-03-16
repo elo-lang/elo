@@ -2,9 +2,7 @@
 // stderr=
 // return_code=0
 
-extern fn printf(fmt: *u8, ...)
-
-fn fib(n: int): int {
+fn fib(n: uint): uint {
     if n <= 1 => ret n;
     return fib(n - 1) + fib(n - 2)
 }
@@ -12,7 +10,7 @@ fn fib(n: int): int {
 fn main() {
     var x = 0
     while x < 10 {
-        printf("%d\n", fib(x));
+        print(fib(x));
         x = x+1
     }
 }

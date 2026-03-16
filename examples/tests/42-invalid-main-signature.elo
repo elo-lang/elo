@@ -1,5 +1,5 @@
 // return_code=1
 
-fn main(): int {
+fn main(): uint {
     return 0;
 }

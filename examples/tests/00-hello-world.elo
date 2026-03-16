@@ -2,8 +2,6 @@
 // stderr=
 // return_code=0
 
-extern fn printf(f: *u8, ...)
-
 fn main() {
-    printf('Hello World\n');
+    print('Hello World')
 }
