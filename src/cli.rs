@@ -39,19 +39,20 @@ pub fn help(program: &str, command: Option<&Command>) {
     match command {
         Some(Command::Help { .. }) | None => {
             eprintln!("commands:");
-            eprintln!("    run        Run with the given input file");
-            eprintln!("    build      Build from given source code");
-            eprintln!("    help       Show help message for a specific command or general help");
+            eprintln!("    run   | r        Run with the given input file");
+            eprintln!("    build | b        Build from given source code");
+            eprintln!("    help  | h        Show help message for a specific command or general help");
         }
         Some(Command::Run { .. }) => {
             eprintln!("\nBuild and automatically run the given input file\n");
             eprintln!("positional arguments:");
-            eprintln!("    <input>          Source code input file to run");
+            eprintln!("    <input>          Source-code input file");
+            eprintln!("    <args>           Command line arguments to the program being ran");
         }
         Some(Command::Build { .. }) => {
             eprintln!("\nBuild the given source code input file\n");
             eprintln!("positional arguments:");
-            eprintln!("    <input>          Source code input file to build");
+            eprintln!("    <input>          Source-code input file");
             eprintln!("flags:");
             eprintln!("    -o <output>      Specify output file");
             eprintln!("    -c               Output C source-code file from the compiled program");
