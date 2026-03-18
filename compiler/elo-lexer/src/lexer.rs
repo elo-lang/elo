@@ -248,7 +248,7 @@ impl<'a> Iterator for Lexer<'a> {
         while let Some(ch) = self.chars.next() {
             if let State::String { buffer, kind } = &mut self.state {
                 match ch {
-                    '\'' if *kind == StringKind::Static => {
+                    '\'' if matches!(kind, StringKind::Static | StringKind::C) => {
                         self.span.end += 1;
                         let buffer = std::mem::take(buffer);
                         let kind = *kind;
@@ -287,6 +287,12 @@ impl<'a> Iterator for Lexer<'a> {
                 }
             }
             return match ch {
+                'c' if self.chars.peek() == Some(&'\'') => {
+                    self.chars.next();
+                    self.advance_span(2); // acount for 'c' + quote
+                    self.state = State::String { kind: StringKind::C, buffer: String::new() };
+                    continue;
+                }
                 '\'' => {
                     self.advance_span(1); // acount for quote
                     self.state = State::String { kind: StringKind::Static, buffer: String::new() };
