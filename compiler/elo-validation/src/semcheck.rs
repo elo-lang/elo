@@ -568,11 +568,35 @@ impl SemanticChecker {
                     cir::Typing::Primitive(cir::Primitive::Char),
                 ));
             }
+            ast::ExpressionData::CStrLiteral { value } => {
+                return Ok((
+                    cir::Expression {
+                        span: expr.span,
+                        data: cir::ExpressionData::CStrLiteral {
+                            value: value.clone(),
+                        },
+                        identity: ExpressionIdentity::Immediate,
+                    },
+                    cir::Typing::Primitive(cir::Primitive::CStr),
+                ));
+            }
+            ast::ExpressionData::StringLiteral { value } => {
+                return Ok((
+                    cir::Expression {
+                        span: expr.span,
+                        data: cir::ExpressionData::StrLiteral { // TODO: Change this to proper dynamic string type
+                            value: value.clone(),
+                        },
+                        identity: ExpressionIdentity::Immediate,
+                    },
+                    cir::Typing::Primitive(cir::Primitive::Str),
+                ));
+            }
             ast::ExpressionData::StrLiteral { value } => {
                 return Ok((
                     cir::Expression {
                         span: expr.span,
-                        data: cir::ExpressionData::StringLiteral {
+                        data: cir::ExpressionData::StrLiteral {
                             value: value.clone(),
                         },
                         identity: ExpressionIdentity::Immediate,

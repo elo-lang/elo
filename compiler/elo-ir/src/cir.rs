@@ -212,7 +212,10 @@ pub enum ExpressionData {
         operator: UnaryOperation,
         operand: Box<Expression>,
     },
-    StringLiteral {
+    StrLiteral {
+        value: String,
+    },
+    CStrLiteral {
         value: String,
     },
     ArrayLiteral {
@@ -274,7 +277,8 @@ impl std::fmt::Display for ExpressionData {
         match self {
             ExpressionData::BinaryOperation { operator, left, right } => write!(f, "{left} {operator} {right}"),
             ExpressionData::UnaryOperation { operator, operand } => write!(f, "{operator}{operand}"),
-            ExpressionData::StringLiteral { value } => write!(f, "\"{value}\""),
+            ExpressionData::StrLiteral { value } => write!(f, "\'{value}\'"),
+            ExpressionData::CStrLiteral { value } => write!(f, "c\'{value}\'"),
             ExpressionData::ArraySubscript { origin, index } => write!(f, "\"{origin}[{index}]\""),
             ExpressionData::ArrayLiteral { exprs, .. } => write!(f, "{{{}{}}}", exprs[0], if exprs.len() > 1 { "..." } else { "" }),
             ExpressionData::FieldAccess { origin, field } => write!(f, "{}.{}", origin, field),
@@ -403,6 +407,7 @@ pub enum Primitive {
     Bool,
     Str,
     Char,
+    CStr,
 }
 
 impl Primitive {
@@ -425,6 +430,7 @@ impl Primitive {
             "bool" => Some(Primitive::Bool),
             "str" => Some(Primitive::Str),
             "char" => Some(Primitive::Char),
+            "cstr" => Some(Primitive::CStr),
             _ => None,
         }
     }
@@ -450,6 +456,7 @@ impl std::fmt::Display for Primitive {
             Primitive::Bool => write!(f, "bool"),
             Primitive::Str => write!(f, "str"),
             Primitive::Char => write!(f, "char"),
+            Primitive::CStr => write!(f, "cstr"),
         }
     }
 }
