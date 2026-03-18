@@ -6,6 +6,7 @@ use elo_lexer::keyword::Keyword;
 use elo_lexer::lexem::Lexem;
 use elo_lexer::lexer::Lexer;
 use elo_lexer::span::Span;
+use elo_lexer::token::StringKind;
 use elo_lexer::token::Token;
 
 use elo_ir::ast::Node;
@@ -696,12 +697,17 @@ impl<'a> Parser<'a> {
                         data: ExpressionData::CharacterLiteral { value: c },
                     });
                 }
-                Token::String(_, s) => {
-                    let s = s.clone();
+                Token::String(k, s) => {
+                    let value = s.clone();
+                    let data = match k {
+                        StringKind::Static  => ExpressionData::StrLiteral { value },
+                        StringKind::Dynamic => ExpressionData::StringLiteral { value },
+                        StringKind::C       => ExpressionData::CStrLiteral { value },
+                    };
                     self.next();
                     return Ok(Expression {
                         span: self.current_span,
-                        data: ExpressionData::StrLiteral { value: s },
+                        data,
                     });
                 }
                 Token::Keyword(Keyword::True) => {

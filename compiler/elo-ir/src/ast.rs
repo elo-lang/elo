@@ -124,6 +124,12 @@ pub enum ExpressionData {
     StrLiteral {
         value: String,
     },
+    StringLiteral {
+        value: String,
+    },
+    CStrLiteral {
+        value: String,
+    },
     // TODO: Add proper StringLiteral when we deal with dynamic memory (standard library)
     CharacterLiteral {
         value: char,
