@@ -12,12 +12,12 @@ void __elo_print_decimal(MemoryContext* ctx, _ELO_F64_T value) {
     printf("%g\n", value);
 }
 
-void __elo_print_unsigned(MemoryContext* ctx, _ELO_I64_T value) {
+void __elo_print_unsigned(MemoryContext* ctx, _ELO_U64_T value) {
     printf("%llu\n", value);
 }
 
-void __elo_print_signed(MemoryContext* ctx, _ELO_U64_T value) {
-    printf("%ll\n", value);
+void __elo_print_signed(MemoryContext* ctx, _ELO_I64_T value) {
+    printf("%lld\n", value);
 }
 
 void __elo_print_bool(MemoryContext* ctx, _ELO_BOOL_T value) {
