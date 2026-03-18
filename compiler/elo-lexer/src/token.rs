@@ -4,6 +4,7 @@ use crate::keyword::Keyword;
 pub enum StringKind {
     Static,
     Dynamic,
+    C,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -47,8 +48,9 @@ impl std::fmt::Display for Token {
                 let quot = match k {
                     StringKind::Static => "\'",
                     StringKind::Dynamic => "\"",
+                    StringKind::C => "\'",
                 };
-                write!(f, "{quot}{}{quot}", s)
+                write!(f, "{}{quot}{}{quot}", if *k == StringKind::C { "c" } else { "" }, s)
             }
             Token::Character(s) => write!(f, "`{}`", s),
             Token::Variadic => write!(f, "..."),
