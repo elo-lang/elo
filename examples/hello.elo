@@ -1,5 +1,4 @@
-extern fn printf(f: *u8, ...)
 
 fn main() {
-    printf('Hello World\n');
+    print('Elo, world!');
 }

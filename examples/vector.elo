@@ -1,0 +1,14 @@
+struct Vec2 {
+    x: int,
+    y: int,
+}
+
+fn print_vec2(v: *Vec2) {
+    print(v.x)
+    print(v.y)
+}
+
+fn main() {
+    let v = Vec2 { x: 10 as int, y: 30 as int };
+    print_vec2(&v)
+}
