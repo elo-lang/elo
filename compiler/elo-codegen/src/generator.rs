@@ -38,6 +38,10 @@ fn fnv_hash(text: &str) -> u32 {
     hash
 }
 
+fn mangle_name(name: &str) -> String {
+    return format!("_{name}_{}", fnv_hash(name));
+}
+
 fn mangle_function(name: &str) -> String {
     return format!("_fn_{name}_{}", fnv_hash(name));
 }
@@ -261,7 +265,7 @@ impl Generator {
                 if let cir::ExpressionIdentity::Function(false) = expr.identity {
                     mangle_function(name)
                 } else {
-                    name.clone()
+                    mangle_name(name)
                 }
             },
             cir::ExpressionData::StructInit { origin, fields } => {
@@ -300,7 +304,7 @@ impl Generator {
         }
         for (name, typ) in args {
             let t = self.choose_type(typ);
-            result.push(c::field(&t, name));
+            result.push(c::field(&t, &mangle_name(&name)));
         }
         return c::list(&result);
     }
@@ -339,7 +343,7 @@ impl Generator {
             } => {
                 self.head.push_str("static const ");
                 let x = self.choose_type(typing);
-                self.head.push_str(x.as_str());
+                self.head.push_str(&mangle_name(&x));
                 self.head.push_str(&binding);
                 self.head.push('=');
                 let expr = self.generate_expression(&value);
@@ -409,7 +413,7 @@ impl Generator {
             } => {
                 let typ = self.choose_type(typing);
                 let expr = self.generate_expression(&assignment);
-                output.push_str(&c::variable_stmt(&typ, binding, &expr));
+                output.push_str(&c::variable_stmt(&typ, &mangle_name(binding), &expr));
             }
             cir::StatementKind::ExpressionStatement(expr) => {
                 let e = self.generate_expression(&expr);
