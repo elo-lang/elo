@@ -380,7 +380,7 @@ impl std::fmt::Display for FunctionHead {
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Struct {
     pub name: String,
-    pub fields: HashMap<String, Typing>,
+    pub fields: Vec<TypedField>,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
