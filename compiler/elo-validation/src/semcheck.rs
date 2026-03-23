@@ -33,6 +33,15 @@ pub struct SemanticChecker {
     pub errors: Vec<SemanticError>,
 }
 
+pub fn struct_field_linear_search<'a>(fields: &'a Vec<cir::TypedField>, field_name: &str) -> Option<&'a cir::Typing> {
+    for (name, typ) in fields {
+        if name == field_name {
+            return Some(typ)
+        }
+    }
+    None
+}
+
 impl SemanticChecker {
     pub fn new() -> Self {
         Self {
@@ -853,7 +862,7 @@ impl SemanticChecker {
                 let mut checked_fields = Vec::new();
                 for field in fields {
                     let expected_typing =
-                        strukt.fields.get(&field.name).ok_or_else(|| SemanticError {
+                        struct_field_linear_search(&strukt.fields, &field.name).ok_or_else(|| SemanticError {
                             span: span,
                             case: SemanticErrorCase::UnresolvedField {
                                 name: format!("{}", &field.name),
@@ -862,7 +871,7 @@ impl SemanticChecker {
                         })?;
                     let field_value_span = field.value.span;
                     let (expr, typing) = self.typecheck_expr(&field.value, function_call)?;
-                    if let Some(expr) = self.make_inference(expr, &typing, expected_typing) {
+                    if let Some(expr) = self.make_inference(expr, &typing, &expected_typing) {
                         checked_fields.push((field.name.clone(), expr));
                     } else {
                         return Err(SemanticError {
@@ -1316,10 +1325,10 @@ impl SemanticChecker {
                     }})
                 }
 
-                let mut fields = HashMap::new();
+                let mut fields = Vec::new();
                 for TypedField { name, typing } in &stmt.fields {
                     let checked_type = self.check_type(typing)?;
-                    fields.insert(name.clone(), checked_type);
+                    fields.push((name.clone(), checked_type));
                 }
                 let e = cir::Struct {
                     name: stmt.name,
