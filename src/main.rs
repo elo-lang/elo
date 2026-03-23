@@ -91,7 +91,7 @@ fn main() {
     tcc.set_options("-I rt/include");
 
     match comm {
-        Command::Build { input, output, c } => {
+        Command::Build { input, output, libs, lib_search_paths, c } => {
             if let Some(content) = std::fs::read_to_string(&input).ok() {
                 let input_name = strip_extension(&input);
                 let program = parse_and_validate(input.as_str(), content.as_str());
@@ -101,9 +101,15 @@ fn main() {
                     std::fs::write(&output_c, generated_output).unwrap();
                     return;
                 }
-
                 let output_exe = output.clone().unwrap_or(format!("{}.out", input_name));
                 tcc_compile(&mut tcc, &generated_output, tcc::OutputType::Executable);
+
+                for search in &lib_search_paths {
+                    tcc.add_library_path(search);
+                }
+                for lib in &libs {
+                    tcc.add_library(lib);
+                }
                 tcc.output_file(&output_exe);
             } else {
                 cli::fatal(&format!("could not read input file {}", input));

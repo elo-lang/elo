@@ -25,7 +25,7 @@ pub fn usage(program: &str, command: Option<&Command>) {
         match cmd {
             Command::Run { .. } => eprintln!("usage: {program} run <input> [...<args>]"),
             Command::Build { .. } => {
-                eprintln!("usage: {program} build <input> [-o <output>] [-c]")
+                eprintln!("usage: {program} build <input> [-o <output>] [-c] [-l <library>] [-L <path>]")
             }
             Command::Help { .. } => eprintln!("usage: {program} help [<command>]"),
         }
@@ -56,6 +56,8 @@ pub fn help(program: &str, command: Option<&Command>) {
             eprintln!("flags:");
             eprintln!("    -o <output>      Specify output file");
             eprintln!("    -c               Output C source-code file from the compiled program");
+            eprintln!("    -l <library>     Schedules linking with <library> in the final executable. Can be passed multiple times.");
+            eprintln!("    -L <path>        Add a library linking search path <path>. Can be passed multiple times.");
         }
     }
 }
@@ -64,6 +66,8 @@ pub enum Command {
     Build {
         input: String,
         output: Option<String>,
+        lib_search_paths: Vec<String>,
+        libs: Vec<String>,
         c: bool,
     },
     Run {
@@ -81,6 +85,8 @@ impl Command {
             "build" | "b" => Some(Command::Build {
                 input: String::new(),
                 output: None,
+                lib_search_paths: Vec::new(),
+                libs: Vec::new(),
                 c: false
             }),
             "run" | "r" => Some(Command::Run {
@@ -130,6 +136,8 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
 
     let mut input = None;
     let mut output = None;
+    let mut lib_search_paths = Vec::new();
+    let mut libs = Vec::new();
     let mut c = false;
 
     let mut i = 2; // Start after the command and program name
@@ -155,6 +163,38 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
                     output = Some(rest);
                 }
             }
+            _ if arg.starts_with("-l") => {
+                let rest = arg[2..].to_string();
+                if rest.is_empty() {
+                    // get the next argument instead
+                    if let Some(next_arg) = args.get(i + 1) {
+                        libs.push(next_arg.to_string());
+                        i += 1; // skip the next argument
+                    } else {
+                        usage(program, Command::from_str("build").as_ref());
+                        fatal("expected library name after `-l` flag");
+                        return Err(());
+                    }
+                } else {
+                    libs.push(rest);
+                }
+            }
+            _ if arg.starts_with("-L") => {
+                let rest = arg[2..].to_string();
+                if rest.is_empty() {
+                    // get the next argument instead
+                    if let Some(next_arg) = args.get(i + 1) {
+                        lib_search_paths.push(next_arg.to_string());
+                        i += 1; // skip the next argument
+                    } else {
+                        usage(program, Command::from_str("build").as_ref());
+                        fatal("expected search path after `-L` flag");
+                        return Err(());
+                    }
+                } else {
+                    lib_search_paths.push(rest);
+                }
+            }
             _ if input.is_none() => {
                 input = Some(arg.to_string());
             }
@@ -175,6 +215,8 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
     }
     Ok(Command::Build {
         input: input.unwrap(),
+        libs,
+        lib_search_paths,
         output,
         c
     })
