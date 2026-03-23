@@ -1,0 +1,28 @@
+// Simple program that shows how the C interoperability works in Elo.
+// use the build flags -l and/or -L to link with raylib.
+
+struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+}
+
+const RED: Color = Color { r: 255 as u8, g: 0 as u8, b: 0 as u8, a: 255 as u8 };
+
+extern fn InitWindow(width: uint, height: uint, title: cstr)
+extern fn BeginDrawing()
+extern fn EndDrawing()
+extern fn CloseWindow()
+extern fn WindowShouldClose(): bool
+extern fn ClearBackground(color: Color)
+
+fn main() {
+    InitWindow(800, 600, c'Elo, World!');
+    while !WindowShouldClose() {
+        BeginDrawing();
+        ClearBackground(RED);
+        EndDrawing();
+    }
+    CloseWindow();
+}
