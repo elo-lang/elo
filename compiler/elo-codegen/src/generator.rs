@@ -262,8 +262,12 @@ impl Generator {
                 }
             },
             cir::ExpressionData::Identifier { name } => {
-                if let cir::ExpressionIdentity::Function(false) = expr.identity {
-                    mangle_function(name)
+                if let cir::ExpressionIdentity::Function(extrn) = expr.identity {
+                    if extrn {
+                        name.to_string()
+                    } else {
+                        mangle_function(name)
+                    }
                 } else {
                     mangle_name(name)
                 }
@@ -343,8 +347,9 @@ impl Generator {
             } => {
                 self.head.push_str("static const ");
                 let x = self.choose_type(typing);
-                self.head.push_str(&mangle_name(&x));
-                self.head.push_str(&binding);
+                self.head.push_str(&x);
+                self.head.push(' ');
+                self.head.push_str(&mangle_name(binding));
                 self.head.push('=');
                 let expr = self.generate_expression(&value);
                 self.head.push_str(&expr);
