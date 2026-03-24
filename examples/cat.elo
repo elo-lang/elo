@@ -1,0 +1,12 @@
+extern fn fopen(pathname: cstr, mode: cstr): *mut u8 // *mut u8 is improvised void* type
+extern fn fclose(stream: *mut u8)
+extern fn fread(ptr: *mut u8, size: uint, nmemb: uint, stream: *mut u8): uint
+
+fn main() {
+    let f = fopen(c'test.elo', c'r');
+    var byte = 0 as u8;
+    while fread(&byte, 1, 1, f) > 0 {
+        print(byte as char);
+    }
+    fclose(f);
+}

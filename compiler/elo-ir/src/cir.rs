@@ -1,6 +1,5 @@
 // Compiled Intermediate Representation
 use elo_lexer::span::Span;
-use std::collections::HashMap;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum BinaryOperation {
