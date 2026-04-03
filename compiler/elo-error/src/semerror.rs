@@ -4,6 +4,9 @@ use crate::error::error;
 
 #[derive(Debug)]
 pub enum SemanticErrorCase {
+    TopLevelImperativeStatement {
+        statement: String,
+    },
     UseExternFnAsExpr {
         name: String,
     },
@@ -95,6 +98,15 @@ pub struct SemanticError {
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
+        SemanticErrorCase::TopLevelImperativeStatement { statement } => {
+            error(
+                "Type Check Error",
+                &format!("found {statement} outside function scope"),
+                filespan,
+                None,
+                Some("you can only use this inside a function block"),
+            );
+        }
         SemanticErrorCase::UseExternFnAsExpr { name } => {
             error(
                 "Type Check Error",
