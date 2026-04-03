@@ -1100,6 +1100,15 @@ impl SemanticChecker {
     fn typecheck_node(&mut self, node: ast::Node, expects_return: Option<&cir::Typing>) -> Result<cir::Statement, SemanticError> {
         match node.stmt {
             ast::Statement::LetStatement(stmt) => {
+                if expects_return.is_none() {
+                    return Err(SemanticError {
+                        span: node.span,
+                        case: SemanticErrorCase::TopLevelImperativeStatement {
+                            statement: String::from("let statement")
+                        },
+                    });
+                }
+
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
 
@@ -1134,6 +1143,15 @@ impl SemanticChecker {
                 )
             }
             ast::Statement::VarStatement(stmt) => {
+                if expects_return.is_none() {
+                    return Err(SemanticError {
+                        span: node.span,
+                        case: SemanticErrorCase::TopLevelImperativeStatement {
+                            statement: String::from("var statement")
+                        },
+                    });
+                }
+
                 let assignment = &stmt.assignment;
                 let name = &stmt.binding;
                 let (expr, typ) = self.typecheck_expr(assignment, false)?;
@@ -1190,6 +1208,15 @@ impl SemanticChecker {
                 }
             }
             ast::Statement::ReturnStatement(stmt) => {
+                if expects_return.is_none() {
+                    return Err(SemanticError {
+                        span: node.span,
+                        case: SemanticErrorCase::TopLevelImperativeStatement {
+                            statement: String::from("return statement")
+                        },
+                    });
+                }
+
                 if expects_return.is_none() && stmt.expr.is_some() {
                     return Err(SemanticError { span: node.span, case: SemanticErrorCase::MisplacedReturn })
                 }
@@ -1359,6 +1386,15 @@ impl SemanticChecker {
                 });
             }
             ast::Statement::IfStatement(stmt) => {
+                if expects_return.is_none() {
+                    return Err(SemanticError {
+                        span: node.span,
+                        case: SemanticErrorCase::TopLevelImperativeStatement {
+                            statement: String::from("if statement")
+                        },
+                    });
+                }
+
                 let (condition, typing) = self.typecheck_expr(&stmt.condition, false)?;
                 if typing != cir::Typing::Primitive(cir::Primitive::Bool) {
                     return Err(SemanticError {
@@ -1393,6 +1429,15 @@ impl SemanticChecker {
                 );
             }
             ast::Statement::WhileStatement(stmt) => {
+                if expects_return.is_none() {
+                    return Err(SemanticError {
+                        span: node.span,
+                        case: SemanticErrorCase::TopLevelImperativeStatement {
+                            statement: String::from("while statement")
+                        },
+                    });
+                }
+
                 let (condition, typing) = self.typecheck_expr(&stmt.condition, false)?;
                 if typing != cir::Typing::Primitive(cir::Primitive::Bool) {
                     return Err(SemanticError {
@@ -1414,6 +1459,15 @@ impl SemanticChecker {
                 );
             }
             ast::Statement::ExpressionStatement(stmt) => {
+                if expects_return.is_none() {
+                    return Err(SemanticError {
+                        span: node.span,
+                        case: SemanticErrorCase::TopLevelImperativeStatement {
+                            statement: String::from("expression")
+                        },
+                    });
+                }
+
                 return Ok(
                     cir::Statement {
                         span: node.span,
