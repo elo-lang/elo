@@ -1041,7 +1041,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn parse_stmt(&mut self, inside_block: bool) -> Result<Statement, ParseError> {
+    fn parse_stmt(&mut self) -> Result<Statement, ParseError> {
         if let Some(Lexem {
             token: Token::Keyword(kw),
             span,
@@ -1054,13 +1054,6 @@ impl<'a> Parser<'a> {
                 Keyword::Enum => self.parse_enum_stmt(),
                 Keyword::Const => self.parse_const_stmt(),
                 Keyword::Return => self.parse_return_stmt(),
-                kw if !inside_block => Err(ParseError {
-                    span: span,
-                    case: ParseErrorCase::UnexpectedToken {
-                        got: format!("{kw}"),
-                        expected: "valid statement".to_string(),
-                    },
-                }),
                 Keyword::Var => self.parse_var_stmt(),
                 Keyword::Let => self.parse_let_stmt(),
                 Keyword::If => self.parse_if_stmt(),
@@ -1115,7 +1108,7 @@ impl<'a> Parser<'a> {
                 //                         expression, the correct way to threat true and false.
                 Token::Keyword(k) if k != Keyword::True && k != Keyword::False => Node {
                     span: lexem.span,
-                    stmt: self.parse_stmt(inside_block)?,
+                    stmt: self.parse_stmt()?,
                 },
                 _ => {
                     let span = lexem.span;
