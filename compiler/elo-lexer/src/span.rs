@@ -50,7 +50,7 @@ impl Span {
     pub fn empty() -> Self {
         Span {
             line: 1,
-            start: 1, end: 2
+            start: 1, end: 1
         }
     }
 
