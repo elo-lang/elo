@@ -154,7 +154,7 @@ if foo() match ok o {
 ```
 fn bar(): int? { ... }
 
-if bar() match o? {
+if bar() match some o {
     print('optional is present: \(o)')
 }
 ```

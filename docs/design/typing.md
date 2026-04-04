@@ -12,7 +12,7 @@ Types in Elo are categorized into 2 main categories and their corresponding subc
 - sequence: `{T}`, `{T; n}`
 - sum type: `T?`, `O!E`
 - dynamic: `[T]`, `[K:V]`, `string`
-- function: `fn R(A, ...)`
+- function: `fn(A, ...): R`
 
 1. **Primitive types**
 - signed integer: `int` `i8` `i16` `i32` `i64`
@@ -84,8 +84,9 @@ let v2 = Vector2 { x: x, y: y } // auto cast rule #3
 ```
 
 ## Static types VS Dynamic types
-Static types are all stack-allocated. That means their lifetime is defined by their scope and have fixed size.
-1. Dynamic types are heap-allocated. Their lifetimes are arbitrary and may have different size during runtime.
+
+* **Static types** are all stack-allocated. That means they have fixed size and they are known at compile-time.
+* **Dynamic types** are heap-allocated. They may have different sizes during runtime.
 
 All the static types are the primitives.
 
@@ -152,16 +153,19 @@ Optional values (`T?`) are basically invisible in terms of how they appear in co
 ```
 let o: int? = 10;
 ```
-
 > The value `10` in this variable is not an `int`. Actually it is an `int?`. But syntactically they appear the same.
 
-> It is like that to avoid the overhead of always specifying that it is an optional variant everytime you want to use it.
+- You can explicitly specify if the value is present by using the keyword `some` if needed:
+
+```
+let o: int? = some 10;
+```
+> But, in this case, the use of `some` is redundant.
 
 - To specify the absence of the optional value, use the keyword `none`:
 ```
 let o: int? = none;
 ```
-
 
 - Passing an optional value into something that expects the inner type will not work:
 ```
@@ -204,6 +208,15 @@ fn is_10(i: int): int!str {
 > The compiler automatically detects which type you are returning and assigns it to the designated variant of the result state.
 
 > If the type after `ret`/`return` is the one specified by the OK variant of the result state, it assigns it to the OK variant and returns. The same for the error variant. Otherwise it is an error.
+
+- If success-variant type and error-variant type are the same, you will need to specify the variant using the keywords `ok` and `fail`:
+fn is_10(i: int): int!int {
+    if i == 10 {
+        ret ok i
+    } else {
+        ret fail 10
+    }
+}
 
 - Extract the inner OK variant of the result state using the `!` operator.
 ```

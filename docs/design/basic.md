@@ -3,9 +3,15 @@ and differences from other programming languages
 
 ---
 
+## Comments
+Use `//` to create line comments in Elo.
+
+There are no multiline comments in Elo. This is just a design choice because multiline comments
+are ugly.
+
+Most modern editors nowadays support multicursor editing. So, to comment a code section, use the feature to insert `//`s in the beginning of each line.
+
 ## Functions
-> **NOTE**: Use the `//` syntax to create comments in Elo.
-> (there are no multiline comments in Elo)
 
 ### Entry-point
 The entry-point function (or "main function") is the function that starts the execution of a program.

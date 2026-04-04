@@ -8,7 +8,7 @@ Elo is a compiled systems programming language for computers.
 
 The language is called Elo because it means "chain link" in Portuguese which is
 closely related to this language's purpose as a tool. A strong and reliable piece
-of your project, but still intentional and reliable.
+of your project, but still small and simple.
 
 We chose the slogan "_Building software intuitively_" to reflect the clear intent
 to be a robust but intuitive programming language.
