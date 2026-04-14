@@ -954,6 +954,7 @@ impl<'a> Parser<'a> {
             typ = Some(self.parse_type()?);
         }
         let block = self.parse_block(true, false)?;
+        self.expect_end()?;
         Ok(Statement::FnStatement(FnStatement {
             name,
             block,
@@ -972,6 +973,7 @@ impl<'a> Parser<'a> {
         if let Some(_) = self.test_token(&Token::Delimiter(':'), false) {
             typ = Some(self.parse_type()?);
         }
+        self.expect_end()?;
         Ok(Statement::ExternFnStatement(ExternFnStatement {
             name,
             ret: typ,
@@ -985,6 +987,7 @@ impl<'a> Parser<'a> {
         self.expect_token(Token::Delimiter('{'))?;
         let fields = self.parse_typed_fields(Token::Delimiter('}'))?;
         self.expect_token(Token::Delimiter('}'))?;
+        self.expect_end()?;
         Ok(Statement::StructStatement(StructStatement { name, fields }))
     }
 
@@ -993,6 +996,7 @@ impl<'a> Parser<'a> {
         self.expect_token(Token::Delimiter('{'))?;
         let variants = self.parse_enum_variants(Token::Delimiter('}'))?;
         self.expect_token(Token::Delimiter('}'))?;
+        self.expect_end()?;
         Ok(Statement::EnumStatement(EnumStatement { name, variants }))
     }
 
