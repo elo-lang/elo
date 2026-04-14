@@ -331,8 +331,6 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 '/' if self.state == State::Normal && self.chars.peek() == Some(&'/') => {
                     let _ = self.consume_while(Some(&ch), |c| c != '\n');
-                    self.chars.next(); // Consume \n
-                    self.advance_line();
                     continue;
                 }
                 '\n' => {
