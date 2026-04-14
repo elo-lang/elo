@@ -17,14 +17,14 @@ call any deallocation function, and without the rigidity of an ownership system.
 ### Problems with existing approaches
 
 **Garbage collection** solves memory safety but introduces runtime overhead and
-non-deterministic collection times, making it unsuitable for systems programming.
+non-deterministic collection times.
 
 **Rust's ownership model** is powerful but too rigid — it restricts how programs
 can naturally flow their logic to enforce ownership rules, even in cases where
 the programmer's intent is obviously safe.
 
 **Manual memory management (C/C++)** gives full control but offers no safety net,
-leading to memory leaks, use-after-free bugs, and double frees.
+leading to potentially unsafe scenarios.
 
 AMM sits between these approaches: the control of manual memory management, the
 safety of a compiler-enforced model, without the rigidity of ownership systems
