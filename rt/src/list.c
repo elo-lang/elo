@@ -19,7 +19,7 @@ List __elo_list_new(MemoryContext* ctx, size_t elem) {
 
 void __elo_list_append(MemoryContext* ctx, List* list, void* x) {
 	size_t new_length = list->len + 1;
-	if (list->capacity < new_length) {
+	while (list->capacity < new_length) {
 		__elo_handle_resize(ctx, list->slot, list->capacity*2);
 	}
 	char* dest = ctx->handles.items[list->slot];
