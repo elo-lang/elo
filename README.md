@@ -16,10 +16,10 @@ Visit our website at [elo-lang.github.io](https://elo-lang.github.io/)
 
 ## Highlights
 
-- **Assisted Memory Management** —  simple, safe and reliable memory management system
-- **Simple, expressive syntax** —  designed to be readable and writable without ceremony
-- **Efficient compilation** —  [TCC](https://bellard.org/tcc/) backend for fast compilation, [Clang/LLVM](https://clang.llvm.org/) for high-performance optimized release builds
-- **C interoperability** —  seamless interop with C libraries
+- **Assisted Memory Management** — simple, safe and intuitive memory management system
+- **Simple, expressive syntax** — designed to be readable and writable without ceremony
+- **Efficient compilation** — [TCC](https://bellard.org/tcc/) backend for fast compilation, [Clang/LLVM](https://clang.llvm.org/) for high-performance optimized release builds
+- **C interoperability** — interop with C libraries with as little friction as possible
 
 > **NOTE**: This language is not finished. Use this piece of software at your own risk. This software offers no warranty over itself. Read [LICENSE](./LICENSE) for more information.
 
@@ -39,7 +39,7 @@ You need to use [**cargo**](https://doc.rust-lang.org/stable/cargo/) to build th
 ##### Dependencies
 This compiler depends on:
 - `libtcc` ([TCC](https://bellard.org/tcc/)) for fast compilation.
-- [Clang](https://clang.llvm.org/) or [MSVC](https://visualstudio.microsoft.com/vs/features/cplusplus/) compilers with the system linker for optimized compilation.
+- [Clang](https://clang.llvm.org/) or [MSVC](https://visualstudio.microsoft.com/vs/features/cplusplus/) compilers insalled in the system and a linker for optimized compilation.
 
 
 ##### Build
