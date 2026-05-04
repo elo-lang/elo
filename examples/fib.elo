@@ -11,6 +11,6 @@ fn main() {
     var x = 0
     while x < 10 {
         print(fib(x));
-        x = x+1
+        x += 1;
     }
 }
