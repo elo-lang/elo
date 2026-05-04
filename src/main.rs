@@ -39,9 +39,9 @@ enum SystemCompiler {
 
 fn temporary_file(content: &str, filename: &str, mut with: impl FnMut() -> Result<(), ()>) -> Result<(), ()>  {
     std::fs::write(filename, content).unwrap();
-    with()?;
+    let result = with();
     let _ = std::fs::remove_file(filename);
-    return Ok(());
+    return result;
 }
 
 fn setup_elo_backend(compiler: &mut BackendCompiler, _optimize: bool, _debug: bool) {
