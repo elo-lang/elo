@@ -605,11 +605,17 @@ impl<'a> Parser<'a> {
             Some(Lexem {
                 token: Token::Newline | Token::Delimiter(';'),
                 ..
-            }) => true,
+            }) => {
+                self.next();
+                true
+            }
             Some(Lexem {
                 token: Token::Delimiter('}'),
                 ..
-            }) => true,
+            }) => {
+                self.next();
+                true
+            }
             Some(Lexem { token: _, .. }) => false,
             None => true,
         }
