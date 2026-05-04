@@ -20,36 +20,36 @@ pub fn critical(msg: &str) {
     eprintln!("{RED}critical{RESET}: {msg}");
 }
 
-pub fn usage(program: &str, command: Option<&Command>) {
+pub fn usage(program: &str, command: Option<&CLICommand>) {
     if let Some(cmd) = command {
         match cmd {
-            Command::Run { .. } => eprintln!("usage: {program} run <input> [...<args>]"),
-            Command::Build { .. } => {
+            CLICommand::Run { .. } => eprintln!("usage: {program} run <input> [...<args>]"),
+            CLICommand::Build { .. } => {
                 eprintln!("usage: {program} build <input> [-o <output>] [-c] [-l <library>] [-L <path>]")
             }
-            Command::Help { .. } => eprintln!("usage: {program} help [<command>]"),
+            CLICommand::Help { .. } => eprintln!("usage: {program} help [<command>]"),
         }
     } else {
         eprintln!("usage: {program} <command> ...");
     }
 }
 
-pub fn help(program: &str, command: Option<&Command>) {
+pub fn help(program: &str, command: Option<&CLICommand>) {
     usage(program, command);
     match command {
-        Some(Command::Help { .. }) | None => {
+        Some(CLICommand::Help { .. }) | None => {
             eprintln!("commands:");
             eprintln!("    run   | r        Run with the given input file");
             eprintln!("    build | b        Build from given source code");
             eprintln!("    help  | h        Show help message for a specific command or general help");
         }
-        Some(Command::Run { .. }) => {
+        Some(CLICommand::Run { .. }) => {
             eprintln!("\nBuild and automatically run the given input file\n");
             eprintln!("positional arguments:");
             eprintln!("    <input>          Source-code input file");
             eprintln!("    <args>           Command line arguments to the program being ran");
         }
-        Some(Command::Build { .. }) => {
+        Some(CLICommand::Build { .. }) => {
             eprintln!("\nBuild the given source code input file\n");
             eprintln!("positional arguments:");
             eprintln!("    <input>          Source-code input file");
@@ -62,7 +62,7 @@ pub fn help(program: &str, command: Option<&Command>) {
     }
 }
 
-pub enum Command {
+pub enum CLICommand {
     Build {
         input: String,
         output: Option<String>,
@@ -79,27 +79,27 @@ pub enum Command {
     },
 }
 
-impl Command {
+impl CLICommand {
     pub fn from_str(command: &str) -> Option<Self> {
         match command {
-            "build" | "b" => Some(Command::Build {
+            "build" | "b" => Some(CLICommand::Build {
                 input: String::new(),
                 output: None,
                 lib_search_paths: Vec::new(),
                 libs: Vec::new(),
                 c: false
             }),
-            "run" | "r" => Some(Command::Run {
+            "run" | "r" => Some(CLICommand::Run {
                 input: String::new(),
                 args: Vec::new(),
             }),
-            "help" => Some(Command::Help { command: None }),
+            "help" => Some(CLICommand::Help { command: None }),
             _ => None,
         }
     }
 }
 
-fn parse_run(program: &str, args: &[String]) -> Result<Command, ()> {
+fn parse_run(program: &str, args: &[String]) -> Result<CLICommand, ()> {
     if args.len() < 2 {
         return Err(());
     }
@@ -119,17 +119,17 @@ fn parse_run(program: &str, args: &[String]) -> Result<Command, ()> {
         }
     }
     if input.is_none() {
-        usage(program, Command::from_str("run").as_ref());
+        usage(program, CLICommand::from_str("run").as_ref());
         fatal("expected positional argument: <input>");
         return Err(());
     }
-    return Ok(Command::Run {
+    return Ok(CLICommand::Run {
         input: input.unwrap(),
         args: arguments,
     });
 }
 
-fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
+fn parse_build(program: &str, args: &[String]) -> Result<CLICommand, ()> {
     if args.len() < 2 {
         return Err(());
     }
@@ -155,7 +155,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
                         output = Some(next_arg.to_string());
                         i += 1; // skip the next argument
                     } else {
-                        usage(program, Command::from_str("build").as_ref());
+                        usage(program, CLICommand::from_str("build").as_ref());
                         fatal("expected output file after `-o` flag");
                         return Err(());
                     }
@@ -171,7 +171,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
                         libs.push(next_arg.to_string());
                         i += 1; // skip the next argument
                     } else {
-                        usage(program, Command::from_str("build").as_ref());
+                        usage(program, CLICommand::from_str("build").as_ref());
                         fatal("expected library name after `-l` flag");
                         return Err(());
                     }
@@ -187,7 +187,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
                         lib_search_paths.push(next_arg.to_string());
                         i += 1; // skip the next argument
                     } else {
-                        usage(program, Command::from_str("build").as_ref());
+                        usage(program, CLICommand::from_str("build").as_ref());
                         fatal("expected search path after `-L` flag");
                         return Err(());
                     }
@@ -199,7 +199,7 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
                 input = Some(arg.to_string());
             }
             x if input.is_some() => {
-                usage(program, Command::from_str("build").as_ref());
+                usage(program, CLICommand::from_str("build").as_ref());
                 fatal(&format!("unexpected positional argument `{x}`"));
                 return Err(());
             }
@@ -209,11 +209,11 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
     }
 
     if input.is_none() {
-        usage(program, Command::from_str("build").as_ref());
+        usage(program, CLICommand::from_str("build").as_ref());
         fatal("expected positional argument: <input>");
         return Err(());
     }
-    Ok(Command::Build {
+    Ok(CLICommand::Build {
         input: input.unwrap(),
         libs,
         lib_search_paths,
@@ -222,13 +222,13 @@ fn parse_build(program: &str, args: &[String]) -> Result<Command, ()> {
     })
 }
 
-fn parse_help(args: &[String]) -> Result<Command, ()> {
-    Ok(Command::Help {
+fn parse_help(args: &[String]) -> Result<CLICommand, ()> {
+    Ok(CLICommand::Help {
         command: args.iter().skip(2).next().map(|s| s.to_string()),
     })
 }
 
-fn parse_command(program: &str, args: &[String]) -> Result<Command, ()> {
+fn parse_command(program: &str, args: &[String]) -> Result<CLICommand, ()> {
     let command = &args[1];
     match command.as_str() {
         "r" | "run" => parse_run(program, args),
@@ -242,7 +242,7 @@ fn parse_command(program: &str, args: &[String]) -> Result<Command, ()> {
     }
 }
 
-pub fn parse_args(args: &[String]) -> Result<Command, ()> {
+pub fn parse_args(args: &[String]) -> Result<CLICommand, ()> {
     if args[1..].is_empty() {
         usage(&args[0], None);
         fatal("expected command");
