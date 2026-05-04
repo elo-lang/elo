@@ -1220,6 +1220,12 @@ impl SemanticChecker {
                 if expects_return.is_none() && stmt.expr.is_some() {
                     return Err(SemanticError { span: node.span, case: SemanticErrorCase::MisplacedReturn })
                 }
+                if expects_return.is_some() && stmt.expr.is_none() {
+                    return Err(SemanticError { span: node.span, case: SemanticErrorCase::MissingReturnValue {
+                        fn_name: self.current_function.clone(),
+                        typ: format!("{}", expects_return.unwrap()),
+                    }})
+                }
                 if let Some(expr) = &stmt.expr {
                     let (expr, typ) = self.typecheck_expr(expr, false)?;
                     let got_return = &typ;
