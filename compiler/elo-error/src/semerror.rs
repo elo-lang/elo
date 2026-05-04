@@ -4,6 +4,9 @@ use crate::error::error;
 
 #[derive(Debug)]
 pub enum SemanticErrorCase {
+    MissingReturnValue {
+        fn_name: String, typ: String
+    },
     TopLevelImperativeStatement {
         statement: String,
     },
@@ -98,6 +101,15 @@ pub struct SemanticError {
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
     match pe {
+        SemanticErrorCase::MissingReturnValue { fn_name, typ } => {
+            error(
+                "Type Check Error",
+                &format!("missing return value in {fn_name}"),
+                filespan,
+                None,
+                Some(&format!("add a value of type {typ} after this return")),
+            );
+        }
         SemanticErrorCase::TopLevelImperativeStatement { statement } => {
             error(
                 "Type Check Error",
