@@ -16,6 +16,7 @@ use std::env::args;
 use std::env;
 use std::process::{Command, Stdio};
 
+#[allow(dead_code)]
 enum BackendCompiler {
     CLang { path: String, args: Vec<String> },
     MSVC { path: String, args: Vec<String> },
@@ -39,11 +40,11 @@ enum SystemCompiler {
 fn temporary_file(content: &str, filename: &str, mut with: impl FnMut() -> Result<(), ()>) -> Result<(), ()>  {
     std::fs::write(filename, content).unwrap();
     with()?;
-    std::fs::remove_file(filename);
+    let _ = std::fs::remove_file(filename);
     return Ok(());
 }
 
-fn setup_elo_backend(compiler: &mut BackendCompiler, optimize: bool, debug: bool) {
+fn setup_elo_backend(compiler: &mut BackendCompiler, _optimize: bool, _debug: bool) {
     match compiler {
         BackendCompiler::CLang { path: _, args } => {
             args.push(String::from("-Irt/include"));
@@ -129,8 +130,8 @@ fn find_program(name: &str) -> Option<String> {
 fn invoke_program(program_path: &str, args: &[&str]) -> bool {
     Command::new(program_path)
         .args(args)
-        .stdout(std::io::stdout())
-        .stderr(std::io::stdout())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .map(|x| x.success())
         .unwrap_or(false)
