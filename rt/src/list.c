@@ -6,7 +6,7 @@
 
 #define ELO_LIST_INITIAL_CAPACITY 1024
 
-List __elo_list_new(MemoryContext* ctx, size_t elem) {
+List __elo_list_new(GlobalContext* ctx, size_t elem) {
 	Slot s = __elo_handle_new(ctx, ELO_LIST_INITIAL_CAPACITY);
 	List list = {
 		.slot = s,
@@ -17,7 +17,7 @@ List __elo_list_new(MemoryContext* ctx, size_t elem) {
 	return list;
 }
 
-void __elo_list_append(MemoryContext* ctx, List* list, void* x) {
+void __elo_list_append(GlobalContext* ctx, List* list, void* x) {
 	size_t new_length = list->len + 1;
 	while (list->capacity < new_length) {
 		__elo_handle_resize(ctx, list->slot, list->capacity*2);
@@ -27,7 +27,7 @@ void __elo_list_append(MemoryContext* ctx, List* list, void* x) {
 	list->len = new_length;
 }
 
-void* __elo_list_get(Pos pos, const MemoryContext* ctx, List list, size_t index) {
+void* __elo_list_get(Pos pos, const GlobalContext* ctx, List list, size_t index) {
 	if (index >= list.len) {
 		__elo_panic(pos, "index %zu is out of bounds for list of length %zu", index, list.len);
 	}
@@ -35,6 +35,6 @@ void* __elo_list_get(Pos pos, const MemoryContext* ctx, List list, size_t index)
 	return (void*)(ptr+index*list.elem);
 }
 
-void __elo_list_drop(MemoryContext* ctx, List list) {
+void __elo_list_drop(GlobalContext* ctx, List list) {
 	__elo_handle_drop(ctx, list.slot);
 }

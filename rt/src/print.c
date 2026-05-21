@@ -2,29 +2,29 @@
 #include <str.h>
 #include <typing.h>
 
-void __elo_print_str(MemoryContext* ctx, _ELO_STR_T value) {
+void __elo_print_str(GlobalContext* ctx, _ELO_STR_T value) {
     char* ptr = __elo_handle_get(ctx, value.slot);
     ptr += value.offset;
     printf("%.*s\n", value.size, ptr);
 }
 
-void __elo_print_decimal(MemoryContext* ctx, _ELO_F64_T value) {
+void __elo_print_decimal(GlobalContext* ctx, _ELO_F64_T value) {
     printf("%g\n", value);
 }
 
-void __elo_print_unsigned(MemoryContext* ctx, _ELO_U64_T value) {
+void __elo_print_unsigned(GlobalContext* ctx, _ELO_U64_T value) {
     printf("%llu\n", value);
 }
 
-void __elo_print_signed(MemoryContext* ctx, _ELO_I64_T value) {
+void __elo_print_signed(GlobalContext* ctx, _ELO_I64_T value) {
     printf("%lld\n", value);
 }
 
-void __elo_print_bool(MemoryContext* ctx, _ELO_BOOL_T value) {
+void __elo_print_bool(GlobalContext* ctx, _ELO_BOOL_T value) {
     printf("%s\n", value ? "true" : "false");
 }
 
-void __elo_print_char(MemoryContext* ctx, _ELO_CHAR_T value) {
+void __elo_print_char(GlobalContext* ctx, _ELO_CHAR_T value) {
     uint32_t cp = value; // CP is for CODEPOINT for fuck sake
     if (cp <= 0x7F) {
         /* 1 byte: 0xxxxxxx (Standard ASCII) */

@@ -29,12 +29,14 @@ typedef struct {
 typedef struct {
 	HandleTable handles;
 	SlotTable   dead_slots;
-} MemoryContext;
+	char** argv;
+	int argc;
+} GlobalContext;
 
-Slot __elo_handle_add(MemoryContext* ctx, void* ptr);
-Slot __elo_handle_new(MemoryContext* ctx, size_t size);
-void __elo_handle_resize(MemoryContext* ctx, Slot slot, size_t size);
-void __elo_handle_drop(MemoryContext* ctx, Slot slot);
-void* __elo_handle_get(MemoryContext* ctx, Slot slot);
+Slot __elo_handle_add(GlobalContext* ctx, void* ptr);
+Slot __elo_handle_new(GlobalContext* ctx, size_t size);
+void __elo_handle_resize(GlobalContext* ctx, Slot slot, size_t size);
+void __elo_handle_drop(GlobalContext* ctx, Slot slot);
+void* __elo_handle_get(GlobalContext* ctx, Slot slot);
 
 #endif

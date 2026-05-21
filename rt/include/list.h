@@ -11,9 +11,9 @@ typedef struct {
 	size_t elem;
 } List;
 
-List __elo_list_new(MemoryContext* ctx, size_t elem);
-void __elo_list_append(MemoryContext* ctx, List* list, void* x);
-void __elo_list_drop(MemoryContext* ctx, List list);
-void* __elo_list_get(Pos pos, const MemoryContext* ctx, List list, size_t index); 
+List __elo_list_new(GlobalContext* ctx, size_t elem);
+void __elo_list_append(GlobalContext* ctx, List* list, void* x);
+void __elo_list_drop(GlobalContext* ctx, List list);
+void* __elo_list_get(Pos pos, const GlobalContext* ctx, List list, size_t index);
 
 #endif
