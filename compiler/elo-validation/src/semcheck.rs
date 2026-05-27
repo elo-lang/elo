@@ -211,6 +211,22 @@ impl SemanticChecker {
         let mut checked_arguments = Vec::new();
         let ret_type: cir::Typing;
         match intrinsic {
+            cir::Intrinsic::Args => {
+                let expected_len = 0;
+                ret_type = cir::Typing::Slice { typ: Box::new(cir::Typing::Primitive(cir::Primitive::Str)) };
+                if passed_length != expected_len {
+                    return Err(SemanticError {
+                        span: call_span,
+                        case: SemanticErrorCase::UnmatchedArguments {
+                            function: format!("{intrinsic}"),
+                            got: passed_length,
+                            expected: expected_len,
+                            too_much: passed_length > expected_len,
+                        },
+                    });
+                }
+                resolved = Some(cir::ResolvedIntrinsic::Args);
+            }
             cir::Intrinsic::Print => {
                 let expected_len = 1;
                 ret_type = cir::Typing::Void;
@@ -711,30 +727,48 @@ impl SemanticChecker {
                 let origin_id = origin.identity;
                 let (inner, inner_type) = self.typecheck_expr(inner, function_call)?;
                 let inner_span = inner.span;
-                if let cir::Typing::Array { typ, .. } = origin_type {
-                    if let Some(inner) = self.make_inference(inner, &inner_type, &cir::Typing::Primitive(cir::Primitive::UInt)) {
+
+                let real_inner: cir::Expression;
+                if let Some(i) = self.make_inference(inner, &inner_type, &cir::Typing::Primitive(cir::Primitive::UInt)) {
+                    real_inner = i;
+                } else {
+                    return Err(SemanticError {
+                        span: inner_span,
+                        case: SemanticErrorCase::TypeMismatch {
+                            got: format!("{}", inner_type),
+                            expected: format!("unsigned integer")
+                        }
+                    })
+                }
+                match origin_type {
+                    cir::Typing::Array { typ, .. } => {
                         return Ok((
                             cir::Expression {
                                 span: expr.span,
                                 data: cir::ExpressionData::ArraySubscript {
                                     origin: Box::new(origin),
-                                    index: Box::new(inner)
+                                    index: Box::new(real_inner)
                                 },
                                 identity: origin_id,
                             },
                             *typ,
                         ))
-                    } else {
-                        return Err(SemanticError {
-                            span: inner_span,
-                            case: SemanticErrorCase::TypeMismatch {
-                                got: format!("{}", inner_type),
-                                expected: format!("unsigned integer")
-                            }
-                        })
                     }
-                } else {
-                    return Err(SemanticError {
+                    cir::Typing::Slice { typ } => {
+                        return Ok((
+                            cir::Expression {
+                                span: expr.span,
+                                data: cir::ExpressionData::SliceSubscript {
+                                    typ: *typ.clone(),
+                                    origin: Box::new(origin),
+                                    index: Box::new(real_inner)
+                                },
+                                identity: origin_id,
+                            },
+                            *typ,
+                        ))
+                    }
+                    _ => return Err(SemanticError {
                         span: origin.span,
                         case: SemanticErrorCase::IndexNonIndexable {
                             thing: format!("{origin}"),
