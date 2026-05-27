@@ -135,6 +135,7 @@ impl Generator {
             cir::Typing::Enum(cir::Enum { name, .. }) => format!("enum {}", mangle_enum(name)),
             cir::Typing::Void => "void".to_string(),
             cir::Typing::Tuple { types } => format!("struct {}", self.get_tuple_type(types)),
+            cir::Typing::Slice { typ: _ } => "_ELO_SLICE_T".to_string(),
             cir::Typing::Function { ret, arguments, variadic: _, extrn: _ } => {
                 self.get_fn_type(ret, arguments)
             }
@@ -236,6 +237,7 @@ impl Generator {
                     cir::ResolvedIntrinsic::PrintSigned => "__elo_print_signed",
                     cir::ResolvedIntrinsic::PrintBool => "__elo_print_bool",
                     cir::ResolvedIntrinsic::PrintChar => "__elo_print_char",
+                    cir::ResolvedIntrinsic::Args => "__elo_args",
                 };
                 let mut real_args = vec![String::from("ctx")];
                 let arguments: Vec<String> = arguments
@@ -290,6 +292,13 @@ impl Generator {
                 let index = self.generate_expression(index);
                 return c::subscript_expr(&origin, &index);
             }
+            cir::ExpressionData::SliceSubscript { typ, origin, index } => {
+                let typ = self.choose_type(typ);
+                let origin = self.generate_expression(origin);
+                let index = self.generate_expression(index);
+                let args = self.generate_passed_args(vec![typ, origin, index], false);
+                return c::function_call_expr("__elo_slice_get", &args);
+            }
             cir::ExpressionData::FieldAccess { origin, field } => {
                 let lhs = self.generate_expression(origin);
                 let rhs = field.clone();
@@ -333,6 +342,17 @@ impl Generator {
         for expr in args {
             let e = self.generate_expression(expr);
             result.push(e);
+        }
+        return c::list(&result);
+    }
+
+    pub fn generate_passed_args(&mut self, args: Vec<String>, extrn: bool) -> String {
+        let mut result = vec![];
+        if !extrn {
+            result.push(String::from("ctx"));
+        }
+        for arg in args {
+            result.push(arg);
         }
         return c::list(&result);
     }
