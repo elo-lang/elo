@@ -163,6 +163,7 @@ pub enum ResolvedIntrinsic {
     PrintSigned,
     PrintBool,
     PrintChar,
+    Args,
 }
 
 impl ResolvedIntrinsic {
@@ -174,6 +175,7 @@ impl ResolvedIntrinsic {
             | ResolvedIntrinsic::PrintSigned
             | ResolvedIntrinsic::PrintBool
             | ResolvedIntrinsic::PrintChar => Intrinsic::Print,
+            ResolvedIntrinsic::Args => Intrinsic::Args,
         }
     }
 }
@@ -181,12 +183,14 @@ impl ResolvedIntrinsic {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Intrinsic {
     Print,
+    Args
 }
 
 impl std::fmt::Display for Intrinsic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
             Intrinsic::Print => write!(f, "print"),
+            Intrinsic::Args => write!(f, "args"),
         }
     }
 }
@@ -195,6 +199,7 @@ impl Intrinsic {
     pub fn from_str(s: &str) -> Option<Intrinsic> {
         match s {
             "print" => Some(Intrinsic::Print),
+            "args" => Some(Intrinsic::Args),
             _ => None
         }
     }
@@ -222,6 +227,11 @@ pub enum ExpressionData {
         typ: Typing,
     },
     ArraySubscript {
+        origin: Box<Expression>,
+        index: Box<Expression>,
+    },
+    SliceSubscript {
+        typ: Typing,
         origin: Box<Expression>,
         index: Box<Expression>,
     },
@@ -279,6 +289,7 @@ impl std::fmt::Display for ExpressionData {
             ExpressionData::StrLiteral { value } => write!(f, "\'{value}\'"),
             ExpressionData::CStrLiteral { value } => write!(f, "c\'{value}\'"),
             ExpressionData::ArraySubscript { origin, index } => write!(f, "\"{origin}[{index}]\""),
+            ExpressionData::SliceSubscript { typ: _, origin, index } => write!(f, "\"{origin}[{index}]\""),
             ExpressionData::ArrayLiteral { exprs, .. } => write!(f, "{{{}{}}}", exprs[0], if exprs.len() > 1 { "..." } else { "" }),
             ExpressionData::FieldAccess { origin, field } => write!(f, "{}.{}", origin, field),
             ExpressionData::TupleAccess { origin, field } => write!(f, "{}.{}", origin, field),
@@ -472,6 +483,12 @@ pub enum Typing {
         typ: Box<Typing>,
         amount: usize,
     },
+    Slice {
+        typ: Box<Typing>,
+    },
+    List {
+        typ: Box<Typing>,
+    },
     Tuple {
         types: Vec<Typing>,
     },
@@ -584,6 +601,8 @@ impl std::fmt::Display for Typing {
             Typing::Struct(s) => write!(f, "{}", s.name),
             Typing::Enum(e) => write!(f, "{}", e.name),
             Typing::Array { typ, amount } => write!(f, "{{{}; {}}}", typ, amount),
+            Typing::Slice { typ } => write!(f, "{{{}}}", typ),
+            Typing::List { typ } => write!(f, "[{}]", typ),
             Typing::Tuple { types } => {
                 let mut fmt = String::from("(");
                 for (i, typ) in types.iter().enumerate() {
