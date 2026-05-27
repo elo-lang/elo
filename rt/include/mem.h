@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Igor Ferreira, Marcio Dantas
 
 #include <stddef.h>
+#include <slice.h>
 
 #ifndef MEM_H
 #define MEM_H
@@ -29,8 +30,7 @@ typedef struct {
 typedef struct {
 	HandleTable handles;
 	SlotTable   dead_slots;
-	char** argv;
-	int argc;
+	_ELO_SLICE_T args;
 } GlobalContext;
 
 Slot __elo_handle_add(GlobalContext* ctx, void* ptr);

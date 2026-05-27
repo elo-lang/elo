@@ -9,12 +9,12 @@
 #ifndef PRELUDE_H
 #define PRELUDE_H
 
-#include <blueprint.h>
 #include <typing.h>
-#include <panic.h>
+#include <slice.h>
 #include <mem.h>
+#include <panic.h>
 #include <list.h>
 #include <str.h>
-#include <print.h>
+#include <builtins.h>
 
 #endif

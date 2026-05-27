@@ -49,3 +49,7 @@ void __elo_print_char(GlobalContext* ctx, _ELO_CHAR_T value) {
         putchar((char)(0x80 | (cp & 0x3F)));
     }
 }
+
+_ELO_SLICE_T __elo_args(GlobalContext* ctx) {
+    return ctx->args;
+}
