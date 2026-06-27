@@ -194,29 +194,37 @@ impl<'a> Parser<'a> {
                 }
                 Token::Delimiter('{') => {
                     let typ = self.parse_type()?;
-                    self.expect_token(Token::Delimiter(';'))?;
-                    match self.parse_number()?.data {
-                        ExpressionData::IntegerLiteral { value: x } => {
-                            self.expect_token(Token::Delimiter('}'))?;
-                            return Ok(Type {
-                                span: lexem.span.merge(self.current_span),
-                                typing: Typing::Array {
-                                    typ: Box::new(typ),
-                                    amount: x as usize,
-                                },
-                            });
+                    if let Some(_) = self.test_token(&Token::Delimiter(';'), false) {
+                        match self.parse_number()?.data {
+                            ExpressionData::IntegerLiteral { value: x } => {
+                                self.expect_token(Token::Delimiter('}'))?;
+                                return Ok(Type {
+                                    span: lexem.span.merge(self.current_span),
+                                    typing: Typing::Array {
+                                        typ: Box::new(typ),
+                                        amount: x as usize,
+                                    },
+                                });
+                            }
+                            ExpressionData::FloatLiteral { .. } => {
+                                return Err(ParseError {
+                                    span: lexem.span,
+                                    case: ParseErrorCase::UnexpectedToken {
+                                        got: "float literal".to_string(),
+                                        expected: "integer literal".to_string(),
+                                    },
+                                });
+                            }
+                            _ => unreachable!(),
                         }
-                        ExpressionData::FloatLiteral { .. } => {
-                            return Err(ParseError {
-                                span: lexem.span,
-                                case: ParseErrorCase::UnexpectedToken {
-                                    got: "float literal".to_string(),
-                                    expected: "integer literal".to_string(),
-                                },
-                            });
-                        }
-                        _ => unreachable!(),
                     }
+                    self.expect_token(Token::Delimiter('}'))?;
+                    return Ok(Type {
+                        span: lexem.span.merge(self.current_span),
+                        typing: Typing::Slice {
+                            typ: Box::new(typ),
+                        },
+                    });
                 }
                 Token::Delimiter('(') => {
                     let mut types = Vec::new();
@@ -284,9 +292,12 @@ impl<'a> Parser<'a> {
     // identifier: type[, identifier: type]*,?
     fn parse_typed_fields(&mut self, termination: Token) -> Result<Vec<TypedField>, ParseError> {
         let mut fields = Vec::new();
-        if let Ok(first) = self.parse_typed_field() {
-            fields.push(first);
+        if let Some(_) = self.seek_token(&termination, true) {
+            return Ok(fields);
         }
+        let x = self.parse_typed_field()?;
+        fields.push(x);
+
         while let Some(Lexem {
             token: Token::Delimiter(','),
             ..

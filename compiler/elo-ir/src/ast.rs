@@ -271,6 +271,9 @@ pub enum Typing {
         typ: Box<Type>,
         amount: usize,
     },
+    Slice {
+        typ: Box<Type>,
+    },
     Tuple {
         types: Vec<Type>,
     },
