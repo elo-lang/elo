@@ -112,6 +112,11 @@ impl SemanticChecker {
                     amount: *amount
                 });
             }
+            ast::Typing::Slice { typ } => {
+                return Ok(cir::Typing::Slice {
+                    typ: Box::new(self.check_type(typ)?)
+                });
+            }
         }
     }
 
