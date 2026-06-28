@@ -14,7 +14,7 @@ use elo_validation::validation::{self, *};
 use crate::{cli::*, tcc::TCCState};
 use std::env::args;
 use std::env;
-use std::process::{Command, Stdio};
+use std::process::{Command, Output};
 
 #[allow(dead_code)]
 enum BackendCompiler {
@@ -87,7 +87,13 @@ fn compile_backend_executable(
                     args.push(format!("-l{i}"));
                 }
                 let args = args.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
-                if invoke_program(&clang_path, &args) {
+                let out = invoke_program(&clang_path, &args);
+                if let Ok(out) = out {
+                    if !out.status.success() {
+                        eprintln!("{}", String::from_utf8_lossy(&out.stdout));
+                        eprintln!("{}", String::from_utf8_lossy(&out.stderr));
+                        return Err(());
+                    }
                     return Ok(());
                 }
                 return Err(());
@@ -127,14 +133,14 @@ fn find_program(name: &str) -> Option<String> {
     None
 }
 
-fn invoke_program(program_path: &str, args: &[&str]) -> bool {
-    Command::new(program_path)
-        .args(args)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map(|x| x.success())
-        .unwrap_or(false)
+fn invoke_program(program_path: &str, args: &[&str]) -> Result<Output, ()> {
+    let out = Command::new(program_path)
+                .args(args)
+                .output();
+    if let Ok(out) = out {
+        return Ok(out);
+    }
+    Err(())
 }
 
 fn find_system_backend_compiler() -> Option<SystemCompiler> {
