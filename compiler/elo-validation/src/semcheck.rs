@@ -728,7 +728,8 @@ impl SemanticChecker {
                 }
             }
             ast::ExpressionData::Subscript { origin, inner } => {
-                let (origin, origin_type) = self.typecheck_expr(origin, function_call)?;
+                let origin = self.typecheck_expr(origin, function_call)?;
+                let (origin, origin_type) = self.auto_dereference(origin);
                 let origin_id = origin.identity;
                 let (inner, inner_type) = self.typecheck_expr(inner, function_call)?;
                 let inner_span = inner.span;
