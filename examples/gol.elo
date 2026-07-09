@@ -64,13 +64,13 @@ fn cycle(grid1: {{bool; 8}; 8}, grid2: *mut {{bool; 8}; 8}) {
         while x < 8 {
             let nbors = count_nbors(grid1, x as int, y as int);
             if grid1[y][x] {
-                if nbors < 2 => (*grid2)[y][x] = false;
-                if (nbors == 2) || (nbors == 3) => (*grid2)[y][x] = true;
-                if nbors > 3 => (*grid2)[y][x] = false;
+                if nbors < 2                    => grid2[y][x] = false;
+                if (nbors == 2) || (nbors == 3) => grid2[y][x] = true;
+                if nbors > 3                    => grid2[y][x] = false;
             } else if nbors == 3 {
-                (*grid2)[y][x] = true;
+                grid2[y][x] = true;
             } else {
-                (*grid2)[y][x] = false;
+                grid2[y][x] = false;
             }
             x += 1;
         }
