@@ -1,0 +1,120 @@
+
+extern fn fdopen(fd: uint, mode: cstr): *mut u8;
+extern fn fwrite(data: cstr, size: uint, nmemb: uint, stream: *mut u8): uint;
+extern fn fread(data: cstr, size: uint, nmemb: uint, stream: *mut u8): uint;
+extern fn fflush(stream: *mut u8): int;
+extern fn strlen(s: cstr): uint;
+
+fn stdwrite(stdout: *mut u8, s: cstr) {
+    fwrite(s, 1, strlen(s), stdout);
+    fflush(stdout);
+}
+
+fn read(stdin: *mut u8) {
+    var x = c'abc'
+    fread(x, 1, 1, stdin);
+}
+
+fn mod(a: int, b: int): uint {
+    return (((a) % b + b) % b) as uint
+}
+
+fn count_nbors(grid: {{bool; 8}; 8}, x: int, y: int): uint {
+    var nbors = 0;
+
+    var left = mod(x - (1 as int), 8 as int);
+    var right = mod(x + (1 as int), 8 as int);
+    var top = mod(y - (1 as int), 8 as int);
+    var bottom = mod(y + (1 as int), 8 as int);
+
+    let xu = x as uint;
+    let yu = y as uint;
+
+    if grid[bottom][xu] => nbors += 1;
+    if grid[top][xu] => nbors += 1;
+    if grid[yu][right] => nbors += 1;
+    if grid[yu][left] => nbors += 1;
+    if grid[top][left] => nbors += 1;
+    if grid[top][right] => nbors += 1;
+    if grid[bottom][right] => nbors += 1;
+    if grid[bottom][left] => nbors += 1;
+    ret nbors;
+}
+
+fn render_grid(stdout: *mut u8, grid: {{bool; 8}; 8}) {
+    var y = 0
+    while y < 8 {
+        var x = 0
+        while x < 8 {
+            if grid[y][x] =>
+                stdwrite(stdout, c' # ')
+            else =>
+                stdwrite(stdout, c' . ')
+            x += 1
+        }
+        stdwrite(stdout, c'\n')
+        y += 1;
+    }
+}
+
+fn cycle(grid1: {{bool; 8}; 8}, grid2: *mut {{bool; 8}; 8}) {
+    var y = 0
+    while y < 8 {
+        var x = 0
+        while x < 8 {
+            let nbors = count_nbors(grid1, x as int, y as int);
+            if grid1[y][x] {
+                if nbors < 2 => (*grid2)[y][x] = false;
+                if (nbors == 2) || (nbors == 3) => (*grid2)[y][x] = true;
+                if nbors > 3 => (*grid2)[y][x] = false;
+            } else if nbors == 3 {
+                (*grid2)[y][x] = true;
+            } else {
+                (*grid2)[y][x] = false;
+            }
+            x += 1;
+        }
+        y += 1;
+    }
+}
+
+fn main() {
+    let stdout = fdopen(1, c'w');
+    let stdin = fdopen(0, c'r');
+    print("Game of Life")
+
+    var swap = true;
+
+    var a = {
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false},
+        {false,false,true ,false,false,false,false,false},
+        {false,false,false,true ,false,false,false,false},
+        {false,true ,true ,true ,false,false,false,false},
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false}
+    };
+    var b = {
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false},
+        {false,false,false,false,false,false,false,false}
+    }
+
+    while true {
+        if swap {
+            render_grid(stdout, a);
+            cycle(a, &b);
+        } else {
+            render_grid(stdout, b);
+            cycle(b, &a);
+        }
+        swap = !swap;
+        read(stdin);
+    }
+}
