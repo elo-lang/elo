@@ -83,8 +83,6 @@ fn main() {
     let stdin = fdopen(0, c'r');
     print("Game of Life")
 
-    var swap = true;
-
     var a = {
         {false,false,false,false,false,false,false,false},
         {false,false,false,false,false,false,false,false},
@@ -107,13 +105,13 @@ fn main() {
     }
 
     while true {
-        if swap {
-            render_grid(stdout, a);
-            cycle(a, &b);
-        } else {
-            render_grid(stdout, b);
-            cycle(b, &a);
-        }
+        cycle(a, &b);
+        render_grid(stdout, a);
+
+        let temp = b;
+        b = a;
+        a = temp;
+
         swap = !swap;
         read(stdin);
     }
