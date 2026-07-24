@@ -144,8 +144,8 @@ pub fn subscript_expr(origin: &str, index: &str) -> String {
     return format!("({origin})[{index}]")
 }
 
-pub fn array_expr(typ: &str, items: &str) -> String {
-    return format!("({typ}[]){{{items}}}");
+pub fn braced_expr(items: &str) -> String {
+    return format!("{{{items}}}");
 }
 
 pub fn struct_expr(name: &str, fields: &[(String, String)]) -> String {
