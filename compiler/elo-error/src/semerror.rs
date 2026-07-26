@@ -100,10 +100,11 @@ pub struct SemanticError {
 }
 
 pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
+    let error_name = "Semantic Error";
     match pe {
         SemanticErrorCase::MissingReturnValue { fn_name, typ } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("missing return value in {fn_name}"),
                 filespan,
                 None,
@@ -112,7 +113,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::TopLevelImperativeStatement { statement } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("found {statement} outside function scope"),
                 filespan,
                 None,
@@ -121,7 +122,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::UseExternFnAsExpr { name } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("attempt to use extern function as expression"),
                 filespan,
                 Some(&format!("if you want to use {name} as a first-class citizen, create a wrapper function")),
@@ -130,7 +131,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::InvalidMainSignature { should_be } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("invalid signature for main function"),
                 filespan,
                 None,
@@ -139,7 +140,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::InvalidCast { from, into } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("invalid cast from {from} to {into}"),
                 filespan,
                 None,
@@ -148,7 +149,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::CallNonFunction { typ } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("attempt to call non-function type {typ}"),
                 filespan,
                 None,
@@ -157,7 +158,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::UnknownEnumVariant { enumeration, variant } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("unknown variant '{variant}' in enumeration {enumeration}"),
                 filespan,
                 None,
@@ -166,7 +167,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::NameRedefinition { name, defined } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("attempt to redefine name {name}"),
                 filespan,
                 None,
@@ -175,7 +176,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::IndexNonIndexable { thing, got } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("attempt to index {thing}, of type {got}, but it is not indexable"),
                 filespan,
                 None,
@@ -184,7 +185,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::VariableRedefinition { name } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("attempt to define already defined variable {name}"),
                 filespan,
                 None,
@@ -193,7 +194,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::InvalidTupleMember { member, tuple, member_count } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("attempt to acess tuple member {member} on {tuple}"),
                 filespan,
                 None,
@@ -202,7 +203,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::MisplacedReturn => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("attempt to use return statement outside of function block"),
                 filespan,
                 None,
@@ -211,7 +212,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::NoReturn { function, returns } => {
             error(
-                "Control-flow Analysis Error",
+                error_name,
                 &format!("found path of {function} (which returns {returns}) that doesn't return a value"),
                 filespan,
                 None,
@@ -220,7 +221,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::ReturnValueOnVoidFunction { function } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("tried to return value out of function {function} that doesn't return anything"),
                 filespan,
                 None,
@@ -229,7 +230,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::MismatchedReturnType { function, expected, got } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("return type of {function} is expected to be {expected} but got {got}"),
                 filespan,
                 None,
@@ -238,7 +239,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::AssignImmutable { expression } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("tried to assign to immutable expresion {expression}"),
                 filespan,
                 None,
@@ -247,7 +248,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::TypeMismatch { got, expected } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("type mismatch: expected {expected} but got {got}"),
                 filespan,
                 None,
@@ -256,7 +257,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::InvalidType { what } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("invalid type: {what}"),
                 filespan,
                 None,
@@ -265,7 +266,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::InvalidExpression { what, should } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("invalid expression: expression {what} is expected to be {should}"),
                 filespan,
                 None,
@@ -274,7 +275,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::UnresolvedName { name } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("unresolved name: could not find '{name}' in the current scope"),
                 filespan,
                 None,
@@ -289,7 +290,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         } => {
             if too_much {
                 error(
-                    "Type Check Error",
+                    error_name,
                     &format!("too much arguments to {function}"),
                     filespan,
                     None,
@@ -299,7 +300,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
                 );
             } else {
                 error(
-                    "Type Check Error",
+                    error_name,
                     &format!("too few arguments to {function}"),
                     filespan,
                     None,
@@ -311,7 +312,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::UnresolvedField { name, from } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!("{from} has no field named '{name}'"),
                 filespan,
                 None,
@@ -320,7 +321,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::NonTupleMemberAccess { thing, typ } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!(
                     "attempt to access member from non-tuple value {thing}"
                 ),
@@ -331,7 +332,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         }
         SemanticErrorCase::NonAggregateFieldAccess { typ, field } => {
             error(
-                "Type Check Error",
+                error_name,
                 &format!(
                     "attempt to access field {field} from non-aggregate type {typ}"
                 ),
