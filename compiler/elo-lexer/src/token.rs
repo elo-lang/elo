@@ -26,6 +26,29 @@ pub enum Token {
     InterpolationEnd,
 }
 
+impl Token {
+    // this function is just the pure text that the token "got" from the file.
+    // Unlike fmt::Display implementation of Token.
+    pub fn text(&self) -> String {
+        match self {
+            Token::Keyword(k) => format!("{k}"),
+            Token::Identifier(s) => format!("{s}"),
+            Token::Integer(s, _) => format!("{s}"),
+            Token::Float(s) => format!("{s}"),
+            Token::Newline => format!("\n"),
+            Token::Op(first, sec) => format!("{first}{}", sec.map_or("".to_string(), |s| s.to_string())),
+            Token::Delimiter(c) => format!("{c}"),
+            Token::String(_, s) => format!("{s}"),
+            Token::Character(s) => format!("{s}"),
+            Token::Variadic => format!("..."),
+            Token::Unknown(c) => format!("{c}"),
+            Token::InterpolationBegin => format!("\\("),
+            Token::InterpolationEnd => format!(")"),
+        }
+    }
+}
+
+// Unlike .text(), display implementation is for the diagnostic messages
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
