@@ -1,12 +1,14 @@
 // Abstract Syntax Tree
 
-use elo_lexer::span::Span;
+use elo_lexer::{span::Span, token::Token};
 
 #[derive(Debug)]
 pub struct Program {
     pub filename: String,
     pub nodes: Vec<Node>,
 }
+
+pub type OperatorPrecedence = usize;
 
 #[derive(Debug)]
 pub enum BinaryOperation {
@@ -40,23 +42,19 @@ pub enum BinaryOperation {
 }
 
 impl BinaryOperation {
-    pub fn from_op(first: char, second: Option<char>) -> Option<Self> {
-        let mut pat = String::from(first);
-        if let Some(c) = second {
-            pat.push(c);
-        }
-        match pat.as_str() {
-            "+" => Some(BinaryOperation::Add),
-            "-" => Some(BinaryOperation::Sub),
-            "*" => Some(BinaryOperation::Mul),
-            "/" => Some(BinaryOperation::Div),
-            "%" => Some(BinaryOperation::Mod),
-            "<" => Some(BinaryOperation::Lt),
-            ">" => Some(BinaryOperation::Gt),
-            "&" => Some(BinaryOperation::BAnd),
-            "|" => Some(BinaryOperation::BOr),
-            "^" => Some(BinaryOperation::BXor),
-            "=" => Some(BinaryOperation::Assign),
+    pub fn from_token(token: &Token) -> Option<Self> {
+        match token.text().as_str() {
+            "+"  => Some(BinaryOperation::Add),
+            "-"  => Some(BinaryOperation::Sub),
+            "*"  => Some(BinaryOperation::Mul),
+            "/"  => Some(BinaryOperation::Div),
+            "%"  => Some(BinaryOperation::Mod),
+            "<"  => Some(BinaryOperation::Lt),
+            ">"  => Some(BinaryOperation::Gt),
+            "&"  => Some(BinaryOperation::BAnd),
+            "|"  => Some(BinaryOperation::BOr),
+            "^"  => Some(BinaryOperation::BXor),
+            "="  => Some(BinaryOperation::Assign),
             "==" => Some(BinaryOperation::Eq),
             "!=" => Some(BinaryOperation::Ne),
             "<=" => Some(BinaryOperation::Le),
@@ -73,7 +71,46 @@ impl BinaryOperation {
             "&=" => Some(BinaryOperation::AssignBAnd),
             "|=" => Some(BinaryOperation::AssignBOr),
             "^=" => Some(BinaryOperation::AssignBXor),
-            _ => None,
+            _    => None,
+        }
+    }
+
+    pub fn precedence(&self) -> OperatorPrecedence {
+        match self {
+            BinaryOperation::Assign     => 1,
+            BinaryOperation::AssignAdd  => 1,
+            BinaryOperation::AssignSub  => 1,
+            BinaryOperation::AssignMul  => 1,
+            BinaryOperation::AssignDiv  => 1,
+            BinaryOperation::AssignMod  => 1,
+            BinaryOperation::AssignBAnd => 1,
+            BinaryOperation::AssignBOr  => 1,
+            BinaryOperation::AssignBXor => 1,
+
+            BinaryOperation::Eq         => 2,
+            BinaryOperation::Ne         => 2,
+
+            BinaryOperation::Le         => 3,
+            BinaryOperation::Ge         => 3,
+            BinaryOperation::Lt         => 3,
+            BinaryOperation::Gt         => 3,
+
+            BinaryOperation::And        => 4,
+            BinaryOperation::Or         => 4,
+
+            BinaryOperation::BAnd       => 5,
+            BinaryOperation::BOr        => 5,
+            BinaryOperation::BXor       => 5,
+
+            BinaryOperation::Add        => 6,
+            BinaryOperation::Sub        => 6,
+
+            BinaryOperation::Mul        => 7,
+            BinaryOperation::Div        => 7,
+            BinaryOperation::Mod        => 7,
+
+            BinaryOperation::LShift     => 8,
+            BinaryOperation::RShift     => 8,
         }
     }
 }
@@ -88,18 +125,24 @@ pub enum UnaryOperation {
 }
 
 impl UnaryOperation {
-    pub fn from_op(first: char, second: Option<char>) -> Option<Self> {
-        let mut pat = String::from(first);
-        if let Some(c) = second {
-            pat.push(c);
-        }
-        match pat.as_str() {
+    pub fn from_token(token: &Token) -> Option<Self> {
+        match token.text().as_str() {
             "!" => Some(UnaryOperation::Not),
             "~" => Some(UnaryOperation::BNot),
             "-" => Some(UnaryOperation::Neg),
             "&" => Some(UnaryOperation::Addr),
             "*" => Some(UnaryOperation::Deref),
             _ => None,
+        }
+    }
+
+    pub fn precedence(&self) -> OperatorPrecedence {
+        match self {
+            UnaryOperation::Not   => 9,
+            UnaryOperation::BNot  => 9,
+            UnaryOperation::Neg   => 9,
+            UnaryOperation::Addr  => 9,
+            UnaryOperation::Deref => 9
         }
     }
 }

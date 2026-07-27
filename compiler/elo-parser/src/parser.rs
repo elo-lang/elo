@@ -1,71 +1,16 @@
 use std::iter::Peekable;
 
-use elo_error::parseerror::{ParseError, ParseErrorCase};
+use elo_error::parseerror::*;
+
+use elo_lexer::lexer::*;
+use elo_lexer::lexem::*;
+use elo_lexer::token::*;
 use elo_lexer::inputfile::InputFile;
 use elo_lexer::keyword::Keyword;
-use elo_lexer::lexem::Lexem;
-use elo_lexer::lexer::Lexer;
 use elo_lexer::span::Span;
-use elo_lexer::token::StringKind;
-use elo_lexer::token::Token;
 
-use elo_ir::ast::Node;
-use elo_ir::ast::Program;
 use elo_ir::ast::*;
 
-pub type Precedence = u8;
-
-// TODO: Change this function to accept a BinaryOperation enum instead of &Token
-fn binop_precedence(token: &Token) -> Precedence {
-    match token {
-        Token::Op('=', None)      => 1,
-        Token::Op('+', Some('=')) => 1,
-        Token::Op('-', Some('=')) => 1,
-        Token::Op('*', Some('=')) => 1,
-        Token::Op('/', Some('=')) => 1,
-        Token::Op('%', Some('=')) => 1,
-        Token::Op('&', Some('=')) => 1,
-        Token::Op('|', Some('=')) => 1,
-        Token::Op('^', Some('=')) => 1,
-        Token::Op('=', Some('=')) => 2,
-        Token::Op('!', Some('=')) => 2,
-        Token::Op('<', Some('=')) => 3,
-        Token::Op('>', Some('=')) => 3,
-        Token::Op('<', None)      => 3,
-        Token::Op('>', None)      => 3,
-        Token::Op('&', Some('&')) => 4,
-        Token::Op('|', Some('|')) => 4,
-        Token::Op('&', None)      => 5,
-        Token::Op('|', None)      => 5,
-        Token::Op('^', None)      => 5,
-        Token::Op('+', None)      => 6,
-        Token::Op('-', None)      => 6,
-        Token::Op('*', None)      => 7,
-        Token::Op('/', None)      => 7,
-        Token::Op('%', None)      => 7,
-        Token::Op('<', Some('<')) => 8,
-        Token::Op('>', Some('>')) => 8,
-        // This is zero because the check made in parse_expr() will be false because
-        // you have to start parsing expressions starting from limit = 1.
-        // This way it just stops parsing when it finds something strange
-        _ => 0,
-    }
-}
-
-// TODO: Change this function to accept a UnaryOperation enum instead of &Token
-fn unop_precedence(op: &Token) -> Precedence {
-    match op {
-        Token::Op('!', None) => 9,
-        Token::Op('-', None) => 9,
-        Token::Op('~', None) => 9,
-        Token::Op('&', None) => 9,
-        Token::Op('*', None) => 9,
-        // This is zero because the check made in parse_expr() will be false because
-        // you have to start parsing expressions starting from limit = 1.
-        // This way it just stops parsing when it finds something strange
-        _ => 0,
-    }
-}
 
 pub const EOF: &str = "EOF";
 
@@ -742,9 +687,9 @@ impl<'a> Parser<'a> {
                     });
                 }
                 token @ Token::Op(a, b) => {
-                    let op = UnaryOperation::from_op(*a, b.as_ref().copied());
+                    let op = UnaryOperation::from_token(token);
                     if let Some(unop) = op {
-                        let prec = unop_precedence(token);
+                        let prec = unop.precedence();
                         let start = lexem.span;
                         self.next();
                         let expr = self.parse_expr(prec, true)?;
@@ -786,21 +731,37 @@ impl<'a> Parser<'a> {
 
     fn parse_expr(
         &mut self,
-        limit: Precedence,
+        limit: OperatorPrecedence,
         struct_allowed: bool,
     ) -> Result<Expression, ParseError> {
         let mut left = self.parse_primary(struct_allowed)?;
         while let Some(Lexem { token, .. }) = self.lexer.peek() {
-            // Everything put before checking the precedence automatically means it's always the highest precedence.
-            let next_limit = binop_precedence(token);
+            if let Some(binop) = BinaryOperation::from_token(token) {
+                let next_limit = binop.precedence();
+                if limit > next_limit {
+                    break;
+                }
 
-            // FIXME: The argument `false` of the test_token call below is not correct
-            //        because it is desirable to let you have member accesses in a chain
-            //        over multiple lines, but this causes the test_token function to consume
-            //        the newline token that is needed to ensure proper statement termination.
-            //        Possible Fix: only allow "lazy" parsing of expressions inside ()
-            // Field/member access
-            if let Some(_) = self.test_token(&Token::Delimiter('.'), false) {
+                self.next();
+                let right = self.parse_expr(next_limit, struct_allowed)?;
+                left = Expression {
+                    span: left.span.merge(self.current_span),
+                    data: ExpressionData::BinaryOperation {
+                        operator: binop,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    },
+                };
+            }
+            // Handling special cases for expressions
+            else if let Some(_) = self.test_token(&Token::Delimiter('.'), false) {
+                // FIXME: The argument `false` of the test_token call above is not correct
+                //        because it is desirable to let you have member accesses in a chain
+                //        over multiple lines, but this causes the test_token function to consume
+                //        the newline token that is needed to ensure proper statement termination.
+                //        Possible Fix: only allow "lazy" parsing of expressions inside ()
+                // Field/member access
+
                 // First we check for an integer after the '.' to see if it's a tuple index access
                 // instead of a field access
                 if let Some(Token::Integer(value, base)) = self.test_integer(false) {
@@ -822,11 +783,7 @@ impl<'a> Parser<'a> {
                         field: field,
                     },
                 };
-                continue;
-            }
-
-            // Function call (e.g. foo(), bar())
-            if let Some(_) = self.test_token(&Token::Delimiter('('), false) {
+            } else if let Some(_) = self.test_token(&Token::Delimiter('('), false) { // Call
                 let args = self.parse_expression_list(Token::Delimiter(')'))?;
                 self.expect_token(Token::Delimiter(')'))?;
                 left = Expression {
@@ -836,11 +793,7 @@ impl<'a> Parser<'a> {
                         arguments: args,
                     },
                 };
-                continue;
-            }
-
-            // Subscript
-            if let Some(_) = self.test_token(&Token::Delimiter('['), false) {
+            } else if let Some(_) = self.test_token(&Token::Delimiter('['), false) { // Subscript
                 let inner = self.parse_expr(1, true)?;
                 self.expect_token(Token::Delimiter(']'))?;
                 left = Expression {
@@ -850,11 +803,7 @@ impl<'a> Parser<'a> {
                         inner: Box::new(inner),
                     },
                 };
-                continue;
-            }
-
-            // Type cast with 'as'
-            if let Some(_) = self.test_token(&Token::Keyword(Keyword::As), false) {
+            } else if let Some(_) = self.test_token(&Token::Keyword(Keyword::As), false) { // Type cast with 'as'
                 let typ = self.parse_type()?;
                 left = Expression {
                     span: left.span.merge(self.current_span),
@@ -863,31 +812,10 @@ impl<'a> Parser<'a> {
                         typ: typ,
                     },
                 };
-                continue;
-            }
-
-            if limit > next_limit {
+            } else {
                 break;
             }
-
-            if let Some(Lexem {
-                token: Token::Op(a, b),
-                ..
-            }) = self.next()
-            {
-                let binop = BinaryOperation::from_op(a, b);
-                let right = self.parse_expr(next_limit, struct_allowed)?;
-                left = Expression {
-                    span: left.span.merge(self.current_span),
-                    data: ExpressionData::BinaryOperation {
-                        operator: binop.unwrap(),
-                        left: Box::new(left),
-                        right: Box::new(right),
-                    },
-                };
-            }
         }
-
         Ok(left)
     }
 
