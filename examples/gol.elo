@@ -112,7 +112,6 @@ fn main() {
         b = a;
         a = temp;
 
-        swap = !swap;
         read(stdin);
     }
 }
