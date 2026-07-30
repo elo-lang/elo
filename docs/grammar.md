@@ -2,6 +2,8 @@
 
 This document describes the syntax accepted by Elo's parser.
 
+Be aware that this document may not be a fully accurate functional or structural representation of Elo's parser implemented in its compiler. This grammar specification is created purely for documentation purposes and serves as a basis on anyone wanting to implement an alternative compiler or referencing the language's grammar formally.
+
 ## Notation
 
 The grammar is expressed as a series of **definitions**.
@@ -94,9 +96,6 @@ This document uses the following notation:
 >
 > &nbsp;&nbsp;&nbsp;&nbsp;`` ` `` & {`` ` ``} & `` ` ``
 
-Like whitespace, a *COMMENT* is discarded before parsing and is not
-referenced anywhere else in this grammar.
-
 > **BINARYOP**
 >
 > &nbsp;&nbsp;&nbsp;&nbsp;(`=` | `+=` | `-=` | `*=` | `/=` | `%=` | `&=` | `|=` | `^=` | `==` | `!=` | `<` | `>` | `<=` | `>=` | `&&` | `||` | `^` | `|` | `&` | `+` | `-` | `*` | `/` | `%` | `<<` | `>>`)
@@ -116,29 +115,6 @@ referenced anywhere else in this grammar.
 > **Node**
 >
 > &nbsp;&nbsp;&nbsp;&nbsp;*Statement*
-
-### Field & list constructs
-
-> **TypedField**
->
-> &nbsp;&nbsp;&nbsp;&nbsp;*IDENTIFIER* `:` *Type*
-
-> **TypedFields**
->
-> &nbsp;&nbsp;&nbsp;&nbsp;[ *TypedField* (`,` *TypedField*)* [`,`] ]
-
-> **EnumVariants**
->
-> &nbsp;&nbsp;&nbsp;&nbsp;[ *IDENTIFIER* (`,` *IDENTIFIER*)\* [`,`] ]
-
-Elo's enums are C-like: a variant is a bare name and carries no associated
-data. There is no sum-type / tagged-union form here.
-
-> **ExternParams**
->
-> &nbsp;&nbsp;&nbsp;&nbsp;`...`
->
-> &nbsp;&nbsp;&nbsp;&nbsp;[ *TypedField* (`,` *TypedField*)\* [`,` `...`] ]
 
 ## Statement
 
@@ -234,6 +210,7 @@ way.
 ## Types
 
 > **Type**
+>
 > &nbsp;&nbsp;&nbsp;&nbsp;`(` *Type* `)`
 >
 > &nbsp;&nbsp;&nbsp;&nbsp;*FunctionType*
@@ -272,10 +249,6 @@ way.
 >
 > &nbsp;&nbsp;&nbsp;&nbsp;`(` *Type* (`,` *Type*)+ `)`
 
-> **TypeList**
->
-> &nbsp;&nbsp;&nbsp;&nbsp;*Type* (`,` *Type*)\*
-
 ## Expressions
 
 ### Operator precedence
@@ -304,17 +277,17 @@ they share its precedence — the source table only lists bare `=`.
 >
 > &nbsp;&nbsp;&nbsp;&nbsp;*Primary*
 >
+> &nbsp;&nbsp;&nbsp;&nbsp;*UNARYOP* *Expression*
+>
 > &nbsp;&nbsp;&nbsp;&nbsp;*Expression* *BINARYOP* *Expression*
 >
-> &nbsp;&nbsp;&nbsp;&nbsp;*Expression* `.` (*INTEGER* | *IDENTIFIER*)
+> &nbsp;&nbsp;&nbsp;&nbsp;**FieldOrMemberAccess** → *Expression* `.` (*INTEGER* | *IDENTIFIER*)
 >
-> &nbsp;&nbsp;&nbsp;&nbsp;*Expression* `(` [ *ExpressionList* ] `)`
+> &nbsp;&nbsp;&nbsp;&nbsp;**FunctionCall** → *Expression* `(` [ *ExpressionList* ] `)`
 >
-> &nbsp;&nbsp;&nbsp;&nbsp;*Expression* `[` *Expression* `]`
+> &nbsp;&nbsp;&nbsp;&nbsp;**SubscriptAccess** → *Expression* `[` *Expression* `]`
 >
-> &nbsp;&nbsp;&nbsp;&nbsp;*Expression* `as` *Type*
->
-> &nbsp;&nbsp;&nbsp;&nbsp;*UNARYOP* *Expression*
+> &nbsp;&nbsp;&nbsp;&nbsp;**TypeCast** → *Expression* `as` *Type*
 
 *UNARYOP* and *BINARYOP* deliberately share some symbols (`&`, `-`, `*`).
 This is not a conflict: the same symbol in prefix position and in infix
@@ -341,7 +314,11 @@ disambiguated by syntax position.
 >
 > &nbsp;&nbsp;&nbsp;&nbsp;*StrLiteral*
 
-### Field & list constructs
+## Auxiliary constructs
+
+> **TypeList**
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;*Type* (`,` *Type*)\*
 
 > **Field**
 >
@@ -354,3 +331,21 @@ disambiguated by syntax position.
 > **ExpressionList**
 >
 > &nbsp;&nbsp;&nbsp;&nbsp;*Expression* (`,` *Expression*)\* [`,`]
+
+> **TypedField**
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;*IDENTIFIER* `:` *Type*
+
+> **TypedFields**
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;[ *TypedField* (`,` *TypedField*)* [`,`] ]
+
+> **EnumVariants**
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;[ *IDENTIFIER* (`,` *IDENTIFIER*)\* [`,`] ]
+
+> **ExternParams**
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;`...`
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;[ *TypedField* (`,` *TypedField*)\* [`,` `...`] ]
