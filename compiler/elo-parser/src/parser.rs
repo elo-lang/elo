@@ -686,7 +686,7 @@ impl<'a> Parser<'a> {
                         data: ExpressionData::BooleanLiteral { value: false },
                     });
                 }
-                token @ Token::Op(a, b) => {
+                token @ Token::Op(..) => {
                     let op = UnaryOperation::from_token(token);
                     if let Some(unop) = op {
                         let prec = unop.precedence();
