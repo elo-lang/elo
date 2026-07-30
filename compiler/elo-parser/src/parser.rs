@@ -738,7 +738,7 @@ impl<'a> Parser<'a> {
         while let Some(Lexem { token, .. }) = self.lexer.peek() {
             if let Some(binop) = BinaryOperation::from_token(token) {
                 let next_limit = binop.precedence();
-                if limit > next_limit {
+                if limit >= next_limit {
                     break;
                 }
 
