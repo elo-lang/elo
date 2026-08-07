@@ -227,7 +227,7 @@ impl<'a> Parser<'a> {
     fn parse_field(&mut self) -> Result<Field, ParseError> {
         let ident = self.expect_identifier()?;
         self.expect_token(Token::Delimiter(':'))?;
-        let value = self.parse_expr(1, true)?;
+        let value = self.parse_expr(0, true)?;
         return Ok(Field {
             name: ident,
             value: value,
@@ -324,7 +324,7 @@ impl<'a> Parser<'a> {
         {
             return Ok(fields);
         }
-        let first = self.parse_expr(1, true)?;
+        let first = self.parse_expr(0, true)?;
         fields.push(first);
         while let Some(Lexem {
             token: Token::Delimiter(','),
@@ -335,7 +335,7 @@ impl<'a> Parser<'a> {
             if let Some(_) = self.seek_token(&termination, true) {
                 break;
             }
-            let expr = self.parse_expr(1, true)?;
+            let expr = self.parse_expr(0, true)?;
             fields.push(expr);
         }
         Ok(fields)
@@ -617,7 +617,7 @@ impl<'a> Parser<'a> {
                 Token::Delimiter('(') => {
                     self.next();
                     let init_span = self.current_span;
-                    let expr = self.parse_expr(1, true)?;
+                    let expr = self.parse_expr(0, true)?;
                     if let Some(_) = self.test_token(&Token::Delimiter(','), false) {
                         let tail = self.parse_expression_list(Token::Delimiter(')'))?;
                         self.expect_token(Token::Delimiter(')'))?;
@@ -794,7 +794,7 @@ impl<'a> Parser<'a> {
                     },
                 };
             } else if let Some(_) = self.test_token(&Token::Delimiter('['), false) { // Subscript
-                let inner = self.parse_expr(1, true)?;
+                let inner = self.parse_expr(0, true)?;
                 self.expect_token(Token::Delimiter(']'))?;
                 left = Expression {
                     span: left.span.merge(self.current_span),
@@ -822,7 +822,7 @@ impl<'a> Parser<'a> {
     fn parse_assignment(&mut self) -> Result<(String, Expression), ParseError> {
         let ident = self.expect_identifier()?;
         let _ = self.expect_token(Token::Op('=', None))?;
-        let expr = self.parse_expr(1, true)?;
+        let expr = self.parse_expr(0, true)?;
         Ok((ident, expr))
     }
 
@@ -841,7 +841,7 @@ impl<'a> Parser<'a> {
         let _ = self.expect_token(Token::Delimiter(':'))?;
         let typing = self.parse_type()?;
         let _ = self.expect_token(Token::Op('=', None))?;
-        let expr = self.parse_expr(1, true)?;
+        let expr = self.parse_expr(0, true)?;
 
         self.expect_end()?;
         Ok(Statement::ConstStatement(ConstStatement {
@@ -946,7 +946,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_if_stmt(&mut self) -> Result<Statement, ParseError> {
-        let expr = self.parse_expr(1, false)?;
+        let expr = self.parse_expr(0, false)?;
         let block_true = self.parse_block(true, true)?;
         let mut block_false: Option<Block> = None;
         if let Some(_) = self.test_token(&Token::Keyword(Keyword::Else), true) {
@@ -970,7 +970,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_while_stmt(&mut self) -> Result<Statement, ParseError> {
-        let condition = self.parse_expr(1, false)?;
+        let condition = self.parse_expr(0, false)?;
         let block = self.parse_block(true, true)?;
         Ok(Statement::WhileStatement(WhileStatement {
             condition,
@@ -982,7 +982,7 @@ impl<'a> Parser<'a> {
         if self.test_end() {
             return Ok(Statement::ReturnStatement(ReturnStatement { expr: None }));
         }
-        let expr = self.parse_expr(1, true)?;
+        let expr = self.parse_expr(0, true)?;
 
         self.expect_end()?;
         Ok(Statement::ReturnStatement(ReturnStatement {
@@ -1062,7 +1062,7 @@ impl<'a> Parser<'a> {
                 _ => {
                     let span = lexem.span;
                     // Ensure that the next token is an token valid for an expression. Otherwise, stop parsing.
-                    let expr = self.parse_expr(1, true)?;
+                    let expr = self.parse_expr(0, true)?;
                     let node = Node {
                         span,
                         stmt: Statement::ExpressionStatement(expr),
