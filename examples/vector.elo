@@ -1,6 +1,6 @@
 struct Vec2 {
-    x: int,
-    y: int,
+    x: uint,
+    y: uint,
 }
 
 fn print_vec2(v: *Vec2) {
@@ -9,6 +9,6 @@ fn print_vec2(v: *Vec2) {
 }
 
 fn main() {
-    let v = Vec2 { x: 10 as int, y: 30 as int };
+    let v = Vec2 { x: 10, y: 30 };
     print_vec2(&v)
 }
