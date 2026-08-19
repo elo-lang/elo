@@ -320,11 +320,17 @@ impl Generator {
                 return c::subscript_expr(&origin, &index);
             }
             cir::ExpressionData::SliceSubscript { typ, origin, index } => {
-                let typ = self.choose_type(typ);
+                let _typ = self.choose_type(typ);
                 let origin = self.generate_expression(origin);
                 let index = self.generate_expression(index);
-                let args = self.generate_passed_args(vec![typ, origin, index], false);
+                let args = self.generate_passed_args(vec![String::from("(Pos){0}"), origin, index], false);
                 return c::function_call_expr("__elo_slice_get", &args);
+            }
+            cir::ExpressionData::StrSubscript { origin, index } => {
+                let origin = self.generate_expression(origin);
+                let index = self.generate_expression(index);
+                let args = self.generate_passed_args(vec![String::from("(Pos){0}"), origin, index], false);
+                return c::function_call_expr("__elo_str_get", &args);
             }
             cir::ExpressionData::FieldAccess { origin, field } => {
                 let lhs = self.generate_expression(origin);
