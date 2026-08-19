@@ -48,6 +48,7 @@ void __elo_print_char(GlobalContext* ctx, _ELO_CHAR_T value) {
         putchar((char)(0x80 | ((cp >> 6) & 0x3F)));
         putchar((char)(0x80 | (cp & 0x3F)));
     }
+    putchar(10);
 }
 
 _ELO_SLICE_T __elo_args(GlobalContext* ctx) {

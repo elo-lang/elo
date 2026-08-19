@@ -12,15 +12,15 @@ Str __elo_str_new(GlobalContext* ctx, const char* cstr) {
     };
 }
 
-char __elo_str_get(Pos pos, GlobalContext* ctx, Str str, size_t index) {
+uint32_t __elo_str_get(GlobalContext* ctx, Pos pos, Str str, size_t index) {
     char* cstr = __elo_handle_get(ctx, str.slot);
     char* start = cstr + str.offset;
     if (index >= str.size)
         __elo_panic(pos, "index %zu is out of bounds for str of length %zu", index, str.size);
-    return *(start + index);
+    return (uint32_t)*(start + index);
 }
 
-Str __elo_str_slice(Pos pos, GlobalContext *ctx, Str str, size_t start, size_t end) {
+Str __elo_str_slice(GlobalContext *ctx, Pos pos, Str str, size_t start, size_t end) {
     if (start > end)
         __elo_panic(pos, "slice start %zu is greater than slice end %zu for str of length %zu", start, end, str.size);
     if (start >= str.size)
