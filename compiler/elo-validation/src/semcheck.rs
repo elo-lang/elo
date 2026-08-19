@@ -1,4 +1,4 @@
-use elo_ir::{ast::{self, TypedField}, cir::{ExpressionIdentity, Intrinsic, ResolvedIntrinsic}};
+use elo_ir::{ast::{self, TypedField}, cir::{ExpressionIdentity, Intrinsic, Primitive, ResolvedIntrinsic}};
 use elo_error::semerror::*;
 use elo_ir::cir;
 use elo_lexer::span::Span;
@@ -772,6 +772,19 @@ impl SemanticChecker {
                                 identity: origin_id,
                             },
                             *typ,
+                        ))
+                    }
+                    cir::Typing::Primitive(Primitive::Str) => {
+                        return Ok((
+                            cir::Expression {
+                                span: expr.span,
+                                data: cir::ExpressionData::StrSubscript {
+                                    origin: Box::new(origin),
+                                    index: Box::new(real_inner)
+                                },
+                                identity: origin_id,
+                            },
+                            cir::Typing::Primitive(Primitive::Char),
                         ))
                     }
                     _ => return Err(SemanticError {
