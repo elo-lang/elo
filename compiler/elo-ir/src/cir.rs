@@ -355,6 +355,7 @@ pub type Block = Vec<Statement>;
 #[derive(Debug, Clone)]
 pub struct Program {
     pub nodes: Vec<Statement>,
+    pub filename: String,
 }
 
 #[derive(Debug, Clone)]

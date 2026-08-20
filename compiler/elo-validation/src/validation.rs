@@ -18,8 +18,8 @@ impl Validator {
         }
     }
 
-    pub fn go(mut self, input: Vec<ast::Node>) -> Result<cir::Program, Vec<ValidationError>> {
-        let tc = self.semchecker.go(input);
+    pub fn go(mut self, filename: String, input: Vec<ast::Node>) -> Result<cir::Program, Vec<ValidationError>> {
+        let tc = self.semchecker.go(filename, input);
         let mut errors = Vec::new();
         for e in self.semchecker.errors {
             errors.push(ValidationError::SemanticChecker(e));

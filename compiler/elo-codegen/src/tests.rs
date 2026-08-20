@@ -10,7 +10,7 @@ fn test_file() {
     let source_text = &read_to_string(filename).unwrap();
     let lx = Lexer::new(InputFile::new(filename, source_text));
     let prog = Parser::new(lx).parse().unwrap();
-    let val = Validator::new().go(prog.nodes).unwrap();
+    let val = Validator::new().go("test.elo".to_string(), prog.nodes).unwrap();
     let mut r#gen = crate::generator::Generator::new(val);
     r#gen.go();
     println!("{}{}", r#gen.head, r#gen.body);

@@ -59,6 +59,7 @@ fn setup_elo_backend(compiler: &mut BackendCompiler, _optimize: bool, _debug: bo
         BackendCompiler::TCC(tcc) => {
             tcc.add_library_path("rt/bin");
             tcc.add_library("elort");
+            tcc.add_library("c");
             tcc.set_options("-I rt/include");
         }
     }
@@ -167,7 +168,7 @@ fn parse_program(p: InputFile) -> Result<ast::Program, parseerror::ParseError> {
 
 fn validate_program(prog: ast::Program) -> Result<cir::Program, Vec<validation::ValidationError>> {
     let validator = Validator::new();
-    validator.go(prog.nodes)
+    validator.go(prog.filename, prog.nodes)
 }
 
 fn generate_program(prog: cir::Program) -> String {

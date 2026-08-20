@@ -1561,7 +1561,7 @@ impl SemanticChecker {
     }
 
     // Type-check, control-flow check and transform the AST into the IR of Elo code
-    pub fn go(&mut self, input: Vec<ast::Node>) -> cir::Program {
+    pub fn go(&mut self, filename: String, input: Vec<ast::Node>) -> cir::Program {
         // This is why i'm making a language
         let mut stmts = Vec::new();
         for node in Box::new(input).into_iter() {
@@ -1576,6 +1576,6 @@ impl SemanticChecker {
             Ok(()) => {},
             Err(e) => self.errors.push(e),
         }
-        cir::Program { nodes: stmts }
+        cir::Program { nodes: stmts, filename }
     }
 }

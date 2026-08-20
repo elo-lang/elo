@@ -1,5 +1,6 @@
 use crate::c;
 use elo_ir::cir::{self, Program};
+use elo_lexer::span::Span;
 
 pub struct Generator {
     pub input: Program,
@@ -73,6 +74,10 @@ fn mangle_fn_type(no: usize) -> String {
 }
 
 impl Generator {
+    pub fn get_position_struct(&self, span: Span) -> String {
+        format!("(Pos){{\"{}\", {}, {}}}", self.input.filename, span.line, span.start)
+    }
+
     pub fn get_fn_type(&mut self, ret: &cir::Typing, args: &Vec<cir::Typing>) -> String {
         let mut fn_type_index = None;
         for (index, fn_type) in self.fn_types.iter().enumerate() {
@@ -323,13 +328,15 @@ impl Generator {
                 let _typ = self.choose_type(typ);
                 let origin = self.generate_expression(origin);
                 let index = self.generate_expression(index);
-                let args = self.generate_passed_args(vec![String::from("(Pos){0}"), origin, index], false);
+                let pos = self.get_position_struct(expr.span);
+                let args = self.generate_passed_args(vec![pos, origin, index], false);
                 return c::function_call_expr("__elo_slice_get", &args);
             }
             cir::ExpressionData::StrSubscript { origin, index } => {
                 let origin = self.generate_expression(origin);
                 let index = self.generate_expression(index);
-                let args = self.generate_passed_args(vec![String::from("(Pos){0}"), origin, index], false);
+                let pos = self.get_position_struct(expr.span);
+                let args = self.generate_passed_args(vec![pos, origin, index], false);
                 return c::function_call_expr("__elo_str_get", &args);
             }
             cir::ExpressionData::FieldAccess { origin, field } => {
