@@ -1,0 +1,54 @@
+filetype: elo
+
+detect:
+    filename: "\\.elo$"
+
+rules:
+    # function definition
+    - identifier: "fn [a-z0-9_]+"
+
+      # Reserved words
+    - statement: "\\b(where|import|move|share|clone|give|macro|it|defer|module|ok|fail|some|none|self|as|break|const|continue|else|enum|extern|false|fn|for|if|in|let|var|match|mut|return|ret|sizeof|struct|true|while)\\b"
+
+      # Constants
+    - constant: "\\b[A-Z][A-Z_0-9]+\\b"
+    - constant: "@library\\(system\\)|@library|@unsafe|@raw|@system|@end|value|type"
+
+      # Numbers
+    - constant.number: "\\b[0-9]+\\b"
+
+      # Booleans
+    - constant: "\\b(true|false)\\b"
+
+      # Enums/Structs/Types/etc.
+    - type: "\\b[A-Z]+[a-zA-Z_0-9]*[a-z]+[a-zA-Z_0-9]*\\b"
+
+      # Builtin types
+    - type: "\\b(bool|str|int|uint|float|((i|u)(8|16|32|64))|f32|f64|string)\\b"
+
+    - constant.string:
+        start: "\""
+        end: "\""
+        skip: '\\.'
+        rules:
+            - constant.specialChar: '\\.'
+
+    - constant.string:
+        start: "\'"
+        end: "\'"
+        skip: '\\.'
+        rules:
+            - constant.specialChar: '\\.'
+
+    - constant.character:
+        start: "`"
+        end: "`"
+        skip: '\\.'
+        rules:
+            - constant.specialChar: '\\.'
+
+    - comment:
+        start: "//"
+        end: "$"
+        rules:
+            - todo: "(TODO|XXX|FIXME):?"
