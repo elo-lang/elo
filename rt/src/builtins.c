@@ -5,7 +5,7 @@
 void __elo_print_str(GlobalContext* ctx, _ELO_STR_T value) {
     char* ptr = __elo_handle_get(ctx, value.slot);
     ptr += value.offset;
-    printf("%.*s\n", value.size, ptr);
+    printf("%.*s\n", (int)value.size, ptr);
 }
 
 void __elo_print_decimal(GlobalContext* ctx, _ELO_F64_T value) {

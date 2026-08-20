@@ -5,11 +5,11 @@
 
 void __elo_panic(Pos pos, const char *fmt, ...) {
     va_list args;
-    fprintf(stderr, "%s:%zu:%zu: PANIC: ", pos.filename, pos.line, pos.col);
+    printf("%s:%zu:%zu: PANIC: ", pos.filename, pos.line, pos.col);
     va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
+    vprintf(fmt, args);
     va_end(args);
-    fputc('\n', stderr);
+    putc('\n');
     exit(1);
 }
 

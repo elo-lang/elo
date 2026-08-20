@@ -32,7 +32,7 @@ Slot __elo_handle_new(GlobalContext* ctx, size_t size) {
 	if (ptr == NULL) {
 		abort();
 	}
-	__elo_handle_add(ctx, ptr);
+	return __elo_handle_add(ctx, ptr);
 }
 
 void __elo_handle_resize(GlobalContext* ctx, Slot slot, size_t size) {

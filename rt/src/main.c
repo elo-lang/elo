@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     size_t size = sizeof(_ELO_STR_T)*argc;
     _ELO_SLICE_T args = { .data = __elo_handle_add(&ctx, malloc(size)), .len = argc };
     _ELO_STR_T* p = __elo_handle_get(&ctx, args.data);
-    for (size_t i = 0; i < argc; i++, p++) {
+    for (size_t i = 0; i < (size_t)argc; i++, p++) {
         *p = __elo_str_new(&ctx, argv[i]);
     }
 

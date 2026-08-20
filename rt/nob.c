@@ -5,18 +5,19 @@
 #define RT_NATIVE  "libelort.a"
 #define RT_WIN     "elort.lib"
 #define ENTRY      "src/main.c"
+#define CFLAGS     "-Wall", "-Wextra", "-pedantic", "-Wno-unused-parameter"
 
 static Cmd cmd = {0};
 
 bool build_native(const char *source) {
     cmd_append(&cmd, "cc", "-c", "-o", BUILD_DIR RT_NATIVE, source);
-    cmd_append(&cmd, "-I", "include");
+    cmd_append(&cmd, "-I", "include", CFLAGS);
     return cmd_run(&cmd);
 }
 
 bool build_mingw(const char *source) {
     cmd_append(&cmd, "x86_64-w64-mingw32-gcc", "-c", "-o", BUILD_DIR RT_WIN, source);
-    cmd_append(&cmd, "-I", "include");
+    cmd_append(&cmd, "-I", "include", CFLAGS);
     return cmd_run(&cmd);
 }
 
