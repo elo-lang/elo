@@ -8,13 +8,12 @@ endif
 autocmd BufNewFile,BufRead *.keymap setfiletype elo
 
 " 1. Keywords & Statements
-syn keyword eloStatement where import move share clone give macro it defer module ok fail some none self as break const continue else enum extern fn for if in let var match mut return ret sizeof struct while
+syn keyword eloStatement as break const continue else enum extern fn if let var mut return ret struct while
 syn keyword eloBoolean true false
 
 " 2. Regex Matches (Identifiers, Constants, Numbers, Types)
 syn match eloIdentifier "\<fn [a-z0-9_]\+"
 syn match eloConstant "\<[A-Z][A-Z_0-9]\+\>"
-syn match eloConstant "@library(system)\|@library\|@unsafe\|@raw\|@system\|@end\|\<value\>\|\<type\>"
 syn match eloNumber "\<[0-9]\+\>"
 syn match eloType "\<[A-Z]\+[a-zA-Z_0-9]*[a-z]\+[a-zA-Z_0-9]*\>"
 syn match eloBuiltinType "\<\(bool\|str\|int\|uint\|float\|[iu]\(8\|16\|32\|64\)\|f32\|f64\|string\)\>"

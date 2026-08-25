@@ -8,11 +8,10 @@ rules:
     - identifier: "fn [a-z0-9_]+"
 
       # Reserved words
-    - statement: "\\b(where|import|move|share|clone|give|macro|it|defer|module|ok|fail|some|none|self|as|break|const|continue|else|enum|extern|false|fn|for|if|in|let|var|match|mut|return|ret|sizeof|struct|true|while)\\b"
+    - statement: "\\b(as|break|const|continue|else|enum|extern|fn|if|let|var|mut|return|ret|struct|while)\\b"
 
       # Constants
     - constant: "\\b[A-Z][A-Z_0-9]+\\b"
-    - constant: "@library\\(system\\)|@library|@unsafe|@raw|@system|@end|value|type"
 
       # Numbers
     - constant.number: "\\b[0-9]+\\b"
