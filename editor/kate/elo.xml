@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "syntax.dtd">
+<language name="Elo" version="2" kateversion="5.0" section="Sources" extensions="*.keymap;*.elo" mimetype="" author="" license="">
+  <highlighting>
+    <list name="statements">
+      <item>as</item>
+      <item>break</item>
+      <item>const</item>
+      <item>continue</item>
+      <item>else</item>
+      <item>enum</item>
+      <item>extern</item>
+      <item>fn</item>
+      <item>if</item>
+      <item>let</item>
+      <item>var</item>
+      <item>mut</item>
+      <item>return</item>
+      <item>ret</item>
+      <item>struct</item>
+      <item>while</item>
+    </list>
+    <list name="booleans">
+      <item>true</item>
+      <item>false</item>
+    </list>
+    <list name="builtintypes">
+      <item>bool</item>
+      <item>str</item>
+      <item>cstr</item>
+      <item>int</item>
+      <item>uint</item>
+      <item>float</item>
+      <item>i8</item>
+      <item>i16</item>
+      <item>i32</item>
+      <item>i64</item>
+      <item>u8</item>
+      <item>u16</item>
+      <item>u32</item>
+      <item>u64</item>
+      <item>f32</item>
+      <item>f64</item>
+      <item>string</item>
+    </list>
+
+    <contexts>
+      <context attribute="Normal Text" lineEndContext="#stay" name="NormalText">
+        <keyword attribute="Statement" context="#stay" String="statements"/>
+        <keyword attribute="Boolean" context="#stay" String="booleans"/>
+        <keyword attribute="Built-In Type" context="#stay" String="builtintypes"/>
+
+        <DetectChar attribute="Symbol" context="#stay" char="{" beginRegion="block"/>
+        <DetectChar attribute="Symbol" context="#stay" char="}" endRegion="block"/>
+        <DetectChar attribute="Symbol" context="#stay" char=";"/>
+        <DetectChar attribute="Symbol" context="#stay" char="["/>
+        <DetectChar attribute="Symbol" context="#stay" char="]"/>
+        <DetectChar attribute="Symbol" context="#stay" char="("/>
+        <DetectChar attribute="Symbol" context="#stay" char=")"/>
+        <DetectChar attribute="Symbol" context="#stay" char=":"/>
+        <StringDetect attribute="Symbol" context="#stay" String="=&gt;"/>
+
+        <RegExpr attribute="Operator" context="#stay" String="[-+*/%=!&lt;&gt;&amp;|^~]"/>
+        <RegExpr attribute="Identifier" context="#stay" String="(?&lt;=\bfn\s+)[a-z0-9_]+\b"/>
+        <RegExpr attribute="Number" context="#stay" String="\b[0-9]+\b"/>
+        <RegExpr attribute="Constant" context="#stay" String="\b[A-Z][A-Z_0-9]*\b"/>
+        <RegExpr attribute="Type" context="#stay" String="\b[A-Z]+[a-zA-Z_0-9]*[a-z]+[a-zA-Z_0-9]*\b"/>
+
+        <DetectChar attribute="String" context="DoubleQuoteString" char="&quot;"/>
+        <DetectChar attribute="String" context="SingleQuoteString" char="'"/>
+        <DetectChar attribute="Character" context="BacktickString" char="`"/>
+      </context>
+      <context attribute="String" lineEndContext="#pop" name="DoubleQuoteString">
+        <DetectChar attribute="String" context="#pop" char="&quot;"/>
+        <RegExpr attribute="SpecialChar" context="#stay" String="\\."/>
+      </context>
+      <context attribute="String" lineEndContext="#pop" name="SingleQuoteString">
+        <DetectChar attribute="String" context="#pop" char="'"/>
+        <RegExpr attribute="SpecialChar" context="#stay" String="\\."/>
+      </context>
+      <context attribute="Character" lineEndContext="#pop" name="BacktickString">
+        <DetectChar attribute="Character" context="#pop" char="`"/>
+        <RegExpr attribute="SpecialChar" context="#stay" String="\\."/>
+      </context>
+    </contexts>
+    <itemDatas>
+      <itemData name="Normal Text"   defStyleNum="dsNormal"/>
+      <itemData name="Statement"     defStyleNum="dsKeyword"/>
+      <itemData name="Boolean"       defStyleNum="dsDataType"/>
+      <itemData name="Identifier"    defStyleNum="dsFunction"/>
+      <itemData name="Constant"      defStyleNum="dsConstant"/>
+      <itemData name="Number"        defStyleNum="dsDecVal"/>
+      <itemData name="Type"          defStyleNum="dsDataType"/>
+      <itemData name="Built-In Type" defStyleNum="dsBuiltIn"/>
+      <itemData name="String"        defStyleNum="dsString"/>
+      <itemData name="Character"     defStyleNum="dsChar"/>
+      <itemData name="SpecialChar"   defStyleNum="dsSpecialChar"/>
+      <itemData name="Comment"       defStyleNum="dsComment"/>
+      <itemData name="Todo"          defStyleNum="dsAlert"/>
+      <itemData name="Operator"      defStyleNum="dsOperator"/>
+      <itemData name="Symbol"        defStyleNum="dsOperator"/>
+    </itemDatas>
+  </highlighting>
+  <general>
+    <comments>
+      <comment name="singleLine" start="//"/>
+    </comments>
+  </general>
+</language>
