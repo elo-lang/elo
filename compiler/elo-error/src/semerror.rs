@@ -249,7 +249,7 @@ pub fn semantic_error(pe: SemanticErrorCase, filespan: &FileSpan) {
         SemanticErrorCase::TypeMismatch { got, expected } => {
             error(
                 error_name,
-                &format!("type mismatch: expected {expected} but got {got}"),
+                &format!("type mismatch: expected expression of type {expected} but got {got}"),
                 filespan,
                 None,
                 None,
