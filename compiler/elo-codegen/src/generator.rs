@@ -75,7 +75,7 @@ fn mangle_fn_type(no: usize) -> String {
 
 impl Generator {
     pub fn get_position_struct(&self, span: Span) -> String {
-        format!("(Pos){{\"{}\", {}, {}}}", self.input.filename, span.line, span.start)
+        format!("((Pos){{\"{}\", {}, {}}})", self.input.filename, span.line, span.start)
     }
 
     pub fn get_fn_type(&mut self, ret: &cir::Typing, args: &Vec<cir::Typing>) -> String {
@@ -325,12 +325,13 @@ impl Generator {
                 return c::subscript_expr(&origin, &index);
             }
             cir::ExpressionData::SliceSubscript { typ, origin, index } => {
-                let _typ = self.choose_type(typ);
+                let typ = self.choose_type(typ);
                 let origin = self.generate_expression(origin);
                 let index = self.generate_expression(index);
                 let pos = self.get_position_struct(expr.span);
-                let args = self.generate_passed_args(vec![pos, origin, index], false);
-                return c::function_call_expr("__elo_slice_get", &args);
+                let args = self.generate_passed_args(vec![pos, c::sizeof_expr(&typ), origin, index], false);
+                let indexed_ptr = c::function_call_expr("__elo_slice_get", &args);
+                return c::reinterpret_ptr_expr(&typ, &indexed_ptr);
             }
             cir::ExpressionData::StrSubscript { origin, index } => {
                 let origin = self.generate_expression(origin);

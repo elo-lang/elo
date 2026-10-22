@@ -148,6 +148,14 @@ pub fn braced_expr(items: &str) -> String {
     return format!("{{{items}}}");
 }
 
+pub fn reinterpret_ptr_expr(typ: &str, ptr_expr: &str) -> String {
+    return format!("*(({typ}*)({ptr_expr}))");
+}
+
+pub fn sizeof_expr(value: &str) -> String {
+    return format!("sizeof({value})");
+}
+
 pub fn struct_expr(name: &str, fields: &[(String, String)]) -> String {
     let mut xs = format!("(struct {name}){{");
     for (field, value) in fields {
