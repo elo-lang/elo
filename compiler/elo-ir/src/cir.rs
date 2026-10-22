@@ -602,7 +602,7 @@ impl Typing {
 impl std::fmt::Display for Typing {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            Typing::Void => unreachable!("format void type is not allowed"),
+            Typing::Void => write!(f, "no type"),
             Typing::Primitive(p) => write!(f, "{}", p),
             Typing::Struct(s) => write!(f, "{}", s.name),
             Typing::Enum(e) => write!(f, "{}", e.name),
