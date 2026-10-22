@@ -1,3 +1,6 @@
+// `str` slice type constructs
+// Copyright (c) 2026 Igor Ferreira, Marcio Dantas
+
 #include <mem.h>
 
 #ifndef STR_H

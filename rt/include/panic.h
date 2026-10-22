@@ -1,3 +1,6 @@
+// Panic and runtime error reporting constructs
+// Copyright (c) 2026 Igor Ferreira, Marcio Dantas
+
 #ifndef PANIC_H
 #define PANIC_H
 

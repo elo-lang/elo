@@ -1,3 +1,7 @@
+// `[T]` type (List type) constructs
+// Copyright (c) 2026 Igor Ferreira, Marcio Dantas
+
+
 #include <panic.h>
 #include <mem.h>
 

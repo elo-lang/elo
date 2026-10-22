@@ -1,4 +1,5 @@
 // Elo's core typing definition
+// Copyright (c) 2026 Igor Ferreira, Marcio Dantas
 
 #include <stdint.h>
 #include <stdbool.h>

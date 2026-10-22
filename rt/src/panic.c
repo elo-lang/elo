@@ -13,8 +13,3 @@ void __elo_panic(Pos pos, const char *fmt, ...) {
     exit(1);
 }
 
-void __elo_index_check(Pos pos, size_t len, size_t index) {
-    if (index >= len) {
-        __elo_panic(pos, "index %zu is out of bounds for length %zu", index, len);
-    }
-}

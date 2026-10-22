@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <mem.h>
 
+// Huge thanks to Tsoding (Alexey Kutepov) for this genius trick for dynamic arrays
 #define da_append(xs, x)                                                             \
     do {                                                                             \
         if ((xs)->count >= (xs)->capacity) {                                         \

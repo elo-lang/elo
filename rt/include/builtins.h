@@ -1,3 +1,6 @@
+// Built-in functions declarations
+// Copyright (c) 2026 Igor Ferreira, Marcio Dantas
+
 #include <mem.h>
 #include <str.h>
 #include <typing.h>

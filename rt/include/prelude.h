@@ -10,8 +10,8 @@
 #define PRELUDE_H
 
 #include <typing.h>
-#include <slice.h>
 #include <mem.h>
+#include <slice.h>
 #include <panic.h>
 #include <list.h>
 #include <str.h>
